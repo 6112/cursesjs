@@ -1,0 +1,24 @@
+.js-curses .a-bold {
+  font-weight: bold;
+}
+
+.js-curses .pair-1 {
+  color: red;
+}
+
+.js-curses .pair-1.a-reverse {
+  background-color: red;
+}
+
+.js-curses .pair-2 {
+  color: green;
+}
+
+.js-curses .pair-2.a-reverse {
+  background-color: green;
+}
+
+.js-curses .a-reverse {
+  background-color: #333333;
+  color: #F5F5F5;
+}
