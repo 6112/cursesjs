@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>js-curses demonstration</title>
+  <link href='http://fonts.googleapis.com/css?family=Inconsolata' rel='stylesheet' type='text/css'>
+  <link href="bower_components/bootstrap/dist/css/bootstrap.css"
+    rel="stylesheet" type="text/css" />
+  <style>
+    #stage {
+      font-family: "Inconsolata", monospace;
+      display: inline-block;
+      line-height: 14px;
+      font-size: 14px;
+    }
+
+    .js-curses .a-bold {
+      font-weight: bold;
+    }
+
+    .js-curses .pair-1 {
+      color: red;
+    }
+
+    .js-curses .pair-1.a-reverse {
+      background-color: red;
+    }
+
+    .js-curses .pair-2 {
+      color: green;
+    }
+
+    .js-curses .pair-2.a-reverse {
+      background-color: green;
+    }
+
+    .js-curses .a-reverse {
+      background-color: #333333;
+      color: #F5F5F5;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>js-curses</h1>
+  
+  <p>An interface for JavaScript that is pretty much copied from the
+  <code>ncurses</code> library, and can be used to make "text-mode" interfaces
+  inside a web browser. Click the console "window" to give it focus, and then
+  you can start using it as you would for any console application that has
+  a curses user interface.</p>
+
+  <pre class="js-curses well well-sm" id="stage">
+  </pre>
+</div>
+<script src="bower_components/jquery/dist/jquery.js"></script>
+<script src="js-curses.js"></script>
+<script>
+$(function() {
+  var win = initscr('#stage', 30, 60, true);
+  raw();
+  attron(A_BOLD | A_REVERSE | COLOR_PAIR(1));
+  addstr(0, 0, '  js-curses demonstration');
+  var x = win.x;
+  while (x++ < 59) {
+    addstr(' ');
+  }
+  attroff(A_BOLD | A_REVERSE | COLOR_PAIR(1));
+  addstr(1, 2, 'use the ');
+  addstr ('arrow keys', A_BOLD);
+  addstr(' to select a demo');
+  addstr(2, 2, 'press ');
+  addstr('enter', A_BOLD);
+  addstr(' to run that demo');
+  var selected = 0;
+  var options = [
+    'Roguelike-like player movement',
+    'Text editor',
+    'Window demo'
+  ];
+  var redraw = function() {
+    var i;
+    for (i = 0; i < options.length; i++) {
+      if (i === selected) {
+        attron(A_REVERSE);
+      }
+      addstr(i + 3, 0, options[i]);
+      var x = win.x;
+      while (x++ < 59) {
+        addstr(' ');
+      }
+      if (i === selected) {
+        attroff(A_REVERSE);
+      }
+    }
+    move(i + 3, 0);
+    refresh();
+  };
+  redraw();
+  var update = function(c) {
+    switch(c) {
+      case 'Down':
+        selected++;
+        break;
+      case 'Up':
+        selected--;
+        break;
+      default: break;
+    }
+    selected = Math.min(options.length - 1, Math.max(0, selected));
+    redraw();
+  };
+  ongetch(update);
+});
+</script>
+</body>
+</html>
