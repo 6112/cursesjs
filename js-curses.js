@@ -324,6 +324,23 @@
   // dummy call for old-school curses programming
   var keypad = exports.keypad = function() {};
 
+  // clear the whole window
+  window_t.prototype.clear = function() {
+    var old_attrs = this.attrs;
+    this.attrset(A_NORMAL);
+    var y, x;
+    for (y = 0; y < this.height; y++) {
+      for (x = 0; x < this.width; x++) {
+        var tile = this.tiles[y][x];
+        this.move(y, x);
+        this.addch(this.empty_char);
+        tile.empty = true;
+      }
+    }
+    this.attrset(old_attrs);
+  };
+  exports.clear = simplify(window_t.prototype.clear);
+
   // move the cursor to a given position on the screen
   window_t.prototype.move = function(y, x) {
     if (y < 0 || y >= this.height || x < 0 || x >= this.width) {
@@ -416,7 +433,7 @@
       var flag_name = 'A_' + attr_names[i].toUpperCase();
       var class_name = 'a-' + attr_names[i];
       if (removed(exports[flag_name])) {
-        element.addClass(class_name);
+        element.removeClass(class_name);
       }
     }
     if ((new_attrs & 0xFFFF) !== (old_attrs & 0xFFFF)) {
