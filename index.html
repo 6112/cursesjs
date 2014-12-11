@@ -74,7 +74,7 @@ $(function() {
     }
     attroff(A_BOLD | A_REVERSE | COLOR_PAIR(1));
     addstr(1, 2, 'use ');
-    addstr('hk', A_BOLD);
+    addstr('jk', A_BOLD);
     addstr(' or the ');
     addstr ('arrow keys', A_BOLD);
     addstr(' to select a demo');
@@ -101,7 +101,7 @@ $(function() {
   redraw();
   var update = function(c) {
     switch(c) {
-      case 'h':
+      case 'j':
       case 'Down':
         selected++;
         break;
