@@ -1,5 +1,5 @@
 $(function() {
-  var win = initscr('#stage', 30, 60, true);
+  var win = initscr('#stage', 30, 60, 'Inconsolata', 14, true);
   raw();
   var selected = 0;
   var options = [
@@ -43,17 +43,17 @@ $(function() {
   redraw();
   var update = function(c) {
     switch(c) {
-      case 'j':
-      case 'Down':
+      case 'J'.charCodeAt(0):
+      case 40:
         selected++;
         break;
 
-      case 'k':
-      case 'Up':
+      case 'K'.charCodeAt(0):
+      case 38:
         selected--;
         break;
 
-      case 'Enter':
+      case 13:
         if (selected === 0) {
           ungetch(update);
           clear();
@@ -106,33 +106,34 @@ $(function() {
       addstr('q', A_BOLD);
       addstr(' to quit');
       move(rl_state.player.y, rl_state.player.x);
+      refresh();
     },
     update: function(c) {
       var old_y, old_x;
       old_y = rl_state.player.y;
       old_x = rl_state.player.x;
       switch (c) {
-        case 'h':
-        case 'Left':
+        case 'H'.charCodeAt(0):
+        case 37:
           rl_state.player.x--;
           break;
 
-        case 'j':
-        case 'Down':
+        case 'J'.charCodeAt(0):
+        case 40:
           rl_state.player.y++;
           break;
 
-        case 'k':
-        case 'Up':
+        case 'K'.charCodeAt(0):
+        case 38:
           rl_state.player.y--;
           break;
 
-        case 'l':
-        case 'Right':
+        case 'L'.charCodeAt(0):
+        case 39:
           rl_state.player.x++;
           break;
 
-        case 'q':
+        case 'Q'.charCodeAt(0):
           clear();
           redraw();
           ongetch(update);

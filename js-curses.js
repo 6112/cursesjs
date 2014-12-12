@@ -28,6 +28,26 @@
   var A_DIM = exports.A_DIM = A_STANDOUT << 4;
   var A_BOLD = exports.A_BOLD = A_STANDOUT << 5;
 
+  // TODO: named constants for keys
+  /*var keys = {
+    LEFT: 37,
+    UP: 38,
+    RIGHT: 39,
+    DOWN: 40,
+    ESCAPE: ,
+    BACKSPACE:,
+    HOME:
+    END:
+    ENTER: 13
+  };
+  var k;
+  for (k in keys) {
+    exports['KEY_' + k] = keys[k];
+  }
+
+  for (k = 'A'.fromCharCode(); k <= 'Z'.fromCharCode(); k++) {
+  }*/
+
   // used as a flag for attron(), attroff(), and attrset()
   //
   // each color pair has an associated class: .pair-1 for COLOR_PAIR(1),
@@ -36,6 +56,21 @@
   // COLOR_PAIR(0) has no associated CSS class (it is the default style)
   var COLOR_PAIR = exports.COLOR_PAIR = function(n) {
     return n * 0x100;
+  };
+  var COLOR_MASK = 0xFFFF;
+  var color_pairs = {
+    0: {
+      fg: 'black',
+      bg: 'white'
+    },
+    1: {
+      fg: 'red',
+      bg: 'white'
+    },
+    2: {
+      fg: 'green',
+      bg: 'white'
+    }
   };
 
   // default window: will be used as a default object for all curses functions,
@@ -47,6 +82,16 @@
   // TODO: implement creating other windows, sub-wdinows (not just the global 
   // 'stdscr' window)
   var window_t = function() {
+    this.char_cache = {};
+    // list of changes since last refresh
+    this.changes = [];
+    // font used for rendering
+    this.font = {
+      name: 'monospace',
+      size: 12,
+      char_width: -1,
+      char_height: -1
+    };
     // default values for some input flags
     this._echo = false;   // do not print all keyboard input
     this._raw = false; // allow Ctl+<char> to be used for normal things, like
@@ -64,6 +109,14 @@
     this.tiles = [];
     // wrapper element
     this.container = null;
+    // canvas and its rendering context
+    this.canvas = null;
+    this.context = null;
+    // off-screen canvases
+    this.offscreen = {
+      normal: null,
+      bold: null
+    };
     // event listeners
     this.listeners = {
       keydown: []
@@ -182,11 +235,65 @@
     };
   };
 
+  //
+  window_t.prototype.loadfont = function(font_name, font_size) {
+    this.context.font = font_size + 'px ' + font_name;
+    this.context.textAlign = 'left';
+    var c = 'm';
+    var metrics = this.context.measureText(c);
+    var height = font_size;
+    var width = metrics.width;
+    // check that it's (probably) a monospace font
+    var i;
+    for (i = 'a'.charCodeAt(0); i <= 'z'.charCodeAt(0); i++) {
+      c = String.fromCharCode(i);
+      metrics = this.context.measureText(c);
+      if (metrics.width !== width) {
+        throw new TypeError(font_name 
+                            + ' does not seem to be a monospace font');
+      }
+      c = c.toUpperCase();
+      metrics = this.context.measureText(c);
+      if (metrics.width !== width) {
+        throw new TypeError(font_name 
+                            + ' does not seem to be a monospace font');
+      }
+    }
+    this.canvas.attr('height', this.height * height);
+    this.canvas.attr('width', this.width * width);
+    this.font.name = font_name;
+    this.font.size = font_size;
+    this.font.char_height = height;
+    this.font.char_width = width;
+    this.context.font = font_size + 'px ' + font_name;
+    this.context.textBaseline = 'top';
+    this.offscreen.normal = $('<canvas></canvas>');
+    this.offscreen.normal.attr({
+      height: height,
+      width: width
+    });
+    this.offscreen.normal.ctx = this.offscreen.normal[0].getContext('2d');
+    this.offscreen.normal.ctx.font = font_size + 'px ' + font_name;
+    this.offscreen.bold = $('<canvas></canvas>');
+    this.offscreen.bold.attr({
+      height: height,
+      width: width
+    });
+    this.offscreen.bold.ctx = this.offscreen.bold[0].getContext('2d');
+    this.offscreen.bold.ctx.font = 'Bold ' + font_size + 'px ' + font_name;
+  };
+  exports.loadfont = simplify(window_t.prototype.loadfont);
+
+  //
+  var init_pair = function(pair_index, foregroud, background) {
+  };
+
   // creates a new window, sets it as the default window, and returns it
   //
   // if `require_focus' is true, don't grab keyboard events for the whole page:
   // only when the element is focused will it actually register keyboard events.
   var initscr = exports.initscr = function(container, height, width,
+                                           font_name, font_size,
                                            require_focus) {
     if (typeof height !== "number") {
       throw new TypeError("height is not a number");
@@ -214,18 +321,15 @@
     win.container = container;
     win.height = height;
     win.width = width;
-    // initialize the tiles
+    win.canvas = $('<canvas></canvas>');
+    win.container.append(win.canvas);
+    win.context = win.canvas[0].getContext('2d');
+    win.loadfont(font_name, font_size);
     var y, x;
     for (y = 0; y < height; y++) {
       win.tiles[y] = [];
       for (x = 0; x < width; x++) {
-        var tile = new tile_t();
-        tile.element = $('<span>' + win.empty_char + '</span>');
-        container.append(tile.element);
-        win.tiles[y][x] = tile;
-      }
-      if (y !== height - 1) {
-        container.append('<br />');
+        win.tiles[y][x] = new tile_t();
       }
     }
     // set the created window as the default window for most operations
@@ -238,13 +342,14 @@
     }
     keyboard_target.keydown(function(event) {
       if (is_key_press(event)) {
-        win.trigger('keydown', event.key, event, win);
+        win.trigger('keydown', event.which, event, win);
       }
       // disable most browser shortcuts if the _raw flag is on for the window
       return ! win._raw;
     });
     // make a blinking cursor
-    startBlink(win);
+    // TODO: reimplement blinking
+    // startBlink(win);
     // return the created window
     return win;
   };
@@ -265,6 +370,7 @@
   };
 
   // used for making a blinking cursor
+  // TODO: rewrite for canvas
   var startBlink = function(win) {
     var do_blink = function() {
       win.tiles[win.y][win.x].element.addClass('a-reverse');
@@ -291,6 +397,7 @@
   exports.noraw = simplify(window_t.prototype.nowraw);
 
   // make the cursor blink, and show it
+  // TODO
   window_t.prototype.blink = function() {
     if (! this._blink) {
       startBlink(this);
@@ -300,6 +407,7 @@
   exports.blink = simplify(window_t.prototype.blink);
 
   // stop the cursor from blinking
+  // TODO
   window_t.prototype.noblink = function() {
     if (this._blink) {
       this.tiles[this.y][this.x].element.addClass('a-reverse');
@@ -326,18 +434,11 @@
 
   // clear the whole window
   window_t.prototype.clear = function() {
-    var old_attrs = this.attrs;
-    this.attrset(A_NORMAL);
-    var y, x;
-    for (y = 0; y < this.height; y++) {
-      for (x = 0; x < this.width; x++) {
-        var tile = this.tiles[y][x];
-        this.move(y, x);
-        this.addch(this.empty_char);
-        tile.empty = true;
-      }
-    }
-    this.attrset(old_attrs);
+    var height = this.height * this.font.char_height;
+    var width = this.width * this.font.char_width;
+    this.context.clearRect(0, 0, width, height);
+    this.context.fillStyle = color_pairs[0].bg;
+    this.context.fillRect(0, 0, width, height);
   };
   exports.clear = simplify(window_t.prototype.clear);
 
@@ -347,17 +448,56 @@
       throw new RangeError("coordinates out of range");
     }
     var tile = this.tiles[this.y][this.x];
-    if (tile && ! (tile.attrs & A_REVERSE)) {
-      tile.element.removeClass('a-reverse');
-    }
+    // TODO: handle blinking/unblinking on move
     this.y = y;
     this.x = x;
-    this.tiles[y][x].element.addClass('a-reverse');
   };
   exports.move = simplify(window_t.prototype.move);
 
-  // TODO: actually implement a refresh mechanism
-  window_t.prototype.refresh = function() {};
+  // TODO: handle text attributes
+  window_t.prototype.refresh = function() {
+    console.time('refresh');
+    var i;
+    // this.context.font = this.font.size + 'px ' + this.font.name;
+    for (i = 0; i < this.changes.length; i++) {
+      var change = this.changes[i];
+      this.context.clearRect(change.at.x, change.at.y, 
+                             this.font.char_width, this.font.char_height);
+      var attrs = change.attrs;
+      var color_pair = (attrs & COLOR_MASK) >> 8;
+      var bg = color_pairs[color_pair].bg;
+      var fg = color_pairs[color_pair].fg;
+      var c = change.value;
+      var canvas;
+      var char_cache = this.char_cache;
+      if (char_cache[c] && char_cache[c][attrs]) {
+        canvas = char_cache[c][attrs];
+      }
+      else {
+        if (! char_cache[c]) {
+          char_cache[c] = {};
+        }
+        canvas = $('<canvas></canvas>');
+        this.char_cache[c][attrs] = canvas;
+        canvas.attr({
+          height: this.font.char_height,
+          width: this.font.char_width + 1
+        });
+        var ctx = canvas[0].getContext('2d');
+        ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
+        ctx.fillRect(0, 0, this.font.char_width + 1, this.font.char_height);
+        var font = (attrs & A_BOLD) ? 'Bold ' : '';
+        font += this.font.size + 'px ' + this.font.name;
+        ctx.font = font;
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
+        ctx.fillText(c, 0, 0);
+      }
+      this.context.drawImage(canvas[0], change.at.x, change.at.y);
+    }
+    this.changes = [];
+    console.timeEnd('refresh');
+  };
   exports.refresh = simplify(window_t.prototype.refresh);
 
   // output a single character to the console at current position (or move to
@@ -383,15 +523,19 @@
     }
     var tile = this.tiles[this.y][this.x];
     // apply attributes if necessary
-    if (tile.attrs !== this.attrs) {
-      addClasses(tile.element, tile.attrs, this.attrs);
-      removeClasses(tile.element, tile.attrs, this.attrs);
-      tile.attrs = this.attrs;
-    }
-    // change the content
-    tile.element.text(c);
-    tile.element.content = c;
+    tile.content = c;
     tile.empty = false;
+    var draw_x = this.font.char_width * this.x;
+    var draw_y = this.font.char_height * this.y;
+    // add an instruction to the 'changes queue'
+    this.changes.push({
+      at: {
+        x: draw_x,
+        y: draw_y
+      },
+      value: c,
+      attrs: this.attrs
+    });
     // move to the right
     if (this.x < this.width - 1) {
       this.move(this.y, this.x + 1);
@@ -415,8 +559,8 @@
         element.addClass(class_name);
       }
     }
-    if ((new_attrs & 0xFFFF) !== (old_attrs & 0xFFFF)) {
-      var color_pair = (new_attrs & 0xFFFF) >> 8;
+    if ((new_attrs & COLOR_MASK) !== (old_attrs & COLOR_MASK)) {
+      var color_pair = (new_attrs & COLOR_MASK) >> 8;
       if (color_pair !== 0) {
         element.addClass('pair-' + color_pair);
       }
@@ -436,8 +580,8 @@
         element.removeClass(class_name);
       }
     }
-    if ((new_attrs & 0xFFFF) !== (old_attrs & 0xFFFF)) {
-      var color_pair = (old_attrs & 0xFFFF) >> 8;
+    if ((new_attrs & COLOR_MASK) !== (old_attrs & COLOR_MASK)) {
+      var color_pair = (old_attrs & COLOR_MASK) >> 8;
       if (color_pair !== 0) {
         element.removeClass('pair-' + color_pair);
       }
@@ -476,9 +620,9 @@
   // e.g.:
   //   attron(A_BOLD | A_REVERSE | COLOR_PAIR(3));
   window_t.prototype.attron = function(attrs) {
-    var color_pair = attrs & 0xFFFF;
+    var color_pair = attrs & COLOR_MASK;
     if (color_pair === 0) {
-      color_pair = this.attrs & 0xFFFF;
+      color_pair = this.attrs & COLOR_MASK;
     }
     var other_attrs = ((attrs >> 16) << 16);
     other_attrs = other_attrs | ((this.attrs >> 16) << 16);
@@ -492,11 +636,11 @@
   // e.g.:
   //   attroff(A_BOLD | A_REVERSE);
   window_t.prototype.attroff = function(attrs) {
-    var color_pair = this.attrs & 0xFFFF;
+    var color_pair = this.attrs & COLOR_MASK;
     var new_attrs = ((attrs >> 16) << 16);
     new_attrs = ~new_attrs & this.attrs;
-    if (attrs & 0xFFFF) {
-      new_attrs = new_attrs & 0x0000;
+    if (attrs & COLOR_MASK) {
+      new_attrs = new_attrs & ~COLOR_MASK;
     }
     this.attrset(new_attrs);
   };
