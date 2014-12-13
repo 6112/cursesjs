@@ -1,3 +1,27 @@
+/** 
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2014 Nicolas Ouellet-Payeur
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ **/
+
 (function() {
   "use strict";
 
@@ -83,6 +107,22 @@
     2: {
       fg: '#44CC44',
       bg: 'black'
+    },
+    3: {
+      fg: '#CCCC44',
+      bg: 'black'
+    },
+    4: {
+      fg: '#4444CC',
+      bg: 'black'
+    },
+    5: {
+      fg: '#CC44CC',
+      bg: 'black'
+    },
+    6: {
+      fg: '#44CC44',
+      bg: 'black'
     }
   };
 
@@ -128,8 +168,6 @@
     // maps a character (and its attributes) to an already-drawn character
     // on a small canvas. this allows very fast rendering, but makes the
     // application use more memory to save all the characters
-    //
-    // TODO: make optional, or optimize memory usage
     this.char_cache = {};
     this.offscreen_canvases = [];
     this.offscreen_canvas_index = 0;
@@ -329,6 +367,7 @@
   };
 
   // keys that are to be ignored for the purposes of events
+  // TODO
   var ignoreKeys = {
     Control: true,
     Shift: true,
@@ -340,6 +379,7 @@
   // return true iff the KeyboardEvent `event' is an actual keypress of a
   // printable character, not just a modifier key (like Ctrl, Shift, or Alt)
   var is_key_press = function(event) {
+    // TODO
     return ! ignoreKeys[event.key];
   };
 
@@ -392,19 +432,19 @@
     this.font.char_height = height;
     this.font.char_width = width;
     // create an offscreen canvas for rendering
-    var offscreen = $('<canvas></canvas>');
-    offscreen.attr({
-      height: height,
-      width: CHARS_PER_CANVAS * width
-    });
-    offscreen.ctx = offscreen[0].getContext('2d');
+    var offscreen = make_offscreen_canvas(this.font);
     this.offscreen_canvases = [offscreen];
   };
   exports.loadfont = simplify(window_t.prototype.loadfont);
 
-
-  // TODO
-  var init_pair = function(pair_index, foregroud, background) {
+  // initialize a color pair so it can be used with COLOR_PAIR(n) to describe
+  // a given (fg,bg) pair of colors.
+  var init_pair =exports.init_pair = function(pair_index,
+                                              foregroud, background) {
+    color_pairs[pair_index] = {
+      fg: foreground,
+      bg: background
+    };
   };
 
   // disable most browser shortcuts, allowing your application to use things
@@ -521,6 +561,7 @@
     // foreground and background colors
     var bg = color_pairs[color_pair].bg;
     var fg = color_pairs[color_pair].fg;
+    // source y, source x, and source canvas for drawing
     var sy = 0;
     var sx;
     var canvas;
@@ -530,23 +571,19 @@
       sx = char_cache[c][attrs].sx;
     }
     else {
-      if (! char_cache[c]) {
-        char_cache[c] = {};
-      }
-      // create a small canvas
+      // if canvas is full, use another canvas
       if (win.offscreen_canvas_index === CHARS_PER_CANVAS) {
         win.offscreen_canvas_index = 0;
-        canvas = $('<canvas></canvas>');
-        canvas.attr({
-          height: win.font.char_height,
-          width: CHARS_PER_CANVAS * win.font.char_width
-        });
-        canvas.ctx = canvas[0].getContext('2d');
+        canvas = make_offscreen_canvas(win.font);
         win.offscreen_canvases.push(canvas);
       }
       canvas = win.offscreen_canvases[win.offscreen_canvases.length - 1];
       var ctx = canvas.ctx;
       sx = win.offscreen_canvas_index * win.font.char_width;
+      // populat the `char_cache' with wher to find this character
+      if (! char_cache[c]) {
+        char_cache[c] = {};
+      }
       win.char_cache[c][attrs] = {
         canvas: canvas,
         sx: sx
@@ -564,11 +601,10 @@
       ctx.fillText(c, sx, 0);
       win.offscreen_canvas_index++;
     }
-    // draw what was drawn to the small canvas onto the window's main canvas
+    // apply the drawing onto the visible canvas
     win.context.drawImage(canvas[0], 
                           sx, sy, win.font.char_width, win.font.char_height,
                           x, y, win.font.char_width, win.font.char_height);
-    // win.context.drawImage(canvas[0], x, y);
   };
 
   // output a single character to the console at current position (or move to
@@ -759,4 +795,15 @@
   window_t.prototype.endwin = function() {
   };
   exports.endwin = simplify(window_t.prototype.endwin);
+
+  // used for creating an off-screen canvas for pre-rendering characters
+  var make_offscreen_canvas = function(font) {
+    var canvas = $('<canvas></canvas>');
+    canvas.attr({
+      height: font.char_height,
+      width: CHARS_PER_CANVAS * font.char_width
+    });
+    canvas.ctx = canvas[0].getContext('2d');
+    return canvas;
+  };
 })();
