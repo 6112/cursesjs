@@ -5,7 +5,8 @@ $(function() {
   var options = [
     'Roguelike-like player movement',
     'Text editor',
-    'Window demo'
+    'Window demo',
+    'Benchmark'
   ];
   var redraw = function() {
     attron(A_BOLD | A_REVERSE | COLOR_PAIR(1));
@@ -59,6 +60,13 @@ $(function() {
           clear();
           rl.redraw();
           ongetch(rl.update);
+          return;
+        }
+        if (selected === 3) {
+          ungetch(update);
+          clear();
+          bm.redraw();
+          ongetch(bm.update);
           return;
         }
         break;
@@ -148,6 +156,41 @@ $(function() {
         rl_state.player.x = old_x;
       }
       rl.redraw();
+    }
+  };
+  var bm = {
+    update: function(c) {
+      if (c === KEY_Q) {
+        clear();
+        redraw();
+        ongetch(update);
+        ungetch(bm.update);
+        return;
+      }
+      bm.redraw();
+    },
+    redraw: function() {
+      var y, x;
+      for (y = 0; y < 28; y++) {
+        for (x = 0; x < 60; x++) {
+          var k = Math.round(Math.random() 
+                             * ('Z'.charCodeAt(0) - 'A'.charCodeAt(0)));
+          k += 'A'.charCodeAt(0);
+          var c = String.fromCharCode(k);
+          var attrs = 0;
+          if (Math.round(Math.random())) {
+            attrs |= A_BOLD;
+          }
+          if (Math.round(Math.random())) {
+            attrs |= A_REVERSE;
+          }
+          attrs |= COLOR_PAIR(Math.round(Math.random() * 2));
+          addstr(y, x, c, attrs);
+        }
+      }
+      addstr(28, 0, 'press a key to update screen', A_BOLD | A_REVERSE);
+      addstr(29, 0, 'press q to quit', A_BOLD | A_REVERSE);
+      refresh();
     }
   };
 });

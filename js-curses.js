@@ -128,6 +128,8 @@
     //
     // TODO: make optional, or optimize memory usage
     this.char_cache = {};
+    this.offscreen_canvases = [];
+    this.offscreen_canvas_index = 0;
     // map of changes since last refresh: maps a [y,x] pair to a 'change' object
     // that describes what new 'value' a character should have
     this.changes = {};
@@ -249,45 +251,6 @@
     };
   };
 
-  // load a font with given attributes font_name and font_size
-  window_t.prototype.loadfont = function(font_name, font_size) {
-    this.context.font = font_size + 'px ' + font_name;
-    this.context.textAlign = 'left';
-    var c = 'm';
-    var metrics = this.context.measureText(c);
-    var height = font_size;
-    var width = metrics.width;
-    // check that it's (probably) a monospace font
-    var i;
-    for (i = 'a'.charCodeAt(0); i <= 'z'.charCodeAt(0); i++) {
-      c = String.fromCharCode(i);
-      metrics = this.context.measureText(c);
-      if (metrics.width !== width) {
-        throw new TypeError(font_name 
-                            + ' does not seem to be a monospace font');
-      }
-      c = c.toUpperCase();
-      metrics = this.context.measureText(c);
-      if (metrics.width !== width) {
-        throw new TypeError(font_name 
-                            + ' does not seem to be a monospace font');
-      }
-    }
-    // resize the canvas
-    this.canvas.attr('height', this.height * height);
-    this.canvas.attr('width', this.width * width);
-    // save the currently used font
-    this.font.name = font_name;
-    this.font.size = font_size;
-    this.font.char_height = height;
-    this.font.char_width = width;
-  };
-  exports.loadfont = simplify(window_t.prototype.loadfont);
-
-  // TODO
-  var init_pair = function(pair_index, foregroud, background) {
-  };
-
   // creates a new window, sets it as the default window, and returns it
   //
   // if `require_focus' is true, don't grab keyboard events for the whole page:
@@ -389,6 +352,56 @@
       win._blinkTimeout = setTimeout(do_blink, BLINK_DELAY);
     };
     win._blinkTimeout = setTimeout(do_blink, BLINK_DELAY);
+  };
+
+  // load a font with given attributes font_name and font_size
+  window_t.prototype.loadfont = function(font_name, font_size) {
+    this.context.font = font_size + 'px ' + font_name;
+    this.context.textAlign = 'left';
+    var c = 'm';
+    var metrics = this.context.measureText(c);
+    var height = font_size;
+    var width = metrics.width;
+    // check that it's (probably) a monospace font
+    var i;
+    for (i = 'a'.charCodeAt(0); i <= 'z'.charCodeAt(0); i++) {
+      c = String.fromCharCode(i);
+      metrics = this.context.measureText(c);
+      if (metrics.width !== width) {
+        throw new TypeError(font_name 
+                            + ' does not seem to be a monospace font');
+      }
+      c = c.toUpperCase();
+      metrics = this.context.measureText(c);
+      if (metrics.width !== width) {
+        throw new TypeError(font_name 
+                            + ' does not seem to be a monospace font');
+      }
+    }
+    // resize the canvas
+    this.canvas.attr({
+      height: this.height * height,
+      width: this.width * width
+    });
+    // save the currently used font
+    this.font.name = font_name;
+    this.font.size = font_size;
+    this.font.char_height = height;
+    this.font.char_width = width;
+    // create an offscreen canvas for rendering
+    var offscreen = $('<canvas></canvas>');
+    offscreen.attr({
+      height: height,
+      width: 1000 * width
+    });
+    offscreen.ctx = offscreen[0].getContext('2d');
+    this.offscreen_canvases = [offscreen];
+  };
+  exports.loadfont = simplify(window_t.prototype.loadfont);
+
+
+  // TODO
+  var init_pair = function(pair_index, foregroud, background) {
   };
 
   // disable most browser shortcuts, allowing your application to use things
@@ -505,26 +518,43 @@
     // foreground and background colors
     var bg = color_pairs[color_pair].bg;
     var fg = color_pairs[color_pair].fg;
+    var sy = 0;
+    var sx;
     var canvas;
     if (char_cache[c] && char_cache[c][attrs]) {
       // graphics saved, just use the cache
-      canvas = char_cache[c][attrs];
+      canvas = char_cache[c][attrs].canvas;
+      sx = char_cache[c][attrs].sx;
     }
     else {
       if (! char_cache[c]) {
         char_cache[c] = {};
       }
       // create a small canvas
-      canvas = $('<canvas></canvas>');
-      win.char_cache[c][attrs] = canvas;
-      canvas.attr({
+      if (win.offscreen_canvas_index === 100) {
+        win.offscreen_canvas_index = 0;
+        canvas = $('<canvas></canvas>');
+        canvas.attr({
+          height: win.height * win.font.char_height,
+          width: win.width * win.font.char_width
+        });
+        canvas.ctx = canvas[0].getContext('2d');
+        win.offscreen_canvases.push();
+      }
+      canvas = win.offscreen_canvases[win.offscreen_canvases.length - 1];
+      var ctx = canvas.ctx;
+      sx = win.offscreen_canvas_index * win.font.char_width;
+      win.char_cache[c][attrs] = {
+        canvas: canvas,
+        sx: sx
+      };
+      /*canvas.attr({
         height: win.font.char_height,
         width: win.font.char_width + 1
-      });
-      var ctx = canvas[0].getContext('2d');
+      });*/
       // draw a background
       ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
-      ctx.fillRect(0, 0, win.font.char_width + 1, win.font.char_height);
+      ctx.fillRect(sx, 0, win.font.char_width + 1, win.font.char_height);
       // choose a font
       var font = (attrs & A_BOLD) ? 'Bold ' : '';
       font += win.font.size + 'px ' + win.font.name;
@@ -532,10 +562,14 @@
       ctx.textBaseline = 'top';
       // draw the character
       ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
-      ctx.fillText(c, 0, 0);
+      ctx.fillText(c, sx, 0);
+      win.offscreen_canvas_index++;
     }
     // draw what was drawn to the small canvas onto the window's main canvas
-    win.context.drawImage(canvas[0], x, y);
+    win.context.drawImage(canvas[0], 
+                          sx, sy, win.font.char_width, win.font.char_height,
+                          x, y, win.font.char_width, win.font.char_height);
+    // win.context.drawImage(canvas[0], x, y);
   };
 
   // output a single character to the console at current position (or move to
