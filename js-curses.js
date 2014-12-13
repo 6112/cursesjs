@@ -92,7 +92,7 @@
   var default_window = null;
 
   // number of chars saved per off-screen canvas
-  var CHARS_PER_CANVAS = 1000;
+  var CHARS_PER_CANVAS = 256;
 
   // curses window
   // TODO: implement creating other windows, sub-wdinows (not just the global 
@@ -538,8 +538,8 @@
         win.offscreen_canvas_index = 0;
         canvas = $('<canvas></canvas>');
         canvas.attr({
-          height: win.height * win.font.char_height,
-          width: win.width * win.font.char_width
+          height: win.font.char_height,
+          width: CHARS_PER_CANVAS * win.font.char_width
         });
         canvas.ctx = canvas[0].getContext('2d');
         win.offscreen_canvases.push(canvas);
