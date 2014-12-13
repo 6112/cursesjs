@@ -91,6 +91,9 @@
   // win.print(), win.addch(), win.move(), etc.
   var default_window = null;
 
+  // number of chars saved per off-screen canvas
+  var CHARS_PER_CANVAS = 1000;
+
   // curses window
   // TODO: implement creating other windows, sub-wdinows (not just the global 
   // 'stdscr' window)
@@ -392,7 +395,7 @@
     var offscreen = $('<canvas></canvas>');
     offscreen.attr({
       height: height,
-      width: 1000 * width
+      width: CHARS_PER_CANVAS * width
     });
     offscreen.ctx = offscreen[0].getContext('2d');
     this.offscreen_canvases = [offscreen];
@@ -531,7 +534,7 @@
         char_cache[c] = {};
       }
       // create a small canvas
-      if (win.offscreen_canvas_index === 100) {
+      if (win.offscreen_canvas_index === CHARS_PER_CANVAS) {
         win.offscreen_canvas_index = 0;
         canvas = $('<canvas></canvas>');
         canvas.attr({
@@ -539,7 +542,7 @@
           width: win.width * win.font.char_width
         });
         canvas.ctx = canvas[0].getContext('2d');
-        win.offscreen_canvases.push();
+        win.offscreen_canvases.push(canvas);
       }
       canvas = win.offscreen_canvases[win.offscreen_canvases.length - 1];
       var ctx = canvas.ctx;
@@ -548,10 +551,6 @@
         canvas: canvas,
         sx: sx
       };
-      /*canvas.attr({
-        height: win.font.char_height,
-        width: win.font.char_width + 1
-      });*/
       // draw a background
       ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
       ctx.fillRect(sx, 0, win.font.char_width + 1, win.font.char_height);
