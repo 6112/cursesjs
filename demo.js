@@ -11,7 +11,7 @@ $(function() {
     attron(A_BOLD | A_REVERSE | COLOR_PAIR(1));
     addstr(0, 0, '  js-curses demonstration');
     var x = win.x;
-    while (x++ < 59) {
+    while (x++ < 60) {
       addstr(' ');
     }
     attroff(A_BOLD | A_REVERSE | COLOR_PAIR(1));
@@ -30,7 +30,7 @@ $(function() {
       }
       addstr(i + 3, 0, options[i]);
       var x = win.x;
-      while (x++ < 59) {
+      while (x++ < 60) {
         addstr(' ');
       }
       if (i === selected) {
@@ -43,13 +43,13 @@ $(function() {
   redraw();
   var update = function(c) {
     switch(c) {
-      case 'J'.charCodeAt(0):
-      case 40:
+      case KEY_J:
+      case KEY_DOWN:
         selected++;
         break;
 
-      case 'K'.charCodeAt(0):
-      case 38:
+      case KEY_K:
+      case KEY_UP:
         selected--;
         break;
 
@@ -113,27 +113,27 @@ $(function() {
       old_y = rl_state.player.y;
       old_x = rl_state.player.x;
       switch (c) {
-        case 'H'.charCodeAt(0):
-        case 37:
+        case KEY_H:
+        case KEY_LEFT:
           rl_state.player.x--;
           break;
 
-        case 'J'.charCodeAt(0):
-        case 40:
+        case KEY_J:
+        case KEY_DOWN:
           rl_state.player.y++;
           break;
 
-        case 'K'.charCodeAt(0):
-        case 38:
+        case KEY_K:
+        case KEY_UP:
           rl_state.player.y--;
           break;
 
-        case 'L'.charCodeAt(0):
-        case 39:
+        case KEY_L:
+        case KEY_RIGHT:
           rl_state.player.x++;
           break;
 
-        case 'Q'.charCodeAt(0):
+        case KEY_Q:
           clear();
           redraw();
           ongetch(update);

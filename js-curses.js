@@ -10,10 +10,6 @@
   // default value for the character on 'empty' space
   var EMPTY_CHAR = ' ';
 
-  // array for (lower-case) names for the attributes (A_STANDOUT, A_UNDERLINE,
-  // etc.)
-  var attr_names = ['standout', 'underline', 'reverse', 'blink', 'dim', 'bold'];
-
   // flags used for attron(), attroff(), and attrset()
   //
   // these correspond to CSS classes: .a-standout for A_STANDOUT,
@@ -28,48 +24,65 @@
   var A_DIM = exports.A_DIM = A_STANDOUT << 4;
   var A_BOLD = exports.A_BOLD = A_STANDOUT << 5;
 
-  // TODO: named constants for keys
-  /*var keys = {
+  // named constants for keys:
+  // 
+  // populates the 'exports' namespace with constants for commonly-used keycodes
+  //
+  // includes all the keys in the following table, with names prefixed with
+  // 'KEY_' (e.g. KEY_LEFT, KEY_ESC, etc.)
+  //
+  // also, there is an entry for each letter of the alphabet (e.g. KEY_A,
+  // KEY_B, KEY_C, etc.)
+  var keys = {
     LEFT: 37,
     UP: 38,
     RIGHT: 39,
     DOWN: 40,
-    ESCAPE: ,
-    BACKSPACE:,
-    HOME:
-    END:
-    ENTER: 13
+    ESC: 27,
+    TAB: 9,
+    BACKSPACE: 8,
+    HOME: 36,
+    END: 35,
+    ENTER: 13,
+    PAGE_UP: 33,
+    PAGE_DOWN: 34
   };
   var k;
   for (k in keys) {
     exports['KEY_' + k] = keys[k];
   }
-
-  for (k = 'A'.fromCharCode(); k <= 'Z'.fromCharCode(); k++) {
-  }*/
+  for (k = 'A'.charCodeAt(0); k <= 'Z'.charCodeAt(0); k++) {
+    var c = String.fromCharCode(k);
+    exports['KEY_' + c] = k;
+  }
 
   // used as a flag for attron(), attroff(), and attrset()
-  //
-  // each color pair has an associated class: .pair-1 for COLOR_PAIR(1),
-  // .pair-2 for COLOR_PAIR(2), etc.
-  //
-  // COLOR_PAIR(0) has no associated CSS class (it is the default style)
   var COLOR_PAIR = exports.COLOR_PAIR = function(n) {
     return n * 0x100;
   };
+  
+  // used for only getting the 'color pair' part of an attrlist
   var COLOR_MASK = 0xFFFF;
+
+  // used for getting the number (n the 0 to COLOR_PAIRS range) of a color
+  // pair, from an attrlist
+  var pair_number = function(n) {
+    return (n & COLOR_MASK) >> 8;
+  };
+
+  // table of color pairs used for the application
   var color_pairs = {
     0: {
-      fg: 'black',
-      bg: 'white'
+      fg: '#CCCCCC',
+      bg: 'black'
     },
     1: {
-      fg: 'red',
-      bg: 'white'
+      fg: '#CC4444',
+      bg: 'black'
     },
     2: {
-      fg: 'green',
-      bg: 'white'
+      fg: '#44CC44',
+      bg: 'black'
     }
   };
 
@@ -82,9 +95,6 @@
   // TODO: implement creating other windows, sub-wdinows (not just the global 
   // 'stdscr' window)
   var window_t = function() {
-    this.char_cache = {};
-    // list of changes since last refresh
-    this.changes = [];
     // font used for rendering
     this.font = {
       name: 'monospace',
@@ -112,11 +122,15 @@
     // canvas and its rendering context
     this.canvas = null;
     this.context = null;
-    // off-screen canvases
-    this.offscreen = {
-      normal: null,
-      bold: null
-    };
+    // maps a character (and its attributes) to an already-drawn character
+    // on a small canvas. this allows very fast rendering, but makes the
+    // application use more memory to save all the characters
+    //
+    // TODO: make optional, or optimize memory usage
+    this.char_cache = {};
+    // map of changes since last refresh: maps a [y,x] pair to a 'change' object
+    // that describes what new 'value' a character should have
+    this.changes = {};
     // event listeners
     this.listeners = {
       keydown: []
@@ -235,7 +249,7 @@
     };
   };
 
-  //
+  // load a font with given attributes font_name and font_size
   window_t.prototype.loadfont = function(font_name, font_size) {
     this.context.font = font_size + 'px ' + font_name;
     this.context.textAlign = 'left';
@@ -259,32 +273,18 @@
                             + ' does not seem to be a monospace font');
       }
     }
+    // resize the canvas
     this.canvas.attr('height', this.height * height);
     this.canvas.attr('width', this.width * width);
+    // save the currently used font
     this.font.name = font_name;
     this.font.size = font_size;
     this.font.char_height = height;
     this.font.char_width = width;
-    this.context.font = font_size + 'px ' + font_name;
-    this.context.textBaseline = 'top';
-    this.offscreen.normal = $('<canvas></canvas>');
-    this.offscreen.normal.attr({
-      height: height,
-      width: width
-    });
-    this.offscreen.normal.ctx = this.offscreen.normal[0].getContext('2d');
-    this.offscreen.normal.ctx.font = font_size + 'px ' + font_name;
-    this.offscreen.bold = $('<canvas></canvas>');
-    this.offscreen.bold.attr({
-      height: height,
-      width: width
-    });
-    this.offscreen.bold.ctx = this.offscreen.bold[0].getContext('2d');
-    this.offscreen.bold.ctx.font = 'Bold ' + font_size + 'px ' + font_name;
   };
   exports.loadfont = simplify(window_t.prototype.loadfont);
 
-  //
+  // TODO
   var init_pair = function(pair_index, foregroud, background) {
   };
 
@@ -309,7 +309,7 @@
     }
     // `container' can either be a DOM element, or an ID for a DOM element
     if (container != null) {
-    container = $(container);
+      container = $(container);
     }
     else {
       container = $('<pre></pre>');
@@ -319,12 +319,16 @@
     // create a new window_t object
     var win = new window_t();
     win.container = container;
+    // set the height, in characters
     win.height = height;
     win.width = width;
+    // create the canvas
     win.canvas = $('<canvas></canvas>');
     win.container.append(win.canvas);
     win.context = win.canvas[0].getContext('2d');
+    // load the font
     win.loadfont(font_name, font_size);
+    // initialize the character tiles to default values
     var y, x;
     for (y = 0; y < height; y++) {
       win.tiles[y] = [];
@@ -335,9 +339,13 @@
     // set the created window as the default window for most operations
     // (so you can call functions like addstr(), getch(), etc. directly)
     default_window = win;
-    // grab keyboard events for the whole page
+    // draw a background
+    win.clear();
+    // grab keyboard events for the whole page, or the container, depending
+    // on the require_focus argument
     var keyboard_target = require_focus ? container : $('body');
     if (require_focus) {
+      // apply tabindex="0" so this element can actually receive focus
       container.attr('tabindex', 0);
     }
     keyboard_target.keydown(function(event) {
@@ -434,15 +442,26 @@
 
   // clear the whole window
   window_t.prototype.clear = function() {
+    // window height and width
     var height = this.height * this.font.char_height;
     var width = this.width * this.font.char_width;
-    this.context.clearRect(0, 0, width, height);
+    // clear the window
     this.context.fillStyle = color_pairs[0].bg;
     this.context.fillRect(0, 0, width, height);
+    // reset all the character tiles
+    var y, x;
+    for (y = 0; y < this.height; y++) {
+      for (x = 0; x < this.width; x++) {
+        var tile = this.tiles[y][x];
+        tile.content = this.empty_char;
+        tile.empty = true;
+        tile.attrs = A_NORMAL;
+      }
+    }
   };
   exports.clear = simplify(window_t.prototype.clear);
 
-  // move the cursor to a given position on the screen
+  // move the cursor to a given position on the screen.
   window_t.prototype.move = function(y, x) {
     if (y < 0 || y >= this.height || x < 0 || x >= this.width) {
       throw new RangeError("coordinates out of range");
@@ -454,51 +473,70 @@
   };
   exports.move = simplify(window_t.prototype.move);
 
-  // TODO: handle text attributes
+  // update the canvas, pushing the actual changes made with drawing functions
+  // (such as addstr() and addch()) and refreshing the screen.
+  //
+  // in other words, addstr() and addch() do nothing until refresh() is called.
   window_t.prototype.refresh = function() {
     console.time('refresh');
-    var i;
-    // this.context.font = this.font.size + 'px ' + this.font.name;
-    for (i = 0; i < this.changes.length; i++) {
-      var change = this.changes[i];
+    // for each changed character
+    var k;
+    for (k in this.changes) {
+      var change = this.changes[k];
       this.context.clearRect(change.at.x, change.at.y, 
                              this.font.char_width, this.font.char_height);
       var attrs = change.attrs;
-      var color_pair = (attrs & COLOR_MASK) >> 8;
-      var bg = color_pairs[color_pair].bg;
-      var fg = color_pairs[color_pair].fg;
       var c = change.value;
-      var canvas;
       var char_cache = this.char_cache;
-      if (char_cache[c] && char_cache[c][attrs]) {
-        canvas = char_cache[c][attrs];
-      }
-      else {
-        if (! char_cache[c]) {
-          char_cache[c] = {};
-        }
-        canvas = $('<canvas></canvas>');
-        this.char_cache[c][attrs] = canvas;
-        canvas.attr({
-          height: this.font.char_height,
-          width: this.font.char_width + 1
-        });
-        var ctx = canvas[0].getContext('2d');
-        ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
-        ctx.fillRect(0, 0, this.font.char_width + 1, this.font.char_height);
-        var font = (attrs & A_BOLD) ? 'Bold ' : '';
-        font += this.font.size + 'px ' + this.font.name;
-        ctx.font = font;
-        ctx.textBaseline = 'top';
-        ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
-        ctx.fillText(c, 0, 0);
-      }
-      this.context.drawImage(canvas[0], change.at.x, change.at.y);
+      draw_char(this, change.at.y, change.at.x, c, char_cache, attrs);
     }
-    this.changes = [];
+    // this.changes = [];
+    this.changes = {};
     console.timeEnd('refresh');
   };
   exports.refresh = simplify(window_t.prototype.refresh);
+
+  // draw a character at pixel-pos (x,y) on window `win'
+  //
+  // the character drawn is `c', with attrlist `attrs', and may be pulled
+  // from the canvas cache ̀`char_cache'
+  var draw_char = function(win, y, x, c, char_cache, attrs) {
+    var color_pair = pair_number(attrs);
+    // foreground and background colors
+    var bg = color_pairs[color_pair].bg;
+    var fg = color_pairs[color_pair].fg;
+    var canvas;
+    if (char_cache[c] && char_cache[c][attrs]) {
+      // graphics saved, just use the cache
+      canvas = char_cache[c][attrs];
+    }
+    else {
+      if (! char_cache[c]) {
+        char_cache[c] = {};
+      }
+      // create a small canvas
+      canvas = $('<canvas></canvas>');
+      win.char_cache[c][attrs] = canvas;
+      canvas.attr({
+        height: win.font.char_height,
+        width: win.font.char_width + 1
+      });
+      var ctx = canvas[0].getContext('2d');
+      // draw a background
+      ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
+      ctx.fillRect(0, 0, win.font.char_width + 1, win.font.char_height);
+      // choose a font
+      var font = (attrs & A_BOLD) ? 'Bold ' : '';
+      font += win.font.size + 'px ' + win.font.name;
+      ctx.font = font;
+      ctx.textBaseline = 'top';
+      // draw the character
+      ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
+      ctx.fillText(c, 0, 0);
+    }
+    // draw what was drawn to the small canvas onto the window's main canvas
+    win.context.drawImage(canvas[0], x, y);
+  };
 
   // output a single character to the console at current position (or move to
   // the given position, and then output the given character).
@@ -522,20 +560,25 @@
       c = ' ';
     }
     var tile = this.tiles[this.y][this.x];
-    // apply attributes if necessary
-    tile.content = c;
-    tile.empty = false;
-    var draw_x = this.font.char_width * this.x;
-    var draw_y = this.font.char_height * this.y;
-    // add an instruction to the 'changes queue'
-    this.changes.push({
-      at: {
-        x: draw_x,
-        y: draw_y
-      },
-      value: c,
-      attrs: this.attrs
-    });
+    // only do this if the content (or attrlist) changed
+    if (c !== tile.content || this.attrs !== tile.attrs) {
+      // update the tile
+      tile.content = c;
+      tile.empty = false;
+      tile.attrs = this.attrs;
+      // pixel-pos for drawing
+      var draw_x = this.font.char_width * this.x;
+      var draw_y = this.font.char_height * this.y;
+      // add an instruction to the 'changes queue'
+      this.changes[this.y + ','  + this.x] = {
+        at: {
+          x: draw_x,
+          y: draw_y
+        },
+        value: c,
+        attrs: this.attrs
+      };
+    }
     // move to the right
     if (this.x < this.width - 1) {
       this.move(this.y, this.x + 1);
@@ -545,48 +588,6 @@
   window_t.prototype.addch = shortcut_move(window_t.prototype.addch);
   window_t.prototype.addch = attributify(window_t.prototype.addch);
   exports.addch = simplify(window_t.prototype.addch);
-
-  // helper function for addch()
-  var addClasses = function(element, old_attrs, new_attrs) {
-    var added = function(attr) {
-      return (new_attrs & attr) && ! (old_attrs & attr);
-    };
-    var i;
-    for (i = 0; i < attr_names.length; i++) {
-      var flag_name = 'A_' + attr_names[i].toUpperCase();
-      var class_name = 'a-' + attr_names[i];
-      if (added(exports[flag_name])) {
-        element.addClass(class_name);
-      }
-    }
-    if ((new_attrs & COLOR_MASK) !== (old_attrs & COLOR_MASK)) {
-      var color_pair = (new_attrs & COLOR_MASK) >> 8;
-      if (color_pair !== 0) {
-        element.addClass('pair-' + color_pair);
-      }
-    }
-  };
-
-  // helper function for addch()
-  var removeClasses = function(element, old_attrs, new_attrs) {
-    var removed = function(attr) {
-      return ! (new_attrs & attr) && (old_attrs & attr);
-    };
-    var i;
-    for (i = 0; i < attr_names.length; i++) {
-      var flag_name = 'A_' + attr_names[i].toUpperCase();
-      var class_name = 'a-' + attr_names[i];
-      if (removed(exports[flag_name])) {
-        element.removeClass(class_name);
-      }
-    }
-    if ((new_attrs & COLOR_MASK) !== (old_attrs & COLOR_MASK)) {
-      var color_pair = (old_attrs & COLOR_MASK) >> 8;
-      if (color_pair !== 0) {
-        element.removeClass('pair-' + color_pair);
-      }
-    }
-  };
 
   // output a string to the console at current position (or move to the given
   // position, and then output the string).
