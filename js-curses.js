@@ -56,6 +56,21 @@
     exports['KEY_' + c] = k;
   }
 
+  // named constants for colors (COLOR_WHITE, COLOR_RED, etc.)
+  var colors = {
+    WHITE: '#CCCCCC',
+    RED: '#CC4444',
+    GREEN: '#44CC44',
+    YELLOW: '#CCCC44',
+    BLUE: '#4444CC',
+    MAGENTA: '#CC44CC',
+    CYAN: '#44CCCC',
+    BLACK: '#222222'
+  };
+  for (k in colors) {
+    exports['COLOR_' + k] = colors[k];
+  }
+
   // used as a flag for attron(), attroff(), and attrset()
   var COLOR_PAIR = exports.COLOR_PAIR = function(n) {
     return n * 0x100;
@@ -73,32 +88,8 @@
   // table of color pairs used for the application
   var color_pairs = {
     0: {
-      fg: '#CCCCCC',
-      bg: 'black'
-    },
-    1: {
-      fg: '#CC4444',
-      bg: 'black'
-    },
-    2: {
-      fg: '#44CC44',
-      bg: 'black'
-    },
-    3: {
-      fg: '#CCCC44',
-      bg: 'black'
-    },
-    4: {
-      fg: '#4444CC',
-      bg: 'black'
-    },
-    5: {
-      fg: '#CC44CC',
-      bg: 'black'
-    },
-    6: {
-      fg: '#44CC44',
-      bg: 'black'
+      fg: exports.COLOR_WHITE,
+      bg: exports.COLOR_BLACK
     }
   };
 
@@ -416,7 +407,7 @@
   // initialize a color pair so it can be used with COLOR_PAIR(n) to describe
   // a given (fg,bg) pair of colors.
   var init_pair =exports.init_pair = function(pair_index,
-                                              foregroud, background) {
+                                              foreground, background) {
     color_pairs[pair_index] = {
       fg: foreground,
       bg: background
