@@ -1,6 +1,9 @@
 (function() {
   var bm = window.bm = {
+    ticks: 0,
+    fps: 0,
     timeout: 0,
+    fps_timeout: 0,
     update: function(c) {
       if (c === KEY_Q) {
         clear();
@@ -8,6 +11,7 @@
         ongetch(demo.update);
         ungetch(bm.update);
         clearTimeout(bm.timeout);
+        clearTimeout(bm.fps_timeout)
         return;
       }
       bm.redraw();
@@ -33,9 +37,21 @@
       }
       addstr(28, 0, 'press a key to update screen', A_BOLD | A_REVERSE);
       addstr(29, 0, 'press q to quit', A_BOLD | A_REVERSE);
+      if (bm.fps) {
+        var msg = bm.fps + ' FPS';
+        var n = msg.length;
+        addstr(29, 60 - n, msg, A_BOLD | A_REVERSE);
+      }
       refresh();
       clearTimeout(bm.timeout);
-      bm.timeout = setTimeout(bm.redraw, 1000);
+      bm.timeout = setTimeout(bm.redraw, 0);
+      bm.ticks++;
+    },
+    count_fps: function() {
+      bm.fps = bm.ticks;
+      bm.ticks = 0;
+      clearTimeout(bm.fps_timeout);
+      bm.fps_timeout = setTimeout(bm.count_fps, 1000);
     }
   };
 })();

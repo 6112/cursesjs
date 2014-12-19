@@ -1,5 +1,5 @@
-$(function() {
-  var win = initscr('#stage', 30, 60, 'Inconsolata', 14, true);
+$(window).load(function() {
+  var win = initscr('#stage', 30, 60, 'Source Code Pro', 14, true);
   init_pair(1, COLOR_RED, COLOR_BLACK);
   init_pair(2, COLOR_GREEN, COLOR_BLACK);
   init_pair(3, COLOR_YELLOW, COLOR_BLACK);
@@ -72,7 +72,9 @@ $(function() {
         if (selected === 3) {
           ungetch(update);
           clear();
+          bm.ticks = 0;
           bm.redraw();
+          bm.fps_timeout = setTimeout(bm.count_fps, 1000);
           ongetch(bm.update);
           return;
         }

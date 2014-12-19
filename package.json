@@ -1,0 +1,29 @@
+{
+  "name": "js-curses",
+  "version": "0.0.0",
+  "description": "ncurses for the web browser",
+  "main": "js-curses.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/6112/js-curses.git"
+  },
+  "keywords": [
+    "jquery",
+    "curses",
+    "ncurses"
+  ],
+  "author": "Nicolas Ouellet-Payeur",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/6112/js-curses/issues"
+  },
+  "devDependencies": {
+    "grunt": "~0.4.5",
+    "grunt-contrib-concat": "~0.5.0",
+    "grunt-contrib-jshint": "~0.10.0",
+    "grunt-contrib-watch": "~0.6.1"
+  }
+}
