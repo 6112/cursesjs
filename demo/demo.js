@@ -1,4 +1,5 @@
 $(window).load(function() {
+  $('#preload').remove();
   var win = initscr('#stage', 30, 60, 'Source Code Pro', 14, true);
   init_pair(1, COLOR_RED, COLOR_BLACK);
   init_pair(2, COLOR_GREEN, COLOR_BLACK);
