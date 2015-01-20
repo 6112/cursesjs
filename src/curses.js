@@ -61,9 +61,6 @@ for (k in colors) {
 // win.print(), win.addch(), win.move(), etc.
 var default_window = null;
 
-// number of chars saved per off-screen canvas
-var CHARS_PER_CANVAS = 256;
-
 // curses window
 // TODO: implement creating other windows, sub-wdinows (not just the global 
 // 'stdscr' window)
