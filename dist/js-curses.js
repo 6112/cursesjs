@@ -1,7 +1,8 @@
 (function() {
 "use strict()";
 
-// functions, variables, etc. that should be exported
+// functions, variables, etc. that should be exported, will be exported in the
+// `exports` object (by default, the global namespace)
 var exports = window;
 
 // milliseconds between cursor blinks
@@ -9,38 +10,6 @@ var BLINK_DELAY = 500;
 
 // default value for the character on 'empty' space
 var EMPTY_CHAR = ' ';
-
-// named constants for keys:
-// 
-// populates the 'exports' namespace with constants for commonly-used keycodes
-//
-// includes all the keys in the following table, with names prefixed with
-// 'KEY_' (e.g. KEY_LEFT, KEY_ESC, etc.)
-//
-// also, there is an entry for each letter of the alphabet (e.g. KEY_A,
-// KEY_B, KEY_C, etc.)
-var keys = {
-  LEFT: 37,
-  UP: 38,
-  RIGHT: 39,
-  DOWN: 40,
-  ESC: 27,
-  TAB: 9,
-  BACKSPACE: 8,
-  HOME: 36,
-  END: 35,
-  ENTER: 13,
-  PAGE_UP: 33,
-  PAGE_DOWN: 34
-};
-var k;
-for (k in keys) {
-  exports['KEY_' + k] = keys[k];
-}
-for (k = 'A'.charCodeAt(0); k <= 'Z'.charCodeAt(0); k++) {
-  var c = String.fromCharCode(k);
-  exports['KEY_' + c] = k;
-}
 
 // named constants for colors (COLOR_WHITE, COLOR_RED, etc.)
 var colors = {
@@ -53,9 +22,13 @@ var colors = {
   CYAN: '#44CCCC',
   BLACK: '#222222'
 };
-for (k in colors) {
-  exports['COLOR_' + k] = colors[k];
-}
+
+var construct_color_table = function() {
+  for (var k in colors) {
+    exports['COLOR_' + k] = colors[k];
+  }
+};
+construct_color_table();
 
 // default window: will be used as a default object for all curses functions,
 // such as print(), addch(), move(), etc., if called directly instead of using
@@ -307,6 +280,89 @@ window_t.prototype.attroff = function(attrs) {
 exports.attroff = simplify(window_t.prototype.attroff);
 
 
+// named constants for keys:
+// 
+// populates the 'exports' namespace with constants for commonly-used keycodes
+//
+// includes all the keys in the following table, with names prefixed with
+// 'KEY_' (e.g. KEY_LEFT, KEY_ESC, etc.)
+//
+// also, there is an entry for each letter of the alphabet (e.g. KEY_A,
+// KEY_B, KEY_C, etc.)
+var keys = {
+  LEFT: 37,
+  UP: 38,
+  RIGHT: 39,
+  DOWN: 40,
+  ESC: 27,
+  TAB: 9,
+  BACKSPACE: 8,
+  HOME: 36,
+  END: 35,
+  ENTER: 13,
+  PAGE_UP: 33,
+  PAGE_DOWN: 34
+};
+
+var construct_key_table = function() {
+  for (var k in keys) {
+    exports['KEY_' + k] = keys[k];
+  }
+  for (k = 'A'.charCodeAt(0); k <= 'Z'.charCodeAt(0); k++) {
+    var c = String.fromCharCode(k);
+    exports['KEY_' + c] = k;
+  }
+};
+construct_key_table();
+
+// called by initscr() to add keyboard support
+var handle_keyboard = function(win, container, require_focus) {
+  // grab keyboard events for the whole page, or the container, depending
+  // on the require_focus argument
+  var keyboard_target = require_focus ? container : $('body');
+  if (require_focus) {
+    // apply tabindex="0" so this element can actually receive focus
+    container.attr('tabindex', 0);
+  }
+  keyboard_target.keydown(function(event) {
+    if (is_key_press(event)) {
+      win.trigger('keydown', event.which, event, win);
+    }
+    // disable most browser shortcuts if the _raw flag is on for the window
+    return ! win._raw;
+  });
+};
+
+// disable most browser shortcuts, allowing your application to use things
+// like Ctrl+C and Ctrl+A as keybindings within the application
+window_t.prototype.raw = function() {
+  this._raw = true;
+};
+exports.raw = simplify(window_t.prototype.raw);
+
+// enable most browser shortcuts, see raw()
+window_t.prototype.noraw = function() {
+  this._raw = false;
+};
+exports.noraw = simplify(window_t.prototype.nowraw);
+
+// make everything typed by the user be printed inside the console
+var echo = exports.echo = function() {
+  // TODO: implement echo behavior
+  this._echo = true;
+};
+
+// make everything typed by the user *not* be printed inside the console
+var noecho = exports.noecho = function() {
+  this._echo = false;
+};
+
+// dummy call for old-school curses programming
+// TODO
+var keypad = exports.keypad = function() {};
+
+
+
 // creates a new window, sets it as the default window, and returns it
 //
 // if `require_focus' is true, don't grab keyboard events for the whole page:
@@ -345,8 +401,8 @@ var initscr = exports.initscr = function(container, height, width,
   win.canvas = $('<canvas></canvas>');
   win.container.append(win.canvas);
   win.context = win.canvas[0].getContext('2d');
-  // load the font
-  win.loadfont(font_name, font_size);
+  // load the specified font
+  load_font(win, font_name, font_size);
   // initialize the character tiles to default values
   var y, x;
   for (y = 0; y < height; y++) {
@@ -360,39 +416,14 @@ var initscr = exports.initscr = function(container, height, width,
   default_window = win;
   // draw a background
   win.clear();
-  // grab keyboard events for the whole page, or the container, depending
-  // on the require_focus argument
-  var keyboard_target = require_focus ? container : $('body');
-  if (require_focus) {
-    // apply tabindex="0" so this element can actually receive focus
-    container.attr('tabindex', 0);
-  }
-  keyboard_target.keydown(function(event) {
-    if (is_key_press(event)) {
-      win.trigger('keydown', event.which, event, win);
-    }
-    // disable most browser shortcuts if the _raw flag is on for the window
-    return ! win._raw;
-  });
+  // add keyboard hooks
+  handle_keyboard(win, container, require_focus);
   // make a blinking cursor
   // TODO: reimplement blinking
   // startBlink(win);
   // return the created window
   return win;
 };
-
-// disable most browser shortcuts, allowing your application to use things
-// like Ctrl+C and Ctrl+A as keybindings within the application
-window_t.prototype.raw = function() {
-  this._raw = true;
-};
-exports.raw = simplify(window_t.prototype.raw);
-
-// enable most browser shortcuts, see raw()
-window_t.prototype.noraw = function() {
-  this._raw = false;
-};
-exports.noraw = simplify(window_t.prototype.nowraw);
 
 // make the cursor blink, and show it
 // TODO
@@ -416,26 +447,13 @@ window_t.prototype.noblink = function() {
 };
 exports.noblink = simplify(window_t.prototype.noblink);
 
-// make everything typed by the user be printed inside the console
-var echo = exports.echo = function() {
-  // TODO: implement echo behavior
-  this._echo = true;
-};
-
-// make everything typed by the user *not* be printed inside the console
-var noecho = exports.noecho = function() {
-  this._echo = false;
-};
-
-// dummy call for old-school curses programming
-var keypad = exports.keypad = function() {};
-
 // stop running js-curses. 
 //
-// TODO: implement this function.
+// TODO
 window_t.prototype.endwin = function() {
 };
 exports.endwin = simplify(window_t.prototype.endwin);
+
 
 // keys that are to be ignored for the purposes of events
 // TODO
@@ -485,12 +503,12 @@ exports.move = simplify(window_t.prototype.move);
 var CHARS_PER_CANVAS = 256;
 
 // load a font with given attributes font_name and font_size
-window_t.prototype.loadfont = function(font_name, font_size) {
-  this.context.font = 'Bold ' + font_size + 'px ' + font_name;
-  this.context.textAlign = 'left';
+var load_font = function(win, font_name, font_size) {
+  win.context.font = 'Bold ' + font_size + 'px ' + font_name;
+  win.context.textAlign = 'left';
   var c = 'm';
   // calculate the probable font metrics
-  var metrics = this.context.measureText(c);
+  var metrics = win.context.measureText(c);
   var height = font_size + 2;
   var width = Math.round(metrics.width);
   // check that it's (probably) a monospace font
@@ -499,24 +517,24 @@ window_t.prototype.loadfont = function(font_name, font_size) {
   var i;
   for (i = 0; i < testChars.length; i++) {
     c = testChars[i];
-    metrics = this.context.measureText(c);
+    metrics = win.context.measureText(c);
     if (Math.round(metrics.width) !== width) {
       console.warn(font_name + ' does not seem to be a monospace font');
     }
   }
   // resize the canvas
-  this.canvas.attr({
-    height: Math.round(this.height * height),
-    width: Math.round(this.width * width)
+  win.canvas.attr({
+    height: Math.round(win.height * height),
+    width: Math.round(win.width * width)
   });
   // save the currently used font
-  this.font.name = font_name;
-  this.font.size = font_size;
-  this.font.char_height = height;
-  this.font.char_width = width;
+  win.font.name = font_name;
+  win.font.size = font_size;
+  win.font.char_height = height;
+  win.font.char_width = width;
   // create an offscreen canvas for rendering
-  var offscreen = make_offscreen_canvas(this.font);
-  this.offscreen_canvases = [offscreen];
+  var offscreen = make_offscreen_canvas(win.font);
+  win.offscreen_canvases = [offscreen];
 };
 exports.loadfont = simplify(window_t.prototype.loadfont);
 
@@ -558,61 +576,6 @@ window_t.prototype.refresh = function() {
   this.changes = {};
 };
 exports.refresh = simplify(window_t.prototype.refresh);
-
-// draw a character at pixel-pos (x,y) on window `win'
-//
-// the character drawn is `c', with attrlist `attrs', and may be pulled
-// from the canvas cache ̀`char_cache'
-var draw_char = function(win, y, x, c, char_cache, attrs) {
-  var color_pair = pair_number(attrs);
-  // foreground and background colors
-  var bg = color_pairs[color_pair].bg;
-  var fg = color_pairs[color_pair].fg;
-  // source y, source x, and source canvas for drawing
-  var sy = 0;
-  var sx;
-  var canvas;
-  if (char_cache[c] && char_cache[c][attrs]) {
-    // graphics saved, just use the cache
-    canvas = char_cache[c][attrs].canvas;
-    sx = char_cache[c][attrs].sx;
-  }
-  else {
-    // if canvas is full, use another canvas
-    if (win.offscreen_canvas_index >= CHARS_PER_CANVAS - 1) {
-      win.offscreen_canvas_index = 0;
-      canvas = make_offscreen_canvas(win.font);
-      win.offscreen_canvases.push(canvas);
-    }
-    canvas = win.offscreen_canvases[win.offscreen_canvases.length - 1];
-    var ctx = canvas.ctx;
-    sx = Math.round(win.offscreen_canvas_index * win.font.char_width);
-    // populat the `char_cache' with wher to find this character
-    if (! char_cache[c]) {
-      char_cache[c] = {};
-    }
-    win.char_cache[c][attrs] = {
-      canvas: canvas,
-      sx: sx
-    };
-    // draw a background
-    ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
-    ctx.fillRect(sx, 0, ~~win.font.char_width, win.font.char_height);
-    // choose a font
-    var font = (attrs & A_BOLD) ? 'Bold ' : '';
-    font += win.font.size + 'px ' + win.font.name;
-    ctx.font = font;
-    ctx.textBaseline = 'hanging';
-    // draw the character
-    ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
-    ctx.fillText(c, sx, 1);
-    win.offscreen_canvas_index++;
-  }
-  // apply the drawing onto the visible canvas
-  win.context.drawImage(canvas[0], 
-                        sx, sy, ~~win.font.char_width + 0, win.font.char_height,
-                        x, y, ~~win.font.char_width + 0, win.font.char_height);
-};
 
 // output a single character to the console at current position (or move to
 // the given position, and then output the given character).
@@ -659,6 +622,10 @@ window_t.prototype.addch = function(c) {
   if (this.x < this.width - 1) {
     this.move(this.y, this.x + 1);
   }
+  else if (this.y < this.height - 1) {
+    // or continue to next line if the end of the line was reached
+    this.move(this.y + 1, 0);
+  }
 }; 
 // allow calling as addch(y, x, c);
 window_t.prototype.addch = shortcut_move(window_t.prototype.addch);
@@ -696,6 +663,88 @@ var make_offscreen_canvas = function(font) {
   canvas.ctx = canvas[0].getContext('2d');
   return canvas;
 };
+
+// draw a character at pixel-pos (x,y) on window `win'
+//
+// the character drawn is `c', with attrlist `attrs', and may be pulled
+// from the canvas cache ̀`char_cache'
+//
+// draw_char() is used by refresh() to redraw characters where necessary
+var draw_char = function(win, y, x, c, char_cache, attrs) {
+  var offscreen = find_offscreen_char(win, c, char_cache, attrs);
+  // apply the drawing onto the visible canvas
+  win.context.drawImage(offscreen.canvas,
+                        offscreen.sx, offscreen.sy,
+                        win.font.char_width, win.font.char_height,
+                        x, y,
+                        win.font.char_width, win.font.char_height);
+};
+
+// used by draw_char for finding (or creating) a canvas where the character
+// `c` is drawn with attrlist `attrs`
+//
+// the return value is an object of the format:
+// {
+//   canvas: (canvas element),
+//   sy: (Y position of the character on the canvas element),
+//   sx: (X position of the character on the canvas element)
+// }
+var find_offscreen_char = function(win, c, char_cache, attrs) {
+  // number for the color pair for the character
+  var color_pair = pair_number(attrs);
+  // foreground and background colors
+  var bg = color_pairs[color_pair].bg;
+  var fg = color_pairs[color_pair].fg;
+  // source y, source x, and source canvas for drawing
+  var sy = 0;
+  var sx;
+  var canvas;
+  // if the char is already drawn on one of the offscreen canvases, with the
+  // right attributes
+  if (char_cache[c] && char_cache[c][attrs]) {
+    // graphics saved, just use the cache
+    canvas = char_cache[c][attrs].canvas;
+    sx = char_cache[c][attrs].sx;
+  }
+  else {
+    // if canvas is full, use another canvas
+    if (win.offscreen_canvas_index >= CHARS_PER_CANVAS - 1) {
+      win.offscreen_canvas_index = 0;
+      canvas = make_offscreen_canvas(win.font);
+      win.offscreen_canvases.push(canvas);
+    }
+    canvas = win.offscreen_canvases[win.offscreen_canvases.length - 1];
+    var ctx = canvas.ctx;
+    sx = Math.round(win.offscreen_canvas_index * win.font.char_width);
+    // populat the `char_cache' with wher to find this character
+    if (! char_cache[c]) {
+      char_cache[c] = {};
+    }
+    win.char_cache[c][attrs] = {
+      canvas: canvas,
+      sx: sx
+    };
+    // draw a background
+    ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
+    ctx.fillRect(sx, 0, win.font.char_width, win.font.char_height);
+    // choose a font
+    var font = (attrs & A_BOLD) ? 'Bold ' : '';
+    font += win.font.size + 'px ' + win.font.name;
+    ctx.font = font;
+    ctx.textBaseline = 'hanging';
+    // draw the character
+    ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
+    ctx.fillText(c, sx, 1);
+    win.offscreen_canvas_index++;
+  }
+  // return an object describing the location of the character
+  return {
+    canvas: canvas[0],
+    sx: sx,
+    sy: sy
+  };
+};
+
 
 
 // trigger an event on the window, with name event_name.

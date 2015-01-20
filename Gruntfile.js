@@ -12,6 +12,7 @@ module.exports = function(grunt) {
 					'src/curses.js',
 					'src/decorators.js',
 					'src/attrs.js',
+          'src/keyboard.js',
 					'src/screen.js',
 					'src/functions.js',
 					'src/draw.js',

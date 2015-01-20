@@ -1,6 +1,7 @@
 "use strict()";
 
-// functions, variables, etc. that should be exported
+// functions, variables, etc. that should be exported, will be exported in the
+// `exports` object (by default, the global namespace)
 var exports = window;
 
 // milliseconds between cursor blinks
@@ -8,38 +9,6 @@ var BLINK_DELAY = 500;
 
 // default value for the character on 'empty' space
 var EMPTY_CHAR = ' ';
-
-// named constants for keys:
-// 
-// populates the 'exports' namespace with constants for commonly-used keycodes
-//
-// includes all the keys in the following table, with names prefixed with
-// 'KEY_' (e.g. KEY_LEFT, KEY_ESC, etc.)
-//
-// also, there is an entry for each letter of the alphabet (e.g. KEY_A,
-// KEY_B, KEY_C, etc.)
-var keys = {
-  LEFT: 37,
-  UP: 38,
-  RIGHT: 39,
-  DOWN: 40,
-  ESC: 27,
-  TAB: 9,
-  BACKSPACE: 8,
-  HOME: 36,
-  END: 35,
-  ENTER: 13,
-  PAGE_UP: 33,
-  PAGE_DOWN: 34
-};
-var k;
-for (k in keys) {
-  exports['KEY_' + k] = keys[k];
-}
-for (k = 'A'.charCodeAt(0); k <= 'Z'.charCodeAt(0); k++) {
-  var c = String.fromCharCode(k);
-  exports['KEY_' + c] = k;
-}
 
 // named constants for colors (COLOR_WHITE, COLOR_RED, etc.)
 var colors = {
@@ -52,9 +21,13 @@ var colors = {
   CYAN: '#44CCCC',
   BLACK: '#222222'
 };
-for (k in colors) {
-  exports['COLOR_' + k] = colors[k];
-}
+
+var construct_color_table = function() {
+  for (var k in colors) {
+    exports['COLOR_' + k] = colors[k];
+  }
+};
+construct_color_table();
 
 // default window: will be used as a default object for all curses functions,
 // such as print(), addch(), move(), etc., if called directly instead of using
