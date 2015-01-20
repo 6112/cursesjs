@@ -10,8 +10,8 @@ $(window).load(function() {
   var selected = 0;
   var options = [
     'Roguelike-like player movement',
-    'Text editor',
-    'Window demo',
+    'Text editor (TODO)',
+    'Window demo (TODO)',
     'Benchmark'
   ];
   var demo = window.demo = {};
