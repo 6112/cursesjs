@@ -35,10 +35,10 @@ var load_font = function(win, font_name, font_size) {
   var offscreen = make_offscreen_canvas(win.font);
   win.offscreen_canvases = [offscreen];
 };
-exports.loadfont = simplify(window_t.prototype.loadfont);
+exports.loadfont = simplify(screen_t.prototype.loadfont);
 
 // clear the whole window
-window_t.prototype.clear = function() {
+screen_t.prototype.clear = function() {
   // window height and width
   var height = this.height * this.font.char_height;
   var width = this.width * this.font.char_width;
@@ -56,13 +56,13 @@ window_t.prototype.clear = function() {
     }
   }
 };
-exports.clear = simplify(window_t.prototype.clear);
+exports.clear = simplify(screen_t.prototype.clear);
 
 // update the canvas, pushing the actual changes made with drawing functions
 // (such as addstr() and addch()) and refreshing the screen.
 //
 // in other words, addstr() and addch() do nothing until refresh() is called.
-window_t.prototype.refresh = function() {
+screen_t.prototype.refresh = function() {
   // for each changed character
   var k;
   for (k in this.changes) {
@@ -74,7 +74,7 @@ window_t.prototype.refresh = function() {
   }
   this.changes = {};
 };
-exports.refresh = simplify(window_t.prototype.refresh);
+exports.refresh = simplify(screen_t.prototype.refresh);
 
 // output a single character to the console at current position (or move to
 // the given position, and then output the given character).
@@ -83,7 +83,7 @@ exports.refresh = simplify(window_t.prototype.refresh);
 //
 // all current attributes (as in attron(), attroff() and attrset()) are
 // applied to the output.
-window_t.prototype.addch = function(c) {
+screen_t.prototype.addch = function(c) {
   if (typeof c !== "string") {
     throw new TypeError("c is not a string");
   }
@@ -95,7 +95,7 @@ window_t.prototype.addch = function(c) {
   }
   // treat all whitespace as a single space character
   if (c === '\t' || c === '\n' || c === '\r') {
-    c = ' ';
+    c = this.empty_char;
   }
   var tile = this.tiles[this.y][this.x];
   // only do this if the content (or attrlist) changed
@@ -127,9 +127,9 @@ window_t.prototype.addch = function(c) {
   }
 }; 
 // allow calling as addch(y, x, c);
-window_t.prototype.addch = shortcut_move(window_t.prototype.addch);
-window_t.prototype.addch = attributify(window_t.prototype.addch);
-exports.addch = simplify(window_t.prototype.addch);
+screen_t.prototype.addch = shortcut_move(screen_t.prototype.addch);
+screen_t.prototype.addch = attributify(screen_t.prototype.addch);
+exports.addch = simplify(screen_t.prototype.addch);
 
 // output a string to the console at current position (or move to the given
 // position, and then output the string).
@@ -138,7 +138,7 @@ exports.addch = simplify(window_t.prototype.addch);
 //
 // all current attributes (as in attron(), attroff() and attrset()) are
 // applied to the output.
-window_t.prototype.addstr = function(str) {
+screen_t.prototype.addstr = function(str) {
   var i;
   for (i = 0; i < str.length && this.x < this.width; i++) {
     this.addch(str[i]);
@@ -148,9 +148,9 @@ window_t.prototype.addstr = function(str) {
   }
 }; 
 // allow calling as addstr(y, x, str);
-window_t.prototype.addstr = shortcut_move(window_t.prototype.addstr);
-window_t.prototype.addstr = attributify(window_t.prototype.addstr);
-exports.addstr = simplify(window_t.prototype.addstr);
+screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
+screen_t.prototype.addstr = attributify(screen_t.prototype.addstr);
+exports.addstr = simplify(screen_t.prototype.addstr);
 
 // used for creating an off-screen canvas for pre-rendering characters
 var make_offscreen_canvas = function(font) {

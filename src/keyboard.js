@@ -53,16 +53,16 @@ var handle_keyboard = function(win, container, require_focus) {
 
 // disable most browser shortcuts, allowing your application to use things
 // like Ctrl+C and Ctrl+A as keybindings within the application
-window_t.prototype.raw = function() {
+screen_t.prototype.raw = function() {
   this._raw = true;
 };
-exports.raw = simplify(window_t.prototype.raw);
+exports.raw = simplify(screen_t.prototype.raw);
 
 // enable most browser shortcuts, see raw()
-window_t.prototype.noraw = function() {
+screen_t.prototype.noraw = function() {
   this._raw = false;
 };
-exports.noraw = simplify(window_t.prototype.nowraw);
+exports.noraw = simplify(screen_t.prototype.nowraw);
 
 // make everything typed by the user be printed inside the console
 var echo = exports.echo = function() {

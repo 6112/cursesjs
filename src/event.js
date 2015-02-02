@@ -2,7 +2,7 @@
 //
 // call all the event handlers bound to that event, and pass any other
 // arguments given to trigger() to each event handler.
-window_t.prototype.trigger = function(event_name) {
+screen_t.prototype.trigger = function(event_name) {
   if (this.listeners[event_name]) {
     var args = [].slice.call(arguments, 1);
     var i;
@@ -13,7 +13,7 @@ window_t.prototype.trigger = function(event_name) {
 };
 
 // add an event handler for the event with name event_name.
-window_t.prototype.on = function(event_name, callback) {
+screen_t.prototype.on = function(event_name, callback) {
   if (! this.listeners[event_name]) {
     this.listeners[event_name] = [];
   }
@@ -21,7 +21,7 @@ window_t.prototype.on = function(event_name, callback) {
 };
 
 // remove an event handler for the event with name event_name.
-window_t.prototype.off = function(event_name, callback) {
+screen_t.prototype.off = function(event_name, callback) {
   if (! this.listeners[event_name]) {
     this.listeners[event_name] = [];
   }
@@ -38,7 +38,7 @@ window_t.prototype.off = function(event_name, callback) {
 
 // add an event handler for the event with name event_name, which is removed
 // after executing once.
-window_t.prototype.one = function(event_name, callback) {
+screen_t.prototype.one = function(event_name, callback) {
   var win = this;
   var f = function() {
     callback.apply(this, arguments);
@@ -50,21 +50,21 @@ window_t.prototype.one = function(event_name, callback) {
 // call function `callback' only once, when a key is entered by the user.
 //
 // the first argument to `callback' will be the event object.
-window_t.prototype.getch = function(callback) {
+screen_t.prototype.getch = function(callback) {
   this.one('keydown', callback);
 };
-exports.getch = simplify(window_t.prototype.getch);
+exports.getch = simplify(screen_t.prototype.getch);
 
 // call function `callback' everytime a key is entered by the user.
 //
 // the first argument to `callback' will be the event objet.
-window_t.prototype.ongetch = function(callback) {
+screen_t.prototype.ongetch = function(callback) {
   this.on('keydown', callback);
 };
-exports.ongetch = simplify(window_t.prototype.ongetch);
+exports.ongetch = simplify(screen_t.prototype.ongetch);
 
 // stop listening for keyboard events
-window_t.prototype.ungetch = function(callback) {
+screen_t.prototype.ungetch = function(callback) {
   this.off('keydown', callback);
 };
-exports.ungetch = simplify(window_t.prototype.ungetch);
+exports.ungetch = simplify(screen_t.prototype.ungetch);

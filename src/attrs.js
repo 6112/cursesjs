@@ -46,16 +46,16 @@ var init_pair = exports.init_pair = function(pair_index,
 
 
 // force the text attributes to a new value, resetting any previous values
-window_t.prototype.attrset = function(attrs) {
+screen_t.prototype.attrset = function(attrs) {
   this.attrs = attrs;
 };
-exports.attrset = simplify(window_t.prototype.attrset);
+exports.attrset = simplify(screen_t.prototype.attrset);
 
 // turn an attribute (or multiple attributes, using a binary OR) on.
 //
 // e.g.:
 //   attron(A_BOLD | A_REVERSE | COLOR_PAIR(3));
-window_t.prototype.attron = function(attrs) {
+screen_t.prototype.attron = function(attrs) {
   var color_pair = attrs & COLOR_MASK;
   if (color_pair === 0) {
     color_pair = this.attrs & COLOR_MASK;
@@ -65,13 +65,13 @@ window_t.prototype.attron = function(attrs) {
   var new_attrs = other_attrs | color_pair;
   this.attrset(new_attrs);
 };
-exports.attron = simplify(window_t.prototype.attron);
+exports.attron = simplify(screen_t.prototype.attron);
 
 // turn an attribute (or multiple attributes, using a binary OR) off.
 //
 // e.g.:
 //   attroff(A_BOLD | A_REVERSE);
-window_t.prototype.attroff = function(attrs) {
+screen_t.prototype.attroff = function(attrs) {
   var color_pair = this.attrs & COLOR_MASK;
   var new_attrs = ((attrs >> 16) << 16);
   new_attrs = ~new_attrs & this.attrs;
@@ -80,4 +80,4 @@ window_t.prototype.attroff = function(attrs) {
   }
   this.attrset(new_attrs);
 };
-exports.attroff = simplify(window_t.prototype.attroff);
+exports.attroff = simplify(screen_t.prototype.attroff);

@@ -1,20 +1,20 @@
 // when called with a function, return that function, wrapped so that
-// it can be used directly by being applied on `default_window'.
+// it can be used directly by being applied on `default_screen'.
 //
 // i.e., the call:
-//   default_window.addstr('hello world');
+//   default_screen.addstr('hello world');
 //
 // can be shortened to:
 //   addstr('hello world');
 //
 // if you define:
-//   addstr = simplify(window_t.prototype.addstr);
+//   addstr = simplify(screen_t.prototype.addstr);
 // when called with function name `function_name' that is defined in
-// window_t.prototype, will create a function with the same name in `exports'
-// that calls this function using `default_window'
+// screen_t.prototype, will create a function with the same name in `exports'
+// that calls this function using `default_screen'
 var simplify = function(f) {
   return function() {
-    return f.apply(default_window, arguments);
+    return f.apply(default_screen, arguments);
   };
 };
 
@@ -36,7 +36,7 @@ var generalize = function(f) {
 };
 
 // similar to simplify, but instead of allowing to call without supplying a
-// `window_t' object, allows calling by supplying a position for inserting
+// `screen_t' object, allows calling by supplying a position for inserting
 // text.
 //
 // for instance, the function call:
@@ -47,7 +47,7 @@ var generalize = function(f) {
 //   win.addstr('hello world');
 //
 // if you define:
-//   window_t.prototype.addstr = shortcut_move(window_t.prototype.addstr);
+//   screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
 var shortcut_move = function(f) {
   return function(y, x) {
     var args = arguments;
@@ -71,7 +71,7 @@ var shortcut_move = function(f) {
 //   win.attroff(A_BOLD | COLOR_PAIR(3));
 //
 // if you define:
-//   window_t.prototype.addstr = attributify(window_t.prototype.addstr);
+//   screen_t.prototype.addstr = attributify(screen_t.prototype.addstr);
 var attributify = function(f) {
   return function() {
     var args = arguments;

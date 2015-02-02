@@ -26,8 +26,8 @@ var initscr = exports.initscr = function(container, height, width,
   }
   // clear the container
   container.html('');
-  // create a new window_t object
-  var win = new window_t();
+  // create a new screen_t object
+  var win = new screen_t();
   win.container = container;
   // set the height, in characters
   win.height = height;
@@ -48,7 +48,7 @@ var initscr = exports.initscr = function(container, height, width,
   }
   // set the created window as the default window for most operations
   // (so you can call functions like addstr(), getch(), etc. directly)
-  default_window = win;
+  default_screen = win;
   // draw a background
   win.clear();
   // add keyboard hooks
@@ -62,17 +62,17 @@ var initscr = exports.initscr = function(container, height, width,
 
 // make the cursor blink, and show it
 // TODO
-window_t.prototype.blink = function() {
+screen_t.prototype.blink = function() {
   if (! this._blink) {
     startBlink(this);
   }
   this._blink = true;
 };
-exports.blink = simplify(window_t.prototype.blink);
+exports.blink = simplify(screen_t.prototype.blink);
 
 // stop the cursor from blinking
 // TODO
-window_t.prototype.noblink = function() {
+screen_t.prototype.noblink = function() {
   if (this._blink) {
     this.tiles[this.y][this.x].element.addClass('a-reverse');
     clearTimeout(this._blinkTimeout);
@@ -80,11 +80,11 @@ window_t.prototype.noblink = function() {
   }
   this._blink = false;
 };
-exports.noblink = simplify(window_t.prototype.noblink);
+exports.noblink = simplify(screen_t.prototype.noblink);
 
 // stop running js-curses. 
 //
 // TODO
-window_t.prototype.endwin = function() {
+screen_t.prototype.endwin = function() {
 };
-exports.endwin = simplify(window_t.prototype.endwin);
+exports.endwin = simplify(screen_t.prototype.endwin);

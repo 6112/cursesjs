@@ -30,7 +30,7 @@ var startBlink = function(win) {
 };
 
 // move the cursor to a given position on the screen.
-window_t.prototype.move = function(y, x) {
+screen_t.prototype.move = function(y, x) {
   if (y < 0 || y >= this.height || x < 0 || x >= this.width) {
     throw new RangeError("coordinates out of range");
   }
@@ -39,4 +39,4 @@ window_t.prototype.move = function(y, x) {
   this.y = y;
   this.x = x;
 };
-exports.move = simplify(window_t.prototype.move);
+exports.move = simplify(screen_t.prototype.move);
