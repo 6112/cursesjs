@@ -29,7 +29,16 @@ var startBlink = function(win) {
   win._blinkTimeout = setTimeout(do_blink, BLINK_DELAY);
 };
 
-// move the cursor to a given position on the screen.
+/**
+ * Move the cursor to a given position on the screen. If the position is outside
+ * of the screen's bound, a RangeError is thrown.
+ *
+ * All output from addch() and addstr() is done at the position of the cursor.
+ *
+ * @param {Integer} y y position of the new position.
+ * @param {Integer} x x position of the new position.
+ * @throws RangeError
+ **/
 screen_t.prototype.move = function(y, x) {
   if (y < 0 || y >= this.height || x < 0 || x >= this.width) {
     throw new RangeError("coordinates out of range");

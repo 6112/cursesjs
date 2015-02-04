@@ -10,7 +10,9 @@ var BLINK_DELAY = 500;
 // default value for the character on 'empty' space
 var EMPTY_CHAR = ' ';
 
-// named constants for colors (COLOR_WHITE, COLOR_RED, etc.)
+/**
+ * Named constants for colors: COLOR_WHITE, COLOR_RED, COLOR_GREEN, etc.
+ **/
 var colors = {
   WHITE: '#CCCCCC',
   RED: '#CC4444',
@@ -48,6 +50,7 @@ var window_t = function() {
   this.parent = null;
 };
 
+// curses screen display; can contain subwindows
 var screen_t = function() {
   window_t.call(this);
   // font used for rendering

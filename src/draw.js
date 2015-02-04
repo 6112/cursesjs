@@ -1,6 +1,20 @@
 // number of chars saved per off-screen canvas
 var CHARS_PER_CANVAS = 256;
 
+/**
+ * Load a font with given attributes `font_name` and `font_size`. You should
+ * ensure that the font has already been loaded by the browser before calling
+ * `load_font`. The bold variant of the font should already have been loaded,
+ * if you intend to use it. The usual way to do this is to insert an element
+ * that uses that font in your webpage's HTML. This function is automatically
+ * called by `initscr`.
+ *
+ * Print warning messages to the web console when the font does not appear to
+ * be a monospace font.
+ *
+ * @param {String} font_name Name of the font to be loaded.
+ * @param {Integer} font_size Size of the font to be loaded.
+ **/
 // load a font with given attributes font_name and font_size
 var load_font = function(win, font_name, font_size) {
   win.context.font = 'Bold ' + font_size + 'px ' + font_name;
@@ -37,7 +51,11 @@ var load_font = function(win, font_name, font_size) {
 };
 exports.loadfont = simplify(screen_t.prototype.loadfont);
 
-// clear the whole window
+/**
+ * Clear the whole window immediately, without waiting for the next refresh. Use
+ * this sparingly, as this can cause very bad performance if used too many
+ * times per second.
+ **/
 screen_t.prototype.clear = function() {
   // window height and width
   var height = this.height * this.font.char_height;
@@ -58,10 +76,15 @@ screen_t.prototype.clear = function() {
 };
 exports.clear = simplify(screen_t.prototype.clear);
 
-// update the canvas, pushing the actual changes made with drawing functions
-// (such as addstr() and addch()) and refreshing the screen.
-//
-// in other words, addstr() and addch() do nothing until refresh() is called.
+/**
+ * Push the changes made to the buffer, such as those made with addstr() and
+ * addch(). The canvas is updated to reflect the new state of the window. Uses
+ * differential display to optimally update only the parts of the screen that
+ * have actually changed.
+ *
+ * Note that functions like addstr() and addch() will not do anything until
+ * refresh() is called.
+ **/
 screen_t.prototype.refresh = function() {
   // for each changed character
   var k;
@@ -76,13 +99,28 @@ screen_t.prototype.refresh = function() {
 };
 exports.refresh = simplify(screen_t.prototype.refresh);
 
-// output a single character to the console at current position (or move to
-// the given position, and then output the given character).
-//
-// the cursor is moved one position to the right.
-//
-// all current attributes (as in attron(), attroff() and attrset()) are
-// applied to the output.
+/**
+ * Output a single character to the console, at the current position, as
+ * specified by `move` (or move to the given position, and then output the
+ * given character).
+ *
+ * The cursor is moved one position to the right. If the end of the line is
+ * reached, the cursor moves to the next line and returns to column 0.
+ *
+ * All current attributes (see attron(), attroff(), and attrset()) are applied
+ * to the output. You may also supply a temporary attrlist as a last argument
+ * to this function.
+ *
+ * Note that the visual display (the canvas) is not updated until the
+ * refresh() function is called.
+ *
+ * TODO: implement tab and newline characters
+ *
+ * @param {Integer} [y] y position for output.
+ * @param {Integer} [x] x position for output.
+ * @param {Character} c Character to be drawn.
+ * @param {Attrlist} [attrs] Temporary attributes to be applied.
+ **/
 screen_t.prototype.addch = function(c) {
   if (typeof c !== "string") {
     throw new TypeError("c is not a string");
@@ -131,13 +169,29 @@ screen_t.prototype.addch = shortcut_move(screen_t.prototype.addch);
 screen_t.prototype.addch = attributify(screen_t.prototype.addch);
 exports.addch = simplify(screen_t.prototype.addch);
 
-// output a string to the console at current position (or move to the given
-// position, and then output the string).
-//
-// the cursor is moved to the right end of the text.
-//
-// all current attributes (as in attron(), attroff() and attrset()) are
-// applied to the output.
+/**
+ * Output a string to the console, at the current position, as specified by
+ * `move` (or move to the given position, and then output the
+ * given character).
+ *
+ * The cursor is moved to the end of the text. If the end of the line is
+ * reached, the cursor moves to the next line, the cursor returns to column 0,
+ * and text output continues on the next line.
+ *
+ * All current attributes (see attron(), attroff(), and attrset()) are applied
+ * to the output. You may also supply a temporary attrlist as a last argument
+ * to this function.
+ *
+ * Note that the visual display (the canvas) is not updated until the
+ * refresh() function is called.
+ *
+ * TODO: implement tab and newline characters
+ *
+ * @param {Integer} [y] y position for output.
+ * @param {Integer} [x] x position for output.
+ * @param {Character} str Character to be drawn.
+ * @param {Attrlist} [attrs] Temporary attributes to be applied.
+ **/
 screen_t.prototype.addstr = function(str) {
   var i;
   for (i = 0; i < str.length && this.x < this.width; i++) {
@@ -163,10 +217,10 @@ var make_offscreen_canvas = function(font) {
   return canvas;
 };
 
-// draw a character at pixel-pos (x,y) on window `win'
+// draw a character at pixel-pos (x,y) on window `win`
 //
-// the character drawn is `c', with attrlist `attrs', and may be pulled
-// from the canvas cache ̀`char_cache'
+// the character drawn is `c`, with attrlist `attrs`, and may be pulled
+// from the canvas cache ̀`char_cache`
 //
 // draw_char() is used by refresh() to redraw characters where necessary
 var draw_char = function(win, y, x, c, char_cache, attrs) {
@@ -215,7 +269,7 @@ var find_offscreen_char = function(win, c, char_cache, attrs) {
     canvas = win.offscreen_canvases[win.offscreen_canvases.length - 1];
     var ctx = canvas.ctx;
     sx = Math.round(win.offscreen_canvas_index * win.font.char_width);
-    // populat the `char_cache' with wher to find this character
+    // populate the `char_cache` with wher to find this character
     if (! char_cache[c]) {
       char_cache[c] = {};
     }
