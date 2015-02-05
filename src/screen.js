@@ -73,37 +73,37 @@ var initscr = exports.initscr = function(container, height, width,
   // clear the container
   container.html('');
   // create a new screen_t object
-  var win = new screen_t();
-  win.container = container;
+  var scr = new screen_t();
+  scr.container = container;
   // set the height, in characters
-  win.height = height;
-  win.width = width;
+  scr.height = height;
+  scr.width = width;
   // create the canvas
-  win.canvas = $('<canvas></canvas>');
-  win.container.append(win.canvas);
-  win.context = win.canvas[0].getContext('2d');
+  scr.canvas = $('<canvas></canvas>');
+  scr.container.append(scr.canvas);
+  scr.context = scr.canvas[0].getContext('2d');
   // load the specified font
-  load_font(win, font_name, font_size);
+  load_font(scr, font_name, font_size);
   // initialize the character tiles to default values
   var y, x;
   for (y = 0; y < height; y++) {
-    win.tiles[y] = [];
+    scr.tiles[y] = [];
     for (x = 0; x < width; x++) {
-      win.tiles[y][x] = new tile_t();
+      scr.tiles[y][x] = new tile_t();
     }
   }
   // set the created window as the default window for most operations
   // (so you can call functions like addstr(), getch(), etc. directly)
-  default_screen = win;
+  default_screen = scr;
   // draw a background
-  win.clear();
+  scr.clear();
   // add keyboard hooks
-  handle_keyboard(win, container, require_focus);
+  handle_keyboard(scr, container, require_focus);
   // make a blinking cursor
   // TODO: reimplement blinking
-  // startBlink(win);
+  // startBlink(scr);
   // return the created window
-  return win;
+  return scr;
 };
 
 /**

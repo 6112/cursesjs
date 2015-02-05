@@ -61,10 +61,10 @@ screen_t.prototype.off = function(event_name, callback) {
  *   fired.
  **/
 screen_t.prototype.one = function(event_name, callback) {
-  var win = this;
+  var scr = this;
   var f = function() {
     callback.apply(this, arguments);
-    win.off(event_name, f);
+    scr.off(event_name, f);
   };
   this.on(event_name, f);
 };

@@ -33,7 +33,7 @@ construct_color_table();
 
 // default window: will be used as a default object for all curses functions,
 // such as print(), addch(), move(), etc., if called directly instead of using
-// win.print(), win.addch(), win.move(), etc.
+// scr.print(), scr.addch(), scr.move(), etc.
 var default_screen = null;
 
 // curses window

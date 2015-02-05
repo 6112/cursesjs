@@ -17,16 +17,16 @@ var is_key_press = function(event) {
 
 // used for making a blinking cursor
 // TODO: rewrite for canvas
-var startBlink = function(win) {
+var startBlink = function(scr) {
   var do_blink = function() {
-    win.tiles[win.y][win.x].element.addClass('a-reverse');
-    win._blinkTimeout = setTimeout(do_unblink, BLINK_DELAY);
+    scr.tiles[scr.y][scr.x].element.addClass('a-reverse');
+    scr._blinkTimeout = setTimeout(do_unblink, BLINK_DELAY);
   };
   var do_unblink = function() {
-    win.tiles[win.y][win.x].element.removeClass('a-reverse');
-    win._blinkTimeout = setTimeout(do_blink, BLINK_DELAY);
+    scr.tiles[scr.y][scr.x].element.removeClass('a-reverse');
+    scr._blinkTimeout = setTimeout(do_blink, BLINK_DELAY);
   };
-  win._blinkTimeout = setTimeout(do_blink, BLINK_DELAY);
+  scr._blinkTimeout = setTimeout(do_blink, BLINK_DELAY);
 };
 
 /**

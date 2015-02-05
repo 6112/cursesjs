@@ -16,12 +16,12 @@ var CHARS_PER_CANVAS = 256;
  * @param {Integer} font_size Size of the font to be loaded.
  **/
 // load a font with given attributes font_name and font_size
-var load_font = function(win, font_name, font_size) {
-  win.context.font = 'Bold ' + font_size + 'px ' + font_name;
-  win.context.textAlign = 'left';
+var load_font = function(scr, font_name, font_size) {
+  scr.context.font = 'Bold ' + font_size + 'px ' + font_name;
+  scr.context.textAlign = 'left';
   var c = 'm';
   // calculate the probable font metrics
-  var metrics = win.context.measureText(c);
+  var metrics = scr.context.measureText(c);
   var height = font_size + 2;
   var width = Math.round(metrics.width);
   // check that it's (probably) a monospace font
@@ -30,24 +30,24 @@ var load_font = function(win, font_name, font_size) {
   var i;
   for (i = 0; i < testChars.length; i++) {
     c = testChars[i];
-    metrics = win.context.measureText(c);
+    metrics = scr.context.measureText(c);
     if (Math.round(metrics.width) !== width) {
       console.warn(font_name + ' does not seem to be a monospace font');
     }
   }
   // resize the canvas
-  win.canvas.attr({
-    height: Math.round(win.height * height),
-    width: Math.round(win.width * width)
+  scr.canvas.attr({
+    height: Math.round(scr.height * height),
+    width: Math.round(scr.width * width)
   });
   // save the currently used font
-  win.font.name = font_name;
-  win.font.size = font_size;
-  win.font.char_height = height;
-  win.font.char_width = width;
+  scr.font.name = font_name;
+  scr.font.size = font_size;
+  scr.font.char_height = height;
+  scr.font.char_width = width;
   // create an offscreen canvas for rendering
-  var offscreen = make_offscreen_canvas(win.font);
-  win.offscreen_canvases = [offscreen];
+  var offscreen = make_offscreen_canvas(scr.font);
+  scr.offscreen_canvases = [offscreen];
 };
 exports.loadfont = simplify(screen_t.prototype.loadfont);
 
@@ -217,20 +217,20 @@ var make_offscreen_canvas = function(font) {
   return canvas;
 };
 
-// draw a character at pixel-pos (x,y) on window `win`
+// draw a character at pixel-pos (x,y) on window `scr`
 //
 // the character drawn is `c`, with attrlist `attrs`, and may be pulled
 // from the canvas cache ̀`char_cache`
 //
 // draw_char() is used by refresh() to redraw characters where necessary
-var draw_char = function(win, y, x, c, char_cache, attrs) {
-  var offscreen = find_offscreen_char(win, c, char_cache, attrs);
+var draw_char = function(scr, y, x, c, char_cache, attrs) {
+  var offscreen = find_offscreen_char(scr, c, char_cache, attrs);
   // apply the drawing onto the visible canvas
-  win.context.drawImage(offscreen.canvas,
+  scr.context.drawImage(offscreen.canvas,
                         offscreen.sx, offscreen.sy,
-                        win.font.char_width, win.font.char_height,
+                        scr.font.char_width, scr.font.char_height,
                         x, y,
-                        win.font.char_width, win.font.char_height);
+                        scr.font.char_width, scr.font.char_height);
 };
 
 // used by draw_char for finding (or creating) a canvas where the character
@@ -242,7 +242,7 @@ var draw_char = function(win, y, x, c, char_cache, attrs) {
 //   sy: (Y position of the character on the canvas element),
 //   sx: (X position of the character on the canvas element)
 // }
-var find_offscreen_char = function(win, c, char_cache, attrs) {
+var find_offscreen_char = function(scr, c, char_cache, attrs) {
   // number for the color pair for the character
   var color_pair = pair_number(attrs);
   // foreground and background colors
@@ -261,34 +261,34 @@ var find_offscreen_char = function(win, c, char_cache, attrs) {
   }
   else {
     // if canvas is full, use another canvas
-    if (win.offscreen_canvas_index >= CHARS_PER_CANVAS - 1) {
-      win.offscreen_canvas_index = 0;
-      canvas = make_offscreen_canvas(win.font);
-      win.offscreen_canvases.push(canvas);
+    if (scr.offscreen_canvas_index >= CHARS_PER_CANVAS - 1) {
+      scr.offscreen_canvas_index = 0;
+      canvas = make_offscreen_canvas(scr.font);
+      scr.offscreen_canvases.push(canvas);
     }
-    canvas = win.offscreen_canvases[win.offscreen_canvases.length - 1];
+    canvas = scr.offscreen_canvases[scr.offscreen_canvases.length - 1];
     var ctx = canvas.ctx;
-    sx = Math.round(win.offscreen_canvas_index * win.font.char_width);
+    sx = Math.round(scr.offscreen_canvas_index * scr.font.char_width);
     // populate the `char_cache` with wher to find this character
     if (! char_cache[c]) {
       char_cache[c] = {};
     }
-    win.char_cache[c][attrs] = {
+    scr.char_cache[c][attrs] = {
       canvas: canvas,
       sx: sx
     };
     // draw a background
     ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
-    ctx.fillRect(sx, 0, win.font.char_width, win.font.char_height);
+    ctx.fillRect(sx, 0, scr.font.char_width, scr.font.char_height);
     // choose a font
     var font = (attrs & A_BOLD) ? 'Bold ' : '';
-    font += win.font.size + 'px ' + win.font.name;
+    font += scr.font.size + 'px ' + scr.font.name;
     ctx.font = font;
     ctx.textBaseline = 'hanging';
     // draw the character
     ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
     ctx.fillText(c, sx, 1);
-    win.offscreen_canvas_index++;
+    scr.offscreen_canvas_index++;
   }
   // return an object describing the location of the character
   return {

@@ -33,7 +33,7 @@ var construct_key_table = function() {
 construct_key_table();
 
 // called by initscr() to add keyboard support
-var handle_keyboard = function(win, container, require_focus) {
+var handle_keyboard = function(scr, container, require_focus) {
   // grab keyboard events for the whole page, or the container, depending
   // on the require_focus argument
   var keyboard_target = require_focus ? container : $('body');
@@ -43,10 +43,10 @@ var handle_keyboard = function(win, container, require_focus) {
   }
   keyboard_target.keydown(function(event) {
     if (is_key_press(event)) {
-      win.trigger('keydown', event.which, event, win);
+      scr.trigger('keydown', event.which, event, scr);
     }
     // disable most browser shortcuts if the _raw flag is on for the window
-    return ! win._raw;
+    return ! scr._raw;
   });
 };
 

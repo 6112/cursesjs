@@ -22,10 +22,10 @@ var simplify = function(f) {
 // ncurses.
 //
 // for instance, the call:
-//   win.addstr('hello world');
+//   scr.addstr('hello world');
 //
 // can be rewritten:
-//   waddstr(win, 'hello world');
+//   waddstr(scr, 'hello world');
 //
 // if you define:
 //   waddstr = generalize(f);
@@ -40,11 +40,11 @@ var generalize = function(f) {
 // text.
 //
 // for instance, the function call:
-//   win.addstr(10, 10, 'hello world');
+//   scr.addstr(10, 10, 'hello world');
 //
 // will expand to:
-//   win.move(10, 10);
-//   win.addstr('hello world');
+//   scr.move(10, 10);
+//   scr.addstr('hello world');
 //
 // if you define:
 //   screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
@@ -63,12 +63,12 @@ var shortcut_move = function(f) {
 // (as per attron() and attroff()) as the last argument to the call.
 // 
 // for instance, the function call:
-//   win.addstr('hello world', A_BOLD | COLOR_PAIR(3));
+//   scr.addstr('hello world', A_BOLD | COLOR_PAIR(3));
 //
 // will expand to:
-//   win.attron(A_BOLD | COLOR_PAIR(3));
-//   win.addstr('hello world');
-//   win.attroff(A_BOLD | COLOR_PAIR(3));
+//   scr.attron(A_BOLD | COLOR_PAIR(3));
+//   scr.addstr('hello world');
+//   scr.attroff(A_BOLD | COLOR_PAIR(3));
 //
 // if you define:
 //   screen_t.prototype.addstr = attributify(screen_t.prototype.addstr);
