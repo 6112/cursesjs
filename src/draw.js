@@ -1,13 +1,27 @@
 // number of chars saved per off-screen canvas
 var CHARS_PER_CANVAS = 256;
 
+/**
+ * Load a font with given attributes `font_name` and `font_size`. You should
+ * ensure that the font has already been loaded by the browser before calling
+ * `load_font`. The bold variant of the font should already have been loaded,
+ * if you intend to use it. The usual way to do this is to insert an element
+ * that uses that font in your webpage's HTML. This function is automatically
+ * called by `initscr`.
+ *
+ * Print warning messages to the web console when the font does not appear to
+ * be a monospace font.
+ *
+ * @param {String} font_name Name of the font to be loaded.
+ * @param {Integer} font_size Size of the font to be loaded.
+ **/
 // load a font with given attributes font_name and font_size
-var load_font = function(win, font_name, font_size) {
-  win.context.font = 'Bold ' + font_size + 'px ' + font_name;
-  win.context.textAlign = 'left';
+var load_font = function(scr, font_name, font_size) {
+  scr.context.font = 'Bold ' + font_size + 'px ' + font_name;
+  scr.context.textAlign = 'left';
   var c = 'm';
   // calculate the probable font metrics
-  var metrics = win.context.measureText(c);
+  var metrics = scr.context.measureText(c);
   var height = font_size + 2;
   var width = Math.round(metrics.width);
   // check that it's (probably) a monospace font
@@ -16,29 +30,33 @@ var load_font = function(win, font_name, font_size) {
   var i;
   for (i = 0; i < testChars.length; i++) {
     c = testChars[i];
-    metrics = win.context.measureText(c);
+    metrics = scr.context.measureText(c);
     if (Math.round(metrics.width) !== width) {
       console.warn(font_name + ' does not seem to be a monospace font');
     }
   }
   // resize the canvas
-  win.canvas.attr({
-    height: Math.round(win.height * height),
-    width: Math.round(win.width * width)
+  scr.canvas.attr({
+    height: Math.round(scr.height * height),
+    width: Math.round(scr.width * width)
   });
   // save the currently used font
-  win.font.name = font_name;
-  win.font.size = font_size;
-  win.font.char_height = height;
-  win.font.char_width = width;
+  scr.font.name = font_name;
+  scr.font.size = font_size;
+  scr.font.char_height = height;
+  scr.font.char_width = width;
   // create an offscreen canvas for rendering
-  var offscreen = make_offscreen_canvas(win.font);
-  win.offscreen_canvases = [offscreen];
+  var offscreen = make_offscreen_canvas(scr.font);
+  scr.offscreen_canvases = [offscreen];
 };
-exports.loadfont = simplify(window_t.prototype.loadfont);
+exports.loadfont = simplify(screen_t.prototype.loadfont);
 
-// clear the whole window
-window_t.prototype.clear = function() {
+/**
+ * Clear the whole window immediately, without waiting for the next refresh. Use
+ * this sparingly, as this can cause very bad performance if used too many
+ * times per second.
+ **/
+screen_t.prototype.clear = function() {
   // window height and width
   var height = this.height * this.font.char_height;
   var width = this.width * this.font.char_width;
@@ -56,13 +74,18 @@ window_t.prototype.clear = function() {
     }
   }
 };
-exports.clear = simplify(window_t.prototype.clear);
+exports.clear = simplify(screen_t.prototype.clear);
 
-// update the canvas, pushing the actual changes made with drawing functions
-// (such as addstr() and addch()) and refreshing the screen.
-//
-// in other words, addstr() and addch() do nothing until refresh() is called.
-window_t.prototype.refresh = function() {
+/**
+ * Push the changes made to the buffer, such as those made with addstr() and
+ * addch(). The canvas is updated to reflect the new state of the window. Uses
+ * differential display to optimally update only the parts of the screen that
+ * have actually changed.
+ *
+ * Note that functions like addstr() and addch() will not do anything until
+ * refresh() is called.
+ **/
+screen_t.prototype.refresh = function() {
   // for each changed character
   var k;
   for (k in this.changes) {
@@ -74,16 +97,31 @@ window_t.prototype.refresh = function() {
   }
   this.changes = {};
 };
-exports.refresh = simplify(window_t.prototype.refresh);
+exports.refresh = simplify(screen_t.prototype.refresh);
 
-// output a single character to the console at current position (or move to
-// the given position, and then output the given character).
-//
-// the cursor is moved one position to the right.
-//
-// all current attributes (as in attron(), attroff() and attrset()) are
-// applied to the output.
-window_t.prototype.addch = function(c) {
+/**
+ * Output a single character to the console, at the current position, as
+ * specified by `move` (or move to the given position, and then output the
+ * given character).
+ *
+ * The cursor is moved one position to the right. If the end of the line is
+ * reached, the cursor moves to the next line and returns to column 0.
+ *
+ * All current attributes (see attron(), attroff(), and attrset()) are applied
+ * to the output. You may also supply a temporary attrlist as a last argument
+ * to this function.
+ *
+ * Note that the visual display (the canvas) is not updated until the
+ * refresh() function is called.
+ *
+ * TODO: implement tab and newline characters
+ *
+ * @param {Integer} [y] y position for output.
+ * @param {Integer} [x] x position for output.
+ * @param {Character} c Character to be drawn.
+ * @param {Attrlist} [attrs] Temporary attributes to be applied.
+ **/
+screen_t.prototype.addch = function(c) {
   if (typeof c !== "string") {
     throw new TypeError("c is not a string");
   }
@@ -95,7 +133,7 @@ window_t.prototype.addch = function(c) {
   }
   // treat all whitespace as a single space character
   if (c === '\t' || c === '\n' || c === '\r') {
-    c = ' ';
+    c = this.empty_char;
   }
   var tile = this.tiles[this.y][this.x];
   // only do this if the content (or attrlist) changed
@@ -127,18 +165,34 @@ window_t.prototype.addch = function(c) {
   }
 }; 
 // allow calling as addch(y, x, c);
-window_t.prototype.addch = shortcut_move(window_t.prototype.addch);
-window_t.prototype.addch = attributify(window_t.prototype.addch);
-exports.addch = simplify(window_t.prototype.addch);
+screen_t.prototype.addch = shortcut_move(screen_t.prototype.addch);
+screen_t.prototype.addch = attributify(screen_t.prototype.addch);
+exports.addch = simplify(screen_t.prototype.addch);
 
-// output a string to the console at current position (or move to the given
-// position, and then output the string).
-//
-// the cursor is moved to the right end of the text.
-//
-// all current attributes (as in attron(), attroff() and attrset()) are
-// applied to the output.
-window_t.prototype.addstr = function(str) {
+/**
+ * Output a string to the console, at the current position, as specified by
+ * `move` (or move to the given position, and then output the
+ * given character).
+ *
+ * The cursor is moved to the end of the text. If the end of the line is
+ * reached, the cursor moves to the next line, the cursor returns to column 0,
+ * and text output continues on the next line.
+ *
+ * All current attributes (see attron(), attroff(), and attrset()) are applied
+ * to the output. You may also supply a temporary attrlist as a last argument
+ * to this function.
+ *
+ * Note that the visual display (the canvas) is not updated until the
+ * refresh() function is called.
+ *
+ * TODO: implement tab and newline characters
+ *
+ * @param {Integer} [y] y position for output.
+ * @param {Integer} [x] x position for output.
+ * @param {Character} str Character to be drawn.
+ * @param {Attrlist} [attrs] Temporary attributes to be applied.
+ **/
+screen_t.prototype.addstr = function(str) {
   var i;
   for (i = 0; i < str.length && this.x < this.width; i++) {
     this.addch(str[i]);
@@ -148,9 +202,9 @@ window_t.prototype.addstr = function(str) {
   }
 }; 
 // allow calling as addstr(y, x, str);
-window_t.prototype.addstr = shortcut_move(window_t.prototype.addstr);
-window_t.prototype.addstr = attributify(window_t.prototype.addstr);
-exports.addstr = simplify(window_t.prototype.addstr);
+screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
+screen_t.prototype.addstr = attributify(screen_t.prototype.addstr);
+exports.addstr = simplify(screen_t.prototype.addstr);
 
 // used for creating an off-screen canvas for pre-rendering characters
 var make_offscreen_canvas = function(font) {
@@ -163,20 +217,20 @@ var make_offscreen_canvas = function(font) {
   return canvas;
 };
 
-// draw a character at pixel-pos (x,y) on window `win'
+// draw a character at pixel-pos (x,y) on window `scr`
 //
-// the character drawn is `c', with attrlist `attrs', and may be pulled
-// from the canvas cache ̀`char_cache'
+// the character drawn is `c`, with attrlist `attrs`, and may be pulled
+// from the canvas cache ̀`char_cache`
 //
 // draw_char() is used by refresh() to redraw characters where necessary
-var draw_char = function(win, y, x, c, char_cache, attrs) {
-  var offscreen = find_offscreen_char(win, c, char_cache, attrs);
+var draw_char = function(scr, y, x, c, char_cache, attrs) {
+  var offscreen = find_offscreen_char(scr, c, char_cache, attrs);
   // apply the drawing onto the visible canvas
-  win.context.drawImage(offscreen.canvas,
+  scr.context.drawImage(offscreen.canvas,
                         offscreen.sx, offscreen.sy,
-                        win.font.char_width, win.font.char_height,
+                        scr.font.char_width, scr.font.char_height,
                         x, y,
-                        win.font.char_width, win.font.char_height);
+                        scr.font.char_width, scr.font.char_height);
 };
 
 // used by draw_char for finding (or creating) a canvas where the character
@@ -188,7 +242,7 @@ var draw_char = function(win, y, x, c, char_cache, attrs) {
 //   sy: (Y position of the character on the canvas element),
 //   sx: (X position of the character on the canvas element)
 // }
-var find_offscreen_char = function(win, c, char_cache, attrs) {
+var find_offscreen_char = function(scr, c, char_cache, attrs) {
   // number for the color pair for the character
   var color_pair = pair_number(attrs);
   // foreground and background colors
@@ -207,34 +261,34 @@ var find_offscreen_char = function(win, c, char_cache, attrs) {
   }
   else {
     // if canvas is full, use another canvas
-    if (win.offscreen_canvas_index >= CHARS_PER_CANVAS - 1) {
-      win.offscreen_canvas_index = 0;
-      canvas = make_offscreen_canvas(win.font);
-      win.offscreen_canvases.push(canvas);
+    if (scr.offscreen_canvas_index >= CHARS_PER_CANVAS - 1) {
+      scr.offscreen_canvas_index = 0;
+      canvas = make_offscreen_canvas(scr.font);
+      scr.offscreen_canvases.push(canvas);
     }
-    canvas = win.offscreen_canvases[win.offscreen_canvases.length - 1];
+    canvas = scr.offscreen_canvases[scr.offscreen_canvases.length - 1];
     var ctx = canvas.ctx;
-    sx = Math.round(win.offscreen_canvas_index * win.font.char_width);
-    // populat the `char_cache' with wher to find this character
+    sx = Math.round(scr.offscreen_canvas_index * scr.font.char_width);
+    // populate the `char_cache` with wher to find this character
     if (! char_cache[c]) {
       char_cache[c] = {};
     }
-    win.char_cache[c][attrs] = {
+    scr.char_cache[c][attrs] = {
       canvas: canvas,
       sx: sx
     };
     // draw a background
     ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
-    ctx.fillRect(sx, 0, win.font.char_width, win.font.char_height);
+    ctx.fillRect(sx, 0, scr.font.char_width, scr.font.char_height);
     // choose a font
     var font = (attrs & A_BOLD) ? 'Bold ' : '';
-    font += win.font.size + 'px ' + win.font.name;
+    font += scr.font.size + 'px ' + scr.font.name;
     ctx.font = font;
     ctx.textBaseline = 'hanging';
     // draw the character
     ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
     ctx.fillText(c, sx, 1);
-    win.offscreen_canvas_index++;
+    scr.offscreen_canvas_index++;
   }
   // return an object describing the location of the character
   return {

@@ -1,12 +1,11 @@
-// named constants for keys:
-// 
-// populates the 'exports' namespace with constants for commonly-used keycodes
-//
-// includes all the keys in the following table, with names prefixed with
-// 'KEY_' (e.g. KEY_LEFT, KEY_ESC, etc.)
-//
-// also, there is an entry for each letter of the alphabet (e.g. KEY_A,
-// KEY_B, KEY_C, etc.)
+/**
+ * Name constants for keys. Useful for commonly-used keycodes, especially the
+ * non-alphanumeric keys. All of their names start with `KEY_`. For instance,
+ * there are `KEY_LEFT`, `KEY_UP`, `KEY_ESC`, `KEY_ENTER`, etc.
+ *
+ * There is also a constant for each letter of the alphabet (`KEY_A`, `KEY_B`,
+ * etc.)
+ **/
 var keys = {
   LEFT: 37,
   UP: 38,
@@ -34,7 +33,7 @@ var construct_key_table = function() {
 construct_key_table();
 
 // called by initscr() to add keyboard support
-var handle_keyboard = function(win, container, require_focus) {
+var handle_keyboard = function(scr, container, require_focus) {
   // grab keyboard events for the whole page, or the container, depending
   // on the require_focus argument
   var keyboard_target = require_focus ? container : $('body');
@@ -44,38 +43,55 @@ var handle_keyboard = function(win, container, require_focus) {
   }
   keyboard_target.keydown(function(event) {
     if (is_key_press(event)) {
-      win.trigger('keydown', event.which, event, win);
+      scr.trigger('keydown', event.which, event, scr);
     }
     // disable most browser shortcuts if the _raw flag is on for the window
-    return ! win._raw;
+    return ! scr._raw;
   });
 };
 
-// disable most browser shortcuts, allowing your application to use things
-// like Ctrl+C and Ctrl+A as keybindings within the application
-window_t.prototype.raw = function() {
+/**
+ * Disable most browser shortcuts, allowing your application to use things like
+ * Ctrl+C and Ctrl+T as keybindings within the application. 
+ *
+ * You may want to use the `require_focus` option in initscr() if you use this
+ * function.
+ **/
+screen_t.prototype.raw = function() {
   this._raw = true;
 };
-exports.raw = simplify(window_t.prototype.raw);
+exports.raw = simplify(screen_t.prototype.raw);
 
-// enable most browser shortcuts, see raw()
-window_t.prototype.noraw = function() {
+/**
+ * Enables most browser shortcuts; undoes a previous call to raw(). This is
+ * the default behaviour.
+ **/
+screen_t.prototype.noraw = function() {
   this._raw = false;
 };
-exports.noraw = simplify(window_t.prototype.nowraw);
+exports.noraw = simplify(screen_t.prototype.nowraw);
 
-// make everything typed by the user be printed inside the console
+/**
+ * All characters typed by the user are printed at the cursor's position.
+ *
+ * TODO
+ **/
 var echo = exports.echo = function() {
-  // TODO: implement echo behavior
   this._echo = true;
 };
 
-// make everything typed by the user *not* be printed inside the console
+/**
+ * All characters not typed by the user are printed at the cursor's position.
+ * Undoes a previous call to echo(). This is the default behaviour.
+ **/
 var noecho = exports.noecho = function() {
   this._echo = false;
 };
 
-// dummy call for old-school curses programming
-// TODO
+/**
+ * Enables non-printable characters to also be grabbed as keyboard events
+ * (especially arrow keys, among others).
+ *
+ * TODO
+ **/
 var keypad = exports.keypad = function() {};
-

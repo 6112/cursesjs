@@ -17,20 +17,29 @@ var is_key_press = function(event) {
 
 // used for making a blinking cursor
 // TODO: rewrite for canvas
-var startBlink = function(win) {
+var startBlink = function(scr) {
   var do_blink = function() {
-    win.tiles[win.y][win.x].element.addClass('a-reverse');
-    win._blinkTimeout = setTimeout(do_unblink, BLINK_DELAY);
+    scr.tiles[scr.y][scr.x].element.addClass('a-reverse');
+    scr._blinkTimeout = setTimeout(do_unblink, BLINK_DELAY);
   };
   var do_unblink = function() {
-    win.tiles[win.y][win.x].element.removeClass('a-reverse');
-    win._blinkTimeout = setTimeout(do_blink, BLINK_DELAY);
+    scr.tiles[scr.y][scr.x].element.removeClass('a-reverse');
+    scr._blinkTimeout = setTimeout(do_blink, BLINK_DELAY);
   };
-  win._blinkTimeout = setTimeout(do_blink, BLINK_DELAY);
+  scr._blinkTimeout = setTimeout(do_blink, BLINK_DELAY);
 };
 
-// move the cursor to a given position on the screen.
-window_t.prototype.move = function(y, x) {
+/**
+ * Move the cursor to a given position on the screen. If the position is outside
+ * of the screen's bound, a RangeError is thrown.
+ *
+ * All output from addch() and addstr() is done at the position of the cursor.
+ *
+ * @param {Integer} y y position of the new position.
+ * @param {Integer} x x position of the new position.
+ * @throws RangeError
+ **/
+screen_t.prototype.move = function(y, x) {
   if (y < 0 || y >= this.height || x < 0 || x >= this.width) {
     throw new RangeError("coordinates out of range");
   }
@@ -39,4 +48,4 @@ window_t.prototype.move = function(y, x) {
   this.y = y;
   this.x = x;
 };
-exports.move = simplify(window_t.prototype.move);
+exports.move = simplify(screen_t.prototype.move);

@@ -10,7 +10,9 @@ var BLINK_DELAY = 500;
 // default value for the character on 'empty' space
 var EMPTY_CHAR = ' ';
 
-// named constants for colors (COLOR_WHITE, COLOR_RED, etc.)
+/**
+ * Named constants for colors: COLOR_WHITE, COLOR_RED, COLOR_GREEN, etc.
+ **/
 var colors = {
   WHITE: '#CCCCCC',
   RED: '#CC4444',
@@ -31,13 +33,26 @@ construct_color_table();
 
 // default window: will be used as a default object for all curses functions,
 // such as print(), addch(), move(), etc., if called directly instead of using
-// win.print(), win.addch(), win.move(), etc.
-var default_window = null;
+// scr.print(), scr.addch(), scr.move(), etc.
+var default_screen = null;
 
 // curses window
 // TODO: implement creating other windows, sub-wdinows (not just the global 
 // 'stdscr' window)
 var window_t = function() {
+  // cursor position
+  this.y = 0;
+  this.x = 0;
+  // width and height, in characters
+  this.width = 0;
+  this.height = 0;
+  // parent window, if any
+  this.parent = null;
+};
+
+// curses screen display; can contain subwindows
+var screen_t = function() {
+  window_t.call(this);
   // font used for rendering
   this.font = {
     name: 'monospace',
@@ -52,12 +67,6 @@ var window_t = function() {
                         // keyboard shortcuts
   this._blink = true;   // make the cursor blink
   this._blinkTimeout = 0;
-  // cursor position
-  this.y = 0;
-  this.x = 0;
-  // width and height, in characters
-  this.width = 0;
-  this.height = 0;
   // 2-D array for tiles (see tile_t)
   this.tiles = [];
   // wrapper element
@@ -94,7 +103,7 @@ var tile_t = function() {
   // JQuery element associated to this tile
   this.element = null;
   // content character
-  this.content = ' ';
+  this.content = EMPTY_CHAR;
   // attributes (bold, italics, color, etc.)
   this.attrs = A_NORMAL | COLOR_PAIR(0);
 };
