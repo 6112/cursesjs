@@ -18,11 +18,16 @@ C's old `underscore_identifiers` are used instead of JavaScript's conventional
 ## Compiling & Running
 
 This project contains a `Gruntfile.js`, which allows automation of tasks for
-this project, assuming the `grunt-cli` package is installed from the `npm`.
+this project, assuming the `grunt-cli` package is installed from the `npm`. As
+root, you can run:
+
+```bash
+npm install -g grunt-cli
+```
 
 The source files are distributed in the `src/` directory, and the compiled,
 unminified JavaScript is in the `dist/` directory. In order to recompile the
-source files after a change, you main run the command:
+source files after a change, you may run the command:
 
 ```bash
 grunt # or grunt concat
