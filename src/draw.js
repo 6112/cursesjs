@@ -87,17 +87,54 @@ exports.clear = simplify(screen_t.prototype.clear);
  **/
 screen_t.prototype.refresh = function() {
   // for each changed character
-  var k;
-  for (k in this.changes) {
-    var change = this.changes[k];
-    var attrs = change.attrs;
-    var c = change.value;
-    var char_cache = this.char_cache;
-    draw_char(this, change.at.y, change.at.x, c, char_cache, attrs);
-  }
+  var scr = this;
+  var drawfunc = function(y, x, c, attrs) {
+    draw_char(scr, y, x, c, scr.char_cache, attrs);
+  };
+  refresh_window(this, 0, 0, drawfunc);
   this.changes = {};
 };
 exports.refresh = simplify(screen_t.prototype.refresh);
+
+// refresh a window
+var refresh_window = function(win, dy, dx, drawfunc) {
+  var i;
+  for (i = 0; i < win.subwindows.length; i++) {
+    var subwin = win.subwindows[i];
+    refresh_window(subwin, dy + win.win_y, dx + win.win_x, drawfunc);
+  }
+  var k;
+  for (k in win.changes) {
+    var change = win.changes[k];
+    var pos = change.at;
+    if (win.tiles[pos.y][pos.x].exposed) {
+      drawfunc(pos.y + win.win_y + dy, pos.x + win.win_x + dx, 
+               change.value, change.attrs);
+    }
+  }
+};
+
+window_t.prototype.expose =
+  screen_t.prototype.expose = function(y, x, height, width) {
+  var j, i;
+  for (j = y; j < y + height; j++) {
+    for (i = x; i < x + width; i++) {
+      var tile = this.tiles[y][x];
+      tile.exposed = true;
+      this.addch(y, x, tile.content, tile.attrs);
+    }
+  }
+};
+
+window_t.prototype.unexpose = 
+  screen_t.prototype.unexpose =function(y, x, height, width) {
+  var j, i;
+  for (j = y; j < y + height; j++) {
+    for (i = x; i < x + width; i++) {
+      this.tiles[j][i].exposed = false;
+    }
+  }
+};
 
 /**
  * Output a single character to the console, at the current position, as
@@ -121,7 +158,7 @@ exports.refresh = simplify(screen_t.prototype.refresh);
  * @param {Character} c Character to be drawn.
  * @param {Attrlist} [attrs] Temporary attributes to be applied.
  **/
-screen_t.prototype.addch = function(c) {
+screen_t.prototype.addch = window_t.prototype.addch = function(c) {
   if (typeof c !== "string") {
     throw new TypeError("c is not a string");
   }
@@ -142,14 +179,11 @@ screen_t.prototype.addch = function(c) {
     tile.content = c;
     tile.empty = false;
     tile.attrs = this.attrs;
-    // pixel-pos for drawing
-    var draw_x = Math.round(this.font.char_width * this.x);
-    var draw_y = Math.round(this.font.char_height * this.y);
     // add an instruction to the 'changes queue'
     this.changes[this.y + ','  + this.x] = {
       at: {
-        x: draw_x,
-        y: draw_y
+        y: this.y,
+        x: this.x
       },
       value: c,
       attrs: this.attrs
@@ -167,6 +201,8 @@ screen_t.prototype.addch = function(c) {
 // allow calling as addch(y, x, c);
 screen_t.prototype.addch = shortcut_move(screen_t.prototype.addch);
 screen_t.prototype.addch = attributify(screen_t.prototype.addch);
+window_t.prototype.addch = shortcut_move(window_t.prototype.addch);
+window_t.prototype.addch = attributify(window_t.prototype.addch);
 exports.addch = simplify(screen_t.prototype.addch);
 
 /**
@@ -186,13 +222,14 @@ exports.addch = simplify(screen_t.prototype.addch);
  * refresh() function is called.
  *
  * TODO: implement tab and newline characters
+ * TODO: correctly handle end of line errors
  *
  * @param {Integer} [y] y position for output.
  * @param {Integer} [x] x position for output.
  * @param {Character} str Character to be drawn.
  * @param {Attrlist} [attrs] Temporary attributes to be applied.
  **/
-screen_t.prototype.addstr = function(str) {
+screen_t.prototype.addstr = window_t.prototype.addstr = function(str) {
   var i;
   for (i = 0; i < str.length && this.x < this.width; i++) {
     this.addch(str[i]);
@@ -204,6 +241,8 @@ screen_t.prototype.addstr = function(str) {
 // allow calling as addstr(y, x, str);
 screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
 screen_t.prototype.addstr = attributify(screen_t.prototype.addstr);
+window_t.prototype.addstr = shortcut_move(window_t.prototype.addstr);
+window_t.prototype.addstr = attributify(window_t.prototype.addstr);
 exports.addstr = simplify(screen_t.prototype.addstr);
 
 // used for creating an off-screen canvas for pre-rendering characters
@@ -226,6 +265,8 @@ var make_offscreen_canvas = function(font) {
 var draw_char = function(scr, y, x, c, char_cache, attrs) {
   var offscreen = find_offscreen_char(scr, c, char_cache, attrs);
   // apply the drawing onto the visible canvas
+  y = Math.round(y * scr.font.char_height);
+  x = Math.round(x * scr.font.char_width);
   scr.context.drawImage(offscreen.canvas,
                         offscreen.sx, offscreen.sy,
                         scr.font.char_width, scr.font.char_height,

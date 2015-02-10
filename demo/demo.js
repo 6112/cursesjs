@@ -7,6 +7,16 @@ $(window).load(function() {
   init_pair(4, COLOR_BLUE, COLOR_BLACK);
   init_pair(5, COLOR_MAGENTA, COLOR_BLACK);
   init_pair(6, COLOR_CYAN, COLOR_BLACK);
+  var subwin = newwin(20, 5, 5, 22);
+  subwin.attron(COLOR_PAIR(1) | A_REVERSE);
+  for (y = 1; y < 4; y++) {
+    for (x = 1; x < 22; x++) {
+      subwin.addch(y, x, ' ');
+    }
+  }
+  subwin.addstr(2, 2, 'I am a subwindow.');
+  console.log(subwin);
+  subwin.box();
   raw();
   var selected = 0;
   var options = [

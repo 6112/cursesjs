@@ -43,11 +43,27 @@ var window_t = function() {
   // cursor position
   this.y = 0;
   this.x = 0;
+  // window position
+  this.win_y = 0;
+  this.win_x = 0;
   // width and height, in characters
   this.width = 0;
   this.height = 0;
   // parent window, if any
   this.parent = null;
+  // 2-D array for tiles (see tile_t)
+  this.tiles = [];
+  // character used for filling empty tiles
+  // TODO: implement empty characters
+  this.empty_char = EMPTY_CHAR;
+  // current attributes (bold, italics, color, etc.) being used for text that
+  // is being added
+  this.current_attrs = A_NORMAL | COLOR_PAIR(0);
+  // map of changes since last refresh: maps a [y,x] pair to a 'change' object
+  // that describes what new 'value' a character should have
+  this.changes = {};
+  // list of subwindows that exist
+  this.subwindows = [];
 };
 
 // curses screen display; can contain subwindows
@@ -67,8 +83,6 @@ var screen_t = function() {
                         // keyboard shortcuts
   this._blink = true;   // make the cursor blink
   this._blinkTimeout = 0;
-  // 2-D array for tiles (see tile_t)
-  this.tiles = [];
   // wrapper element
   this.container = null;
   // canvas and its rendering context
@@ -80,19 +94,10 @@ var screen_t = function() {
   this.char_cache = {};
   this.offscreen_canvases = [];
   this.offscreen_canvas_index = 0;
-  // map of changes since last refresh: maps a [y,x] pair to a 'change' object
-  // that describes what new 'value' a character should have
-  this.changes = {};
   // event listeners
   this.listeners = {
     keydown: []
   };
-  // character used for filling empty tiles
-  // TODO: implement empty characters
-  this.empty_char = EMPTY_CHAR;
-  // current attributes (bold, italics, color, etc.) being used for text that
-  // is being added
-  this.current_attrs = A_NORMAL | COLOR_PAIR(0);
 };
 
 // tile on a window, used for keeping track of each character's state on the
@@ -100,10 +105,10 @@ var screen_t = function() {
 var tile_t = function() {
   // true iff this tile has no content
   this.empty = true;
-  // JQuery element associated to this tile
-  this.element = null;
   // content character
   this.content = EMPTY_CHAR;
   // attributes (bold, italics, color, etc.)
   this.attrs = A_NORMAL | COLOR_PAIR(0);
+  // true iff this tile is not hidden by a subwindow that is "over" it
+  this.exposed = true;
 };

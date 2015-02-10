@@ -37,6 +37,7 @@ module.exports = function(grunt) {
 					'src/screen.js',
 					'src/functions.js',
 					'src/draw.js',
+          'src/window.js',
 					'src/event.js'
 				],
 				dest: 'dist/js-curses.js'

@@ -44,11 +44,27 @@ var window_t = function() {
   // cursor position
   this.y = 0;
   this.x = 0;
+  // window position
+  this.win_y = 0;
+  this.win_x = 0;
   // width and height, in characters
   this.width = 0;
   this.height = 0;
   // parent window, if any
   this.parent = null;
+  // 2-D array for tiles (see tile_t)
+  this.tiles = [];
+  // character used for filling empty tiles
+  // TODO: implement empty characters
+  this.empty_char = EMPTY_CHAR;
+  // current attributes (bold, italics, color, etc.) being used for text that
+  // is being added
+  this.current_attrs = A_NORMAL | COLOR_PAIR(0);
+  // map of changes since last refresh: maps a [y,x] pair to a 'change' object
+  // that describes what new 'value' a character should have
+  this.changes = {};
+  // list of subwindows that exist
+  this.subwindows = [];
 };
 
 // curses screen display; can contain subwindows
@@ -68,8 +84,6 @@ var screen_t = function() {
                         // keyboard shortcuts
   this._blink = true;   // make the cursor blink
   this._blinkTimeout = 0;
-  // 2-D array for tiles (see tile_t)
-  this.tiles = [];
   // wrapper element
   this.container = null;
   // canvas and its rendering context
@@ -81,19 +95,10 @@ var screen_t = function() {
   this.char_cache = {};
   this.offscreen_canvases = [];
   this.offscreen_canvas_index = 0;
-  // map of changes since last refresh: maps a [y,x] pair to a 'change' object
-  // that describes what new 'value' a character should have
-  this.changes = {};
   // event listeners
   this.listeners = {
     keydown: []
   };
-  // character used for filling empty tiles
-  // TODO: implement empty characters
-  this.empty_char = EMPTY_CHAR;
-  // current attributes (bold, italics, color, etc.) being used for text that
-  // is being added
-  this.current_attrs = A_NORMAL | COLOR_PAIR(0);
 };
 
 // tile on a window, used for keeping track of each character's state on the
@@ -101,12 +106,12 @@ var screen_t = function() {
 var tile_t = function() {
   // true iff this tile has no content
   this.empty = true;
-  // JQuery element associated to this tile
-  this.element = null;
   // content character
   this.content = EMPTY_CHAR;
   // attributes (bold, italics, color, etc.)
   this.attrs = A_NORMAL | COLOR_PAIR(0);
+  // true iff this tile is not hidden by a subwindow that is "over" it
+  this.exposed = true;
 };
 
 
@@ -286,7 +291,7 @@ var init_pair = exports.init_pair = function(pair_index,
  *
  * @param {Attrlist} attrs New attributes' values.
  **/
-screen_t.prototype.attrset = function(attrs) {
+screen_t.prototype.attrset = window_t.prototype.attrset = function(attrs) {
   this.attrs = attrs;
 };
 exports.attrset = simplify(screen_t.prototype.attrset);
@@ -302,7 +307,7 @@ exports.attrset = simplify(screen_t.prototype.attrset);
  *
  * @param {Attrlist} attrs Attributes to be added.
  **/
-screen_t.prototype.attron = function(attrs) {
+screen_t.prototype.attron = window_t.prototype.attron = function(attrs) {
   var color_pair = attrs & COLOR_MASK;
   if (color_pair === 0) {
     color_pair = this.attrs & COLOR_MASK;
@@ -330,7 +335,7 @@ exports.attron = simplify(screen_t.prototype.attron);
  *
  * @param {Attrlist} attrs Attributes to be removed.
  **/
-screen_t.prototype.attroff = function(attrs) {
+screen_t.prototype.attroff = window_t.prototype.attroff = function(attrs) {
   var color_pair = this.attrs & COLOR_MASK;
   var new_attrs = ((attrs >> 16) << 16);
   new_attrs = ~new_attrs & this.attrs;
@@ -628,7 +633,7 @@ var startBlink = function(scr) {
  * @param {Integer} x x position of the new position.
  * @throws RangeError
  **/
-screen_t.prototype.move = function(y, x) {
+screen_t.prototype.move = window_t.prototype.move = function(y, x) {
   if (y < 0 || y >= this.height || x < 0 || x >= this.width) {
     throw new RangeError("coordinates out of range");
   }
@@ -729,17 +734,54 @@ exports.clear = simplify(screen_t.prototype.clear);
  **/
 screen_t.prototype.refresh = function() {
   // for each changed character
-  var k;
-  for (k in this.changes) {
-    var change = this.changes[k];
-    var attrs = change.attrs;
-    var c = change.value;
-    var char_cache = this.char_cache;
-    draw_char(this, change.at.y, change.at.x, c, char_cache, attrs);
-  }
+  var scr = this;
+  var drawfunc = function(y, x, c, attrs) {
+    draw_char(scr, y, x, c, scr.char_cache, attrs);
+  };
+  refresh_window(this, 0, 0, drawfunc);
   this.changes = {};
 };
 exports.refresh = simplify(screen_t.prototype.refresh);
+
+// refresh a window
+var refresh_window = function(win, dy, dx, drawfunc) {
+  var i;
+  for (i = 0; i < win.subwindows.length; i++) {
+    var subwin = win.subwindows[i];
+    refresh_window(subwin, dy + win.win_y, dx + win.win_x, drawfunc);
+  }
+  var k;
+  for (k in win.changes) {
+    var change = win.changes[k];
+    var pos = change.at;
+    if (win.tiles[pos.y][pos.x].exposed) {
+      drawfunc(pos.y + win.win_y + dy, pos.x + win.win_x + dx, 
+               change.value, change.attrs);
+    }
+  }
+};
+
+window_t.prototype.expose =
+  screen_t.prototype.expose = function(y, x, height, width) {
+  var j, i;
+  for (j = y; j < y + height; j++) {
+    for (i = x; i < x + width; i++) {
+      var tile = this.tiles[y][x];
+      tile.exposed = true;
+      this.addch(y, x, tile.content, tile.attrs);
+    }
+  }
+};
+
+window_t.prototype.unexpose = 
+  screen_t.prototype.unexpose =function(y, x, height, width) {
+  var j, i;
+  for (j = y; j < y + height; j++) {
+    for (i = x; i < x + width; i++) {
+      this.tiles[j][i].exposed = false;
+    }
+  }
+};
 
 /**
  * Output a single character to the console, at the current position, as
@@ -763,7 +805,7 @@ exports.refresh = simplify(screen_t.prototype.refresh);
  * @param {Character} c Character to be drawn.
  * @param {Attrlist} [attrs] Temporary attributes to be applied.
  **/
-screen_t.prototype.addch = function(c) {
+screen_t.prototype.addch = window_t.prototype.addch = function(c) {
   if (typeof c !== "string") {
     throw new TypeError("c is not a string");
   }
@@ -784,14 +826,11 @@ screen_t.prototype.addch = function(c) {
     tile.content = c;
     tile.empty = false;
     tile.attrs = this.attrs;
-    // pixel-pos for drawing
-    var draw_x = Math.round(this.font.char_width * this.x);
-    var draw_y = Math.round(this.font.char_height * this.y);
     // add an instruction to the 'changes queue'
     this.changes[this.y + ','  + this.x] = {
       at: {
-        x: draw_x,
-        y: draw_y
+        y: this.y,
+        x: this.x
       },
       value: c,
       attrs: this.attrs
@@ -809,6 +848,8 @@ screen_t.prototype.addch = function(c) {
 // allow calling as addch(y, x, c);
 screen_t.prototype.addch = shortcut_move(screen_t.prototype.addch);
 screen_t.prototype.addch = attributify(screen_t.prototype.addch);
+window_t.prototype.addch = shortcut_move(window_t.prototype.addch);
+window_t.prototype.addch = attributify(window_t.prototype.addch);
 exports.addch = simplify(screen_t.prototype.addch);
 
 /**
@@ -828,13 +869,14 @@ exports.addch = simplify(screen_t.prototype.addch);
  * refresh() function is called.
  *
  * TODO: implement tab and newline characters
+ * TODO: correctly handle end of line errors
  *
  * @param {Integer} [y] y position for output.
  * @param {Integer} [x] x position for output.
  * @param {Character} str Character to be drawn.
  * @param {Attrlist} [attrs] Temporary attributes to be applied.
  **/
-screen_t.prototype.addstr = function(str) {
+screen_t.prototype.addstr = window_t.prototype.addstr = function(str) {
   var i;
   for (i = 0; i < str.length && this.x < this.width; i++) {
     this.addch(str[i]);
@@ -846,6 +888,8 @@ screen_t.prototype.addstr = function(str) {
 // allow calling as addstr(y, x, str);
 screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
 screen_t.prototype.addstr = attributify(screen_t.prototype.addstr);
+window_t.prototype.addstr = shortcut_move(window_t.prototype.addstr);
+window_t.prototype.addstr = attributify(window_t.prototype.addstr);
 exports.addstr = simplify(screen_t.prototype.addstr);
 
 // used for creating an off-screen canvas for pre-rendering characters
@@ -868,6 +912,8 @@ var make_offscreen_canvas = function(font) {
 var draw_char = function(scr, y, x, c, char_cache, attrs) {
   var offscreen = find_offscreen_char(scr, c, char_cache, attrs);
   // apply the drawing onto the visible canvas
+  y = Math.round(y * scr.font.char_height);
+  x = Math.round(x * scr.font.char_width);
   scr.context.drawImage(offscreen.canvas,
                         offscreen.sx, offscreen.sy,
                         scr.font.char_width, scr.font.char_height,
@@ -940,6 +986,72 @@ var find_offscreen_char = function(scr, c, char_cache, attrs) {
   };
 };
 
+
+
+window_t.prototype.newwin = 
+  screen_t.prototype.newwin = function(y, x, height, width) {
+  if (typeof y !== "number") {
+    throw new TypeError("y is not a number");
+  }
+  if (y < 0) {
+    throw new RangeError("y is negative");
+  }
+  if (typeof x !== "number") {
+    throw new TypeError("x is not a number");
+  }
+  if (x < 0) {
+    throw new RangeError("x is negative");
+  }
+  if (typeof height !== "number") {
+    throw new TypeError("height is not a number");
+  }
+  if (height < 0) {
+    throw new RangeError("height is negative");
+  }
+  if (typeof width !== "number") {
+    throw new TypeError("width is not a number");
+  }
+  if (width < 0) {
+    throw new RangeError("width is negative");
+  }
+  var win = new window_t();
+  win.win_y = y;
+  win.win_x = x;
+  win.height = height;
+  win.width = width;
+  win.parent = this;
+  this.subwindows.push(win);
+  for (j = 0; j < height; j++) {
+    win.tiles[j] = [];
+    for (i = 0; i < width; i++) {
+      win.tiles[j][i] = new tile_t();
+    }
+  }
+  for (j = 0; j < height; j++) {
+    for (i = 0; i < width; i++) {
+      win.addch(j, i, ' ');
+    }
+  }
+  this.unexpose(y, x, height, width);
+  return win;
+};
+exports.newwin = simplify(screen_t.prototype.newwin);
+
+window_t.prototype.box = function() {
+  this.addch(0, 0, '+');
+  this.addch(this.height - 1, 0, '+');
+  this.addch(0, this.width - 1, '+');
+  this.addch(this.height - 1, this.width - 1, '+');
+  var y, x;
+  for (y = 1; y < this.height - 1; y++) {
+    this.addch(y, 0, '|');
+    this.addch(y, this.width - 1, '|');
+  }
+  for (x = 1; x < this.width - 1; x++) {
+    this.addch(0, x, '-');
+    this.addch(this.height - 1, x, '-');
+  }
+};
 
 
 /**

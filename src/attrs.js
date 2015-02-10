@@ -80,7 +80,7 @@ var init_pair = exports.init_pair = function(pair_index,
  *
  * @param {Attrlist} attrs New attributes' values.
  **/
-screen_t.prototype.attrset = function(attrs) {
+screen_t.prototype.attrset = window_t.prototype.attrset = function(attrs) {
   this.attrs = attrs;
 };
 exports.attrset = simplify(screen_t.prototype.attrset);
@@ -96,7 +96,7 @@ exports.attrset = simplify(screen_t.prototype.attrset);
  *
  * @param {Attrlist} attrs Attributes to be added.
  **/
-screen_t.prototype.attron = function(attrs) {
+screen_t.prototype.attron = window_t.prototype.attron = function(attrs) {
   var color_pair = attrs & COLOR_MASK;
   if (color_pair === 0) {
     color_pair = this.attrs & COLOR_MASK;
@@ -124,7 +124,7 @@ exports.attron = simplify(screen_t.prototype.attron);
  *
  * @param {Attrlist} attrs Attributes to be removed.
  **/
-screen_t.prototype.attroff = function(attrs) {
+screen_t.prototype.attroff = window_t.prototype.attroff = function(attrs) {
   var color_pair = this.attrs & COLOR_MASK;
   var new_attrs = ((attrs >> 16) << 16);
   new_attrs = ~new_attrs & this.attrs;
