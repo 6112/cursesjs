@@ -48,17 +48,17 @@ window_t.prototype.newwin =
 exports.newwin = simplify(screen_t.prototype.newwin);
 
 window_t.prototype.box = function() {
-  this.addch(0, 0, '+');
-  this.addch(this.height - 1, 0, '+');
-  this.addch(0, this.width - 1, '+');
-  this.addch(this.height - 1, this.width - 1, '+');
+  this.addch(0, 0, '┌');
+  this.addch(this.height - 1, 0, '└');
+  this.addch(0, this.width - 1, '┐');
+  this.addch(this.height - 1, this.width - 1, '┘');
   var y, x;
   for (y = 1; y < this.height - 1; y++) {
-    this.addch(y, 0, '|');
-    this.addch(y, this.width - 1, '|');
+    this.addch(y, 0, '│');
+    this.addch(y, this.width - 1, '│');
   }
   for (x = 1; x < this.width - 1; x++) {
-    this.addch(0, x, '-');
-    this.addch(this.height - 1, x, '-');
+    this.addch(0, x, '─');
+    this.addch(this.height - 1, x, '─');
   }
 };
