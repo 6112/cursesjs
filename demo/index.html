@@ -13,60 +13,62 @@
     }
   </style>
 <body>
-<div class="container">
-  <h1>js-curses</h1>
-  
-  <p>An interface for JavaScript that is pretty much copied from the
-  <code>ncurses</code> library, and can be used to make "text-mode" interfaces
-  inside a web browser. Click the console "window" to give it focus, and then
-  you can start using it as you would for any console application that has
-  a curses user interface. This library could be used to create many
-  applications; for instance, a music player, a video game, or a text editor,
-  inside the web browser.</p>
+  <div class="container">
+    
+    <h1>js-curses</h1>
+    
+    <p>An interface for JavaScript that is pretty much copied from the
+      <code>ncurses</code> library, and can be used to make "text-mode" interfaces
+      inside a web browser. Click the console "window" to give it focus, and then
+      you can start using it as you would for any console application that has
+      a curses user interface. This library could be used to create many
+      applications; for instance, a music player, a video game, or a text editor,
+      inside the web browser.</p>
 
-  <div class="panel panel-info">
-    <div class="panel-heading">
-      <h3 class="panel-title">
-        <em>Nota bene</em>
-      </h3>
+    <div class="panel panel-info">
+      <div class="panel-heading">
+	<h3 class="panel-title">
+          <em>Nota bene</em>
+	</h3>
+      </div>
+      <div class="panel-body">
+	<p>If the console does not have focus (which it gains by being clicked
+	  on), pressing keys has no effect.</p>
+
+	<p>Additionally, this library has yet to be tested on browsers other than
+	  Firefox and Chrome. Chances are it won't work in most other web browsers.
+	</p>
+      </div>
     </div>
-    <div class="panel-body">
-      <p>If the console does not have focus (which it gains by being clicked
-      on), pressing keys has no effect.</p>
 
-      <p>Additionally, this library has yet to be tested on browsers other than
-      Firefox and Chrome. Chances are it won't work in most other web browsers.
-      </p>
+    <h2>Demonstration</h2>
+
+    <p>This small demonstration contains a few, very simple, examples of things
+      that can be done using <code>js-curses</code>. Use the <kbd>arrow keys</kbd>
+      to select an example, then press <kbd>enter</kbd> to start that example. There
+      is also a simple benchmarker, which redraws the whole screen as often as
+      possible, and displays how many frames per second it has.</p>
+
+    <div class="well well-sm" id="stage">
     </div>
   </div>
 
-  <h2>Demonstration</h2>
-
-  <p>This small demonstration contains a few, very simple, examples of things
-  that can be done using <code>js-curses</code>. Use the <kbd>arrow keys</kbd>
-  to select an example, then press <kbd>enter</kbd> to start that example. There
-  is also a simple benchmarker, which redraws the whole screen as often as
-  possible, and displays how many frames per second it has.</p>
-
-  <div class="well well-sm" id="stage">
+  <!-- for preloading the fonts -->
+  <div id="preload">
+    <div style='font-family: "Source Code Pro";'>.</div>
+    <div style='font-family: "Source Code Pro"; font-weight: bold;'>.</div>
+    <img src="fixedsys.png" />
   </div>
-</div>
 
-<!-- for preloading the fonts -->
-<div id="preload">
-  <div style='font-family: "Source Code Pro";'>.</div>
-  <div style='font-family: "Source Code Pro"; font-weight: bold;'>.</div>
-</div>
+  <!-- js-curses requires jQuery -->
+  <script src="bower_components/jquery/dist/jquery.js"></script>
 
-<!-- js-curses requires jQuery -->
-<script src="bower_components/jquery/dist/jquery.js"></script>
+  <!-- include js-curses -->
+  <script src="../dist/js-curses.js"></script>
 
-<!-- include js-curses -->
-<script src="../dist/js-curses.js"></script>
-
-<!-- site-specific JavaScript for the demo -->
-<script src="roguelike.js"></script>
-<script src="benchmark.js"></script>
-<script src="demo.js"></script>
+  <!-- site-specific JavaScript for the demo -->
+  <script src="roguelike.js"></script>
+  <script src="benchmark.js"></script>
+  <script src="demo.js"></script>
 </body>
 </html>

@@ -1,6 +1,12 @@
 $(window).load(function() {
+  var char_table = [
+    " !\"#$%&'()*+,-./0123456789:;<=>?",
+    "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_",
+    "`abcdefghijklmnopqrstuvwxyz{|}~"
+  ];
   $('#preload').remove();
-  var win = initscr('#stage', 30, 60, 'Source Code Pro', 14, true);
+  // var win = initscr('#stage', 30, 60, 'Source Code Pro', 14, true);
+  var win = initscr('#stage', 30, 60, 'fixedsys.png', 15, 8, char_table, true);
   init_pair(1, COLOR_RED, COLOR_BLACK);
   init_pair(2, COLOR_GREEN, COLOR_BLACK);
   init_pair(3, COLOR_YELLOW, COLOR_BLACK);
@@ -9,15 +15,11 @@ $(window).load(function() {
   init_pair(6, COLOR_CYAN, COLOR_BLACK);
   var subwin = newwin(20, 5, 5, 22);
   subwin.attron(COLOR_PAIR(1) | A_REVERSE);
-  for (y = 1; y < 4; y++) {
-    for (x = 1; x < 22; x++) {
-      subwin.addch(y, x, ' ');
-    }
-  }
+  subwin.bkgd('.', COLOR_PAIR(1) | A_REVERSE);
   subwin.addstr(2, 2, 'I am a subwindow.');
   console.log(subwin);
-  subwin.box();
-  raw();
+  subwin.box('#', COLOR_PAIR(2), '#', COLOR_PAIR(3), '#', COLOR_PAIR(4));
+  // raw();
   var selected = 0;
   var options = [
     'Roguelike-like player movement',

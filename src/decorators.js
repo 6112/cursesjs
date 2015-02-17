@@ -76,6 +76,7 @@ var attributify = function(f) {
   return function() {
     var args = arguments;
     var attrs = null;
+    var prev_attrs = this.attrs;
     if (arguments.length !== 0) {
       attrs = arguments[arguments.length - 1];
       if (typeof attrs === "number") {
@@ -85,7 +86,7 @@ var attributify = function(f) {
     }
     var return_value = f.apply(this, args);
     if (typeof attrs === "number") {
-      this.attroff(attrs);
+      this.attrset(prev_attrs);
     }
     return return_value;
   };

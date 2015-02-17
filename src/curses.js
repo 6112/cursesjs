@@ -56,6 +56,7 @@ var window_t = function() {
   // character used for filling empty tiles
   // TODO: implement empty characters
   this.empty_char = EMPTY_CHAR;
+  this.empty_attrs = A_NORMAL | COLOR_PAIR(0);
   // current attributes (bold, italics, color, etc.) being used for text that
   // is being added
   this.current_attrs = A_NORMAL | COLOR_PAIR(0);

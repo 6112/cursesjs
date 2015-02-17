@@ -57,6 +57,7 @@ var window_t = function() {
   // character used for filling empty tiles
   // TODO: implement empty characters
   this.empty_char = EMPTY_CHAR;
+  this.empty_attrs = A_NORMAL | COLOR_PAIR(0);
   // current attributes (bold, italics, color, etc.) being used for text that
   // is being added
   this.current_attrs = A_NORMAL | COLOR_PAIR(0);
@@ -193,6 +194,7 @@ var attributify = function(f) {
   return function() {
     var args = arguments;
     var attrs = null;
+    var prev_attrs = this.attrs;
     if (arguments.length !== 0) {
       attrs = arguments[arguments.length - 1];
       if (typeof attrs === "number") {
@@ -202,7 +204,7 @@ var attributify = function(f) {
     }
     var return_value = f.apply(this, args);
     if (typeof attrs === "number") {
-      this.attroff(attrs);
+      this.attrset(prev_attrs);
     }
     return return_value;
   };
@@ -485,13 +487,36 @@ var keypad = exports.keypad = function() {};
  * container. If `require_focus` is false or unspecified, then the screen
  * will grab all keyboard events on the webpage, which may get in the way
  * of the web browser's shortcuts, and a lot of other things.
+ *
+ * Examples:
+ *     initscr('#container', 80, 60, 'Source Code Pro', 12, true);
+ *     var char_table = [
+ *       'abcdefghijklmnopqrstuvwxyz', // each line corresponds to a line inside
+ *       'ABCDEFGHIJKLMNOPQRSTUVWXYZ', // the image to be loaded
+ *       ' ,.!@#$%?&*()[]{}'
+ *     ];
+ *     initscr('#canvas', 40, 30, 'my_image.bmp', 16, 8, char_table);
  * 
  * @param {HTMLElement|String|undefined} container The container for the
  *    display canvas.
  * @param {Integer} height Height, in characters, of the screen.
  * @param {Integer} width Width, in chracters, of the screen.
- * @param {String} font_name Name of the font to be loaded.
- * @param {Integer} font_size Size, in pixels, of the font to be loaded.
+ * @param {String} [font_name] Name of the TTF font to be loaded. If `font_name`
+ * is specified, `font_size` must be specified, and `font_path` and friends
+ * cannot be specified.
+ * @param {Integer} [font_size] Size, in pixels, of the TTF font to be loaded.
+ * @param {String|HTMLImageElement} [font_path] Name, or <img> element, for the
+ * image to be used as a spritesheet for the characters for a Bitmap font. If
+ * `font_path` is specified, `font_height`, `font_width`, and `font_chars` must
+ * be specified, and `font_size` and friends cannot be specified. The characters
+ * in the images to be loaded must be contiguous rectangles of constant size.
+ * @param {Integer} [font_height] Height, in pixels, of each character in the
+ * bitmap font to be loaded.
+ * @param {Integer} [font_width] Width, in pixels, of each character in the
+ * bitmap font to be loaded.
+ * @param {Array[String]} [font_chars] Each array element describes a line in the
+ * image for the Bitmap font being loaded. Each element should be a string that
+ * describes the contiguous characters on that line. See the example code.
  * @param {Boolean} [require_focus=false] Whether focus is required for keyboard
  *   events to be registered.
  * @return {screen_t} The created screen, and the new default screen.
@@ -531,7 +556,17 @@ var initscr = exports.initscr = function(container, height, width,
   scr.container.append(scr.canvas);
   scr.context = scr.canvas[0].getContext('2d');
   // load the specified font
-  load_font(scr, font_name, font_size);
+  // TODO: specify sane default values
+  if (typeof font_name === "string" &&
+      ! /\.(jpe?g|png|bmp|gif)$/.test(font_name)) {
+    // not an image: load the TTF font
+    load_ttf_font(scr, font_name, font_size);
+  }
+  else {
+    // seems to be an image: load the bitmap font
+    load_bitmap_font(scr, arguments[3], arguments[4], arguments[5], arguments[6]);
+    require_focus = arguments[7];
+  }
   // initialize the character tiles to default values
   var y, x;
   for (y = 0; y < height; y++) {
@@ -663,7 +698,7 @@ var CHARS_PER_CANVAS = 256;
  * @param {Integer} font_size Size of the font to be loaded.
  **/
 // load a font with given attributes font_name and font_size
-var load_font = function(scr, font_name, font_size) {
+var load_ttf_font = function(scr, font_name, font_size) {
   scr.context.font = 'Bold ' + font_size + 'px ' + font_name;
   scr.context.textAlign = 'left';
   var c = 'm';
@@ -688,15 +723,60 @@ var load_font = function(scr, font_name, font_size) {
     width: Math.round(scr.width * width)
   });
   // save the currently used font
-  scr.font.name = font_name;
-  scr.font.size = font_size;
-  scr.font.char_height = height;
-  scr.font.char_width = width;
+  scr.font = {
+    type: "ttf",
+    name: font_name,
+    size: font_size,
+    char_height: height,
+    char_width: width
+  };
   // create an offscreen canvas for rendering
   var offscreen = make_offscreen_canvas(scr.font);
   scr.offscreen_canvases = [offscreen];
 };
-exports.loadfont = simplify(screen_t.prototype.loadfont);
+
+// last arguments are slurped for the char map (to know which
+// character is where in the image)
+//
+// @param {String|HTMLImageElement} bitmap The image to use for
+//   drawing
+// @param {Integer} char_height Height of a character in the bitmap.
+// @param {Integer} char_width Width of a character in the bitmap.
+// @param {Array[String]} chars A string for each line in the bitmap
+//   file; each character in the string corresponds to a character on
+//   that line in the bitmap file.
+var load_bitmap_font = function(scr, bitmap, char_height, char_width, chars) {
+  if (typeof bitmap === "string") {
+    bitmap = $('<img src="' + bitmap + '" />')[0];
+  }
+  var char_map = {};
+  var y, x;
+  for (y = 0; y < chars.length; y++) {
+    for (x = 0; x < chars[y].length; x++) {
+      char_map[chars[y][x]] = [y, x];
+    }
+  }
+  console.log(char_map);
+  scr.canvas.attr({
+    height: Math.round(scr.height * char_height),
+    width: Math.round(scr.width * char_width)
+  });
+  scr.font = {
+    type: "bmp",
+    bitmap: bitmap,
+    char_height: char_height,
+    char_width: char_width,
+    char_map: char_map
+  };
+  var offscreen = make_offscreen_canvas(scr.font);
+  scr.offscreen_canvases = [offscreen];
+  var small_offscreen = $('<canvas></canvas>');
+  small_offscreen.attr({
+    height: char_height,
+    width: char_width
+  });
+  scr.small_offscreen = small_offscreen[0];
+};
 
 /**
  * Clear the whole window immediately, without waiting for the next refresh. Use
@@ -736,7 +816,7 @@ screen_t.prototype.refresh = function() {
   // for each changed character
   var scr = this;
   var drawfunc = function(y, x, c, attrs) {
-    draw_char(scr, y, x, c, scr.char_cache, attrs);
+    draw_char(scr, y, x, c, attrs);
   };
   refresh_window(this, 0, 0, drawfunc);
   this.changes = {};
@@ -909,16 +989,23 @@ var make_offscreen_canvas = function(font) {
 // from the canvas cache ̀`char_cache`
 //
 // draw_char() is used by refresh() to redraw characters where necessary
-var draw_char = function(scr, y, x, c, char_cache, attrs) {
-  var offscreen = find_offscreen_char(scr, c, char_cache, attrs);
+var draw_char = function(scr, y, x, c, attrs) {
+  var offscreen = find_offscreen_char(scr, c, attrs);
+  if (! offscreen) {
+    // silently fail, and return false
+    console.log('omg fail');
+    return false;
+  }
   // apply the drawing onto the visible canvas
   y = Math.round(y * scr.font.char_height);
   x = Math.round(x * scr.font.char_width);
-  scr.context.drawImage(offscreen.canvas,
+  scr.context.drawImage(offscreen.src,
                         offscreen.sx, offscreen.sy,
                         scr.font.char_width, scr.font.char_height,
                         x, y,
                         scr.font.char_width, scr.font.char_height);
+  // return true for success
+  return true;
 };
 
 // used by draw_char for finding (or creating) a canvas where the character
@@ -926,68 +1013,186 @@ var draw_char = function(scr, y, x, c, char_cache, attrs) {
 //
 // the return value is an object of the format:
 // {
-//   canvas: (canvas element),
+//   src: (canvas element),
 //   sy: (Y position of the character on the canvas element),
 //   sx: (X position of the character on the canvas element)
 // }
-var find_offscreen_char = function(scr, c, char_cache, attrs) {
-  // number for the color pair for the character
-  var color_pair = pair_number(attrs);
-  // foreground and background colors
-  var bg = color_pairs[color_pair].bg;
-  var fg = color_pairs[color_pair].fg;
-  // source y, source x, and source canvas for drawing
-  var sy = 0;
-  var sx;
-  var canvas;
-  // if the char is already drawn on one of the offscreen canvases, with the
-  // right attributes
-  if (char_cache[c] && char_cache[c][attrs]) {
-    // graphics saved, just use the cache
-    canvas = char_cache[c][attrs].canvas;
-    sx = char_cache[c][attrs].sx;
+var find_offscreen_char = function(scr, c, attrs) {
+  // check if it's a (c,attrs) pair that's already been drawn before;
+  // if it is, use the same character as before
+  var found = find_in_cache(scr, c, attrs);
+  if (found) {
+    return found;
+  }
+  // not found, draw the character on an offscreen canvas, and add it
+  // to the cache
+  grow_canvas_pool(scr);
+  if (scr.font.type === "ttf") {
+    // TTF font
+    found = draw_offscreen_char_ttf(scr, c, attrs);
+  }
+  else if (scr.font.type === "bmp") {
+    // bitmap font
+    found = draw_offscreen_char_bmp(scr, c, attrs);
   }
   else {
-    // if canvas is full, use another canvas
-    if (scr.offscreen_canvas_index >= CHARS_PER_CANVAS - 1) {
-      scr.offscreen_canvas_index = 0;
-      canvas = make_offscreen_canvas(scr.font);
-      scr.offscreen_canvases.push(canvas);
-    }
-    canvas = scr.offscreen_canvases[scr.offscreen_canvases.length - 1];
-    var ctx = canvas.ctx;
-    sx = Math.round(scr.offscreen_canvas_index * scr.font.char_width);
-    // populate the `char_cache` with wher to find this character
-    if (! char_cache[c]) {
-      char_cache[c] = {};
-    }
-    scr.char_cache[c][attrs] = {
-      canvas: canvas,
-      sx: sx
-    };
-    // draw a background
-    ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
-    ctx.fillRect(sx, 0, scr.font.char_width, scr.font.char_height);
-    // choose a font
-    var font = (attrs & A_BOLD) ? 'Bold ' : '';
-    font += scr.font.size + 'px ' + scr.font.name;
-    ctx.font = font;
-    ctx.textBaseline = 'hanging';
-    // draw the character
-    ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
-    ctx.fillText(c, sx, 1);
+    // unrecognized font-type
+    throw new Error("invalid font");
+  }
+  if (found) {
+    // a character was drawn, move the pointer to the right
     scr.offscreen_canvas_index++;
   }
-  // return an object describing the location of the character
-  return {
-    canvas: canvas[0],
-    sx: sx,
-    sy: sy
+  return found;
+};
+
+// return an object describing where the character is if it can be
+// found in the `char_cache`. if it cannot be found, return null.
+var find_in_cache = function(scr, c, attrs) {
+  var char_cache = scr.char_cache;
+  if (char_cache[c] && char_cache[c][attrs]) {
+    // found, return an object describing where the character is
+    return char_cache[c][attrs];
+  }
+  // not found, return a value indicating that
+  return null;
+};
+
+// add a canvas to the canvas pool if necessary, so that an offscreen
+// character never ends up being drawn outside of its corresponding
+// offscreen canvas (by being drawn too far to the right)
+var grow_canvas_pool = function(scr) {
+  if (scr.offscreen_canvas_index >= CHARS_PER_CANVAS - 1) {
+    scr.offscreen_canvas_index = 0;
+    var canvas = make_offscreen_canvas(scr.font);
+    scr.offscreen_canvases.push(canvas);
+  }
+};
+
+var draw_offscreen_char_bmp = function(scr, c, attrs) {
+  // used for storing the drawn character in case it has to be redrawn
+  // (for better performacne)
+  var char_cache = scr.char_cache;
+  // calculate the colours for everything
+  var color_pair = pair_number(attrs);
+  var bg = color_pairs[color_pair].bg;
+  var fg = color_pairs[color_pair].fg;
+  // calculate where to draw the character
+  var canvas =
+      scr.offscreen_canvases[scr.offscreen_canvases.length - 1];
+  var ctx = canvas.ctx;
+  var sy = 0;
+  var sx = Math.round(scr.offscreen_canvas_index * scr.font.char_width);
+  // save info in the char cache
+  if (! char_cache[c]) {
+    char_cache[c] = {};
+  }
+  scr.char_cache[c][attrs] = {
+    src: canvas[0],
+    sy: sy,
+    sx: sx
   };
+  if (! scr.font.char_map[c]) {
+    // silently fail if we don't know where to find the character on
+    // the original bitmap image
+    return null;
+  }
+  // calculate coordinates from the source image
+  var bitmap_y = scr.font.char_map[c][0] * scr.font.char_height;
+  bitmap_y = Math.round(bitmap_y);
+  var bitmap_x = scr.font.char_map[c][1] * scr.font.char_width;
+  bitmap_x = Math.round(bitmap_x);
+  // draw a background
+  ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
+  ctx.fillRect(sx, sy, scr.font.char_width, scr.font.char_height);
+  // draw the character on a separate, very small, offscreen canvas
+  var small = scr.small_offscreen.getContext('2d');
+  var height = scr.font.char_height;
+  var width = scr.font.char_width;
+  small.clearRect(0, 0, width, height);
+  small.drawImage(scr.font.bitmap,
+		  bitmap_x, bitmap_y,
+		  width, height,
+		  0, 0,
+		  width, height);
+  // for each non-transparent pixel on the small canvas, draw the pixel
+  // at the same position onto the 'main' offscreen canvas
+  var pixels = small.getImageData(0, 0, width, height).data;
+  ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
+  var y, x;
+  for (y = 0; y < height; y++) {
+    for (x = 0; x < width; x++) {
+      var alpha = pixels[(y * width + x) * 4 + 3];
+      if (alpha !== 0) {
+	// TODO: use putImageData() to improve performance in some
+	// browsers
+	// ctx.putImageData(dot, sx + x, sy + y);
+	ctx.fillRect(sx + x, sy + y, 1, 1);
+      }
+    }
+  }
+  // return an object telling where to find the offscreen character
+  return char_cache[c][attrs];
+};
+
+var draw_offscreen_char_ttf = function(scr, c, attrs) {
+  // used for storing the drawn character in case it has to be redrawn
+  // (for better performance)
+  var char_cache = scr.char_cache;
+  // calculate the colours for everything
+  var color_pair = pair_number(attrs);
+  var bg = color_pairs[color_pair].bg;
+  var fg = color_pairs[color_pair].fg;
+  // calculate where to draw the character
+  var canvas =
+      scr.offscreen_canvases[scr.offscreen_canvases.length - 1];
+  var ctx = canvas.ctx;
+  var sy = 0;
+  var sx = Math.round(scr.offscreen_canvas_index * scr.font.char_width);
+  // save info in the char cache
+  if (! char_cache[c]) {
+    char_cache[c] = {};
+  }
+  scr.char_cache[c][attrs] = {
+    src: canvas[0],
+    sy: sy,
+    sx: sx
+  };
+  // draw a background
+  ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
+  ctx.fillRect(sx, sy, scr.font.char_width, scr.font.char_height);
+  // choose the font
+  var font = (attrs & A_BOLD) ? 'Bold' : '';
+  font += scr.font.size + 'px ' + scr.font.name;
+  ctx.font = font;
+  ctx.textBaseline = 'hanging';
+  // draw the character
+  ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
+  ctx.fillText(c, sx, sy + 1);
+  // return an object telling where to find the offscreen character
+  return char_cache[c][attrs];
 };
 
 
 
+/**
+ * Create a new window at position (y,x), with height `height` and width
+ * `width`. The parent window is the object newwin() is applied on (or the
+ * default screen, it applicable). The child window is returned by this 
+ * function.
+ *
+ * The child window is always drawn over the content of the parent window,
+ * even if the child window is empty (it will simply draw empty chars, most
+ * likely empty space, unless bkgd() is called).
+ *
+ * The created window starts being drawn on the next refresh() call.
+ *
+ * @param {Integer} y y position of the window, in characters.
+ * @param {Integer} x x position of the window, in characters.
+ * @param {Integer} height height of the window, in characters.
+ * @param {Integer} width width of the window, in characters.
+ * @return {window_t} The created child window.
+ **/
 window_t.prototype.newwin = 
   screen_t.prototype.newwin = function(y, x, height, width) {
   if (typeof y !== "number") {
@@ -1014,42 +1219,171 @@ window_t.prototype.newwin =
   if (width < 0) {
     throw new RangeError("width is negative");
   }
+  // create the window
   var win = new window_t();
   win.win_y = y;
   win.win_x = x;
   win.height = height;
   win.width = width;
   win.parent = this;
+  // add to parent's subwindows
   this.subwindows.push(win);
+  // create the 2D array of tiles
   for (j = 0; j < height; j++) {
     win.tiles[j] = [];
     for (i = 0; i < width; i++) {
       win.tiles[j][i] = new tile_t();
     }
   }
+  // draw each tile
   for (j = 0; j < height; j++) {
     for (i = 0; i < width; i++) {
-      win.addch(j, i, ' ');
+      win.addch(j, i, win.empty_char);
+      win.tiles[j][i].empty = true;
     }
   }
+  // undraw each 'covered' tile in the parent
   this.unexpose(y, x, height, width);
+  // return the created window
   return win;
 };
 exports.newwin = simplify(screen_t.prototype.newwin);
 
-window_t.prototype.box = function() {
-  this.addch(0, 0, '+');
-  this.addch(this.height - 1, 0, '+');
-  this.addch(0, this.width - 1, '+');
-  this.addch(this.height - 1, this.width - 1, '+');
+/**
+ * Draw the background character `c`, using attrlist `attrs`, as the new
+ * background character for the window. All the places that are already filled
+ * with the current background character are replaced with the new one on
+ * next refresh() call.
+ *
+ * @param {Character} c New background character.
+ * @param {Attrlist} attrs New attrlist for the background.
+ **/
+window_t.prototype.bkgd = function(c, attrs) {
+  attrs |= 0;
+  var y, x;
+  for (y = 0; y < this.height; y++) {
+    for (x = 0; x < this.width; x++) {
+      if (this.tiles[y][x].empty) {
+        this.addch(y, x, c, attrs);
+        this.tiles[y][x].empty = true;
+      }
+    }
+  }
+  this.empty_char = c;
+  this.empty_attrs = attrs;
+};
+
+/**
+ * Draw a box around the window, using the border() function, but in a simpler
+ * way. Use box() instead of border() when all corners use the same character,
+ * all vertical borders use the same character, and all horizontal borders use
+ * the same character.
+ *
+ * `corner` is the character used to draw the four corners of the box;
+ * `vert` is the character used to draw the left and right borders; and
+ * `horiz` is the character used to draw the top and bottom borders.
+ *
+ * You can call this function specifying only character arguments, in which
+ * case the window's current default attributes are used for the characters.
+ * You can also specify an attrlist argument after each character argument
+ * in order to force each character's attributes to the specified values.
+ *
+ * For instance, you can call box() by doing:
+ *     win.box('+', '|', '-'); // default attributes for everything
+ *     win.box('+', A_BOLD, '|', '-', A_BOLD); // corners and top/bottom borders
+ *                                             // are bold; left/right borders
+ *                                             // are normal
+ *
+ * @param {ChType} [corner='+'] One, or two arguments, that describe the 
+ *   character for the corners, and its attributes.
+ * @param {ChType} [vert='|'] One, or two arguments, that describe the character
+ *   for the left and right borders, and its attributes.
+ * @param {ChType} [horiz='-'] One, or two arguments, that describe the
+ *   character for the left and right borders, and its attributes.
+ **/
+window_t.prototype.box = function(corner, vert, horiz) {
+  var defaults = ['O', '|', '-'];
+  var chars = parse_chtypes(arguments, defaults, this);
+  corner = chars[0];
+  vert = chars[1];
+  horiz = chars[2];
+  this.border(vert.value, vert.attrs, vert.value, vert.attrs,
+              horiz.value, horiz.attrs, horiz.value, horiz.attrs,
+              corner.value, corner.attrs, corner.value, corner.attrs,
+              corner.value, corner.attrs, corner.value, corner.attrs);
+};
+
+window_t.prototype.border = function(ls, rs, ts, bs, tl, tr, bl, br) {
+  var defaults = ['|', '|', '-', '-', 'O', 'O', 'O', 'O'];
+  var chars = parse_chtypes(arguments, defaults, this);
+  // draw corners
+  console.log(arguments);
+  console.log(chars);
+  this.addch(0, 0, chars[4].value, chars[4].attrs);
+  this.addch(0, this.width - 1, chars[5].value, chars[5].attrs);
+  this.addch(this.height - 1, 0, chars[6].value, chars[6].attrs);
+  this.addch(this.height - 1, this.width - 1, chars[7].value, chars[7].attrs);
+  // draw borders
   var y, x;
   for (y = 1; y < this.height - 1; y++) {
-    this.addch(y, 0, '|');
-    this.addch(y, this.width - 1, '|');
+    this.addch(y, 0, chars[0].value, chars[0].attrs);
+    this.addch(y, this.width - 1, chars[1].value, chars[1].attrs);
   }
   for (x = 1; x < this.width - 1; x++) {
-    this.addch(0, x, '-');
-    this.addch(this.height - 1, x, '-');
+    this.addch(0, x, chars[2].value, chars[2].attrs);
+    this.addch(this.height - 1, x, chars[3].value, chars[3].attrs);
+  }
+};
+
+// helper function for passing arguments to box() and border()
+var parse_chtypes = function(arglist, defaults, win) {
+  var chars = [];
+  var i, j;
+  for (i = 0, j = 0; i < arglist.length; i++, j++) {
+    if (typeof arglist[i] === "string" || arglist[i].length !== 1) {
+      var ch = {
+        value: arglist[i]
+      };
+      if (typeof arglist[i + 1] === "number") {
+        ch.attrs = arglist[i + 1];
+        i++;
+      }
+      else {
+        ch.attrs = win.attrs;
+      }
+      chars.push(ch);
+    }
+    else {
+      throw new TypeError("expected a character for argument " + (i + 1));
+    }
+  }
+  while (j < defaults.length) {
+    chars.push({
+      value: defaults[j],
+      attrs: win.attrs
+    });
+    j++;
+  }
+  return chars;
+};
+
+/**
+ * Delete a window, and remove it from its parent window. Force a redraw
+ * on the part of the parent window that was being covered by this window.
+ * The redraw only happens when refresh() is next called.
+ **/
+window_t.prototype.delwin = function() {
+  // force a redraw on the parent, in the area corresponding to this window
+  this.parent.expose(this.win_y, this.win_x, this.height, this.width);
+  // remove from the parent's subwindows
+  var i;
+  for (i = 0; i < this.parent.subwindows.length; i++) {
+    if (this.parent.subwindows[i] === this) {
+      break;
+    }
+  }
+  if (i !== this.parent.subwindows.length) {
+    this.parent.subwindows.splice(i, 1);
   }
 };
 

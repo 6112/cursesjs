@@ -16,7 +16,7 @@ var CHARS_PER_CANVAS = 256;
  * @param {Integer} font_size Size of the font to be loaded.
  **/
 // load a font with given attributes font_name and font_size
-var load_font = function(scr, font_name, font_size) {
+var load_ttf_font = function(scr, font_name, font_size) {
   scr.context.font = 'Bold ' + font_size + 'px ' + font_name;
   scr.context.textAlign = 'left';
   var c = 'm';
@@ -41,15 +41,60 @@ var load_font = function(scr, font_name, font_size) {
     width: Math.round(scr.width * width)
   });
   // save the currently used font
-  scr.font.name = font_name;
-  scr.font.size = font_size;
-  scr.font.char_height = height;
-  scr.font.char_width = width;
+  scr.font = {
+    type: "ttf",
+    name: font_name,
+    size: font_size,
+    char_height: height,
+    char_width: width
+  };
   // create an offscreen canvas for rendering
   var offscreen = make_offscreen_canvas(scr.font);
   scr.offscreen_canvases = [offscreen];
 };
-exports.loadfont = simplify(screen_t.prototype.loadfont);
+
+// last arguments are slurped for the char map (to know which
+// character is where in the image)
+//
+// @param {String|HTMLImageElement} bitmap The image to use for
+//   drawing
+// @param {Integer} char_height Height of a character in the bitmap.
+// @param {Integer} char_width Width of a character in the bitmap.
+// @param {Array[String]} chars A string for each line in the bitmap
+//   file; each character in the string corresponds to a character on
+//   that line in the bitmap file.
+var load_bitmap_font = function(scr, bitmap, char_height, char_width, chars) {
+  if (typeof bitmap === "string") {
+    bitmap = $('<img src="' + bitmap + '" />')[0];
+  }
+  var char_map = {};
+  var y, x;
+  for (y = 0; y < chars.length; y++) {
+    for (x = 0; x < chars[y].length; x++) {
+      char_map[chars[y][x]] = [y, x];
+    }
+  }
+  console.log(char_map);
+  scr.canvas.attr({
+    height: Math.round(scr.height * char_height),
+    width: Math.round(scr.width * char_width)
+  });
+  scr.font = {
+    type: "bmp",
+    bitmap: bitmap,
+    char_height: char_height,
+    char_width: char_width,
+    char_map: char_map
+  };
+  var offscreen = make_offscreen_canvas(scr.font);
+  scr.offscreen_canvases = [offscreen];
+  var small_offscreen = $('<canvas></canvas>');
+  small_offscreen.attr({
+    height: char_height,
+    width: char_width
+  });
+  scr.small_offscreen = small_offscreen[0];
+};
 
 /**
  * Clear the whole window immediately, without waiting for the next refresh. Use
@@ -89,7 +134,7 @@ screen_t.prototype.refresh = function() {
   // for each changed character
   var scr = this;
   var drawfunc = function(y, x, c, attrs) {
-    draw_char(scr, y, x, c, scr.char_cache, attrs);
+    draw_char(scr, y, x, c, attrs);
   };
   refresh_window(this, 0, 0, drawfunc);
   this.changes = {};
@@ -262,16 +307,23 @@ var make_offscreen_canvas = function(font) {
 // from the canvas cache ̀`char_cache`
 //
 // draw_char() is used by refresh() to redraw characters where necessary
-var draw_char = function(scr, y, x, c, char_cache, attrs) {
-  var offscreen = find_offscreen_char(scr, c, char_cache, attrs);
+var draw_char = function(scr, y, x, c, attrs) {
+  var offscreen = find_offscreen_char(scr, c, attrs);
+  if (! offscreen) {
+    // silently fail, and return false
+    console.log('omg fail');
+    return false;
+  }
   // apply the drawing onto the visible canvas
   y = Math.round(y * scr.font.char_height);
   x = Math.round(x * scr.font.char_width);
-  scr.context.drawImage(offscreen.canvas,
+  scr.context.drawImage(offscreen.src,
                         offscreen.sx, offscreen.sy,
                         scr.font.char_width, scr.font.char_height,
                         x, y,
                         scr.font.char_width, scr.font.char_height);
+  // return true for success
+  return true;
 };
 
 // used by draw_char for finding (or creating) a canvas where the character
@@ -279,63 +331,163 @@ var draw_char = function(scr, y, x, c, char_cache, attrs) {
 //
 // the return value is an object of the format:
 // {
-//   canvas: (canvas element),
+//   src: (canvas element),
 //   sy: (Y position of the character on the canvas element),
 //   sx: (X position of the character on the canvas element)
 // }
-var find_offscreen_char = function(scr, c, char_cache, attrs) {
-  // number for the color pair for the character
-  var color_pair = pair_number(attrs);
-  // foreground and background colors
-  var bg = color_pairs[color_pair].bg;
-  var fg = color_pairs[color_pair].fg;
-  // source y, source x, and source canvas for drawing
-  var sy = 0;
-  var sx;
-  var canvas;
-  // if the char is already drawn on one of the offscreen canvases, with the
-  // right attributes
-  if (char_cache[c] && char_cache[c][attrs]) {
-    // graphics saved, just use the cache
-    canvas = char_cache[c][attrs].canvas;
-    sx = char_cache[c][attrs].sx;
+var find_offscreen_char = function(scr, c, attrs) {
+  // check if it's a (c,attrs) pair that's already been drawn before;
+  // if it is, use the same character as before
+  var found = find_in_cache(scr, c, attrs);
+  if (found) {
+    return found;
+  }
+  // not found, draw the character on an offscreen canvas, and add it
+  // to the cache
+  grow_canvas_pool(scr);
+  if (scr.font.type === "ttf") {
+    // TTF font
+    found = draw_offscreen_char_ttf(scr, c, attrs);
+  }
+  else if (scr.font.type === "bmp") {
+    // bitmap font
+    found = draw_offscreen_char_bmp(scr, c, attrs);
   }
   else {
-    // if canvas is full, use another canvas
-    if (scr.offscreen_canvas_index >= CHARS_PER_CANVAS - 1) {
-      scr.offscreen_canvas_index = 0;
-      canvas = make_offscreen_canvas(scr.font);
-      scr.offscreen_canvases.push(canvas);
-    }
-    canvas = scr.offscreen_canvases[scr.offscreen_canvases.length - 1];
-    var ctx = canvas.ctx;
-    sx = Math.round(scr.offscreen_canvas_index * scr.font.char_width);
-    // populate the `char_cache` with wher to find this character
-    if (! char_cache[c]) {
-      char_cache[c] = {};
-    }
-    scr.char_cache[c][attrs] = {
-      canvas: canvas,
-      sx: sx
-    };
-    // draw a background
-    ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
-    ctx.fillRect(sx, 0, scr.font.char_width, scr.font.char_height);
-    // choose a font
-    var font = (attrs & A_BOLD) ? 'Bold ' : '';
-    font += scr.font.size + 'px ' + scr.font.name;
-    ctx.font = font;
-    ctx.textBaseline = 'hanging';
-    // draw the character
-    ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
-    ctx.fillText(c, sx, 1);
+    // unrecognized font-type
+    throw new Error("invalid font");
+  }
+  if (found) {
+    // a character was drawn, move the pointer to the right
     scr.offscreen_canvas_index++;
   }
-  // return an object describing the location of the character
-  return {
-    canvas: canvas[0],
-    sx: sx,
-    sy: sy
+  return found;
+};
+
+// return an object describing where the character is if it can be
+// found in the `char_cache`. if it cannot be found, return null.
+var find_in_cache = function(scr, c, attrs) {
+  var char_cache = scr.char_cache;
+  if (char_cache[c] && char_cache[c][attrs]) {
+    // found, return an object describing where the character is
+    return char_cache[c][attrs];
+  }
+  // not found, return a value indicating that
+  return null;
+};
+
+// add a canvas to the canvas pool if necessary, so that an offscreen
+// character never ends up being drawn outside of its corresponding
+// offscreen canvas (by being drawn too far to the right)
+var grow_canvas_pool = function(scr) {
+  if (scr.offscreen_canvas_index >= CHARS_PER_CANVAS - 1) {
+    scr.offscreen_canvas_index = 0;
+    var canvas = make_offscreen_canvas(scr.font);
+    scr.offscreen_canvases.push(canvas);
+  }
+};
+
+var draw_offscreen_char_bmp = function(scr, c, attrs) {
+  // used for storing the drawn character in case it has to be redrawn
+  // (for better performacne)
+  var char_cache = scr.char_cache;
+  // calculate the colours for everything
+  var color_pair = pair_number(attrs);
+  var bg = color_pairs[color_pair].bg;
+  var fg = color_pairs[color_pair].fg;
+  // calculate where to draw the character
+  var canvas =
+      scr.offscreen_canvases[scr.offscreen_canvases.length - 1];
+  var ctx = canvas.ctx;
+  var sy = 0;
+  var sx = Math.round(scr.offscreen_canvas_index * scr.font.char_width);
+  // save info in the char cache
+  if (! char_cache[c]) {
+    char_cache[c] = {};
+  }
+  scr.char_cache[c][attrs] = {
+    src: canvas[0],
+    sy: sy,
+    sx: sx
   };
+  if (! scr.font.char_map[c]) {
+    // silently fail if we don't know where to find the character on
+    // the original bitmap image
+    return null;
+  }
+  // calculate coordinates from the source image
+  var bitmap_y = scr.font.char_map[c][0] * scr.font.char_height;
+  bitmap_y = Math.round(bitmap_y);
+  var bitmap_x = scr.font.char_map[c][1] * scr.font.char_width;
+  bitmap_x = Math.round(bitmap_x);
+  // draw a background
+  ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
+  ctx.fillRect(sx, sy, scr.font.char_width, scr.font.char_height);
+  // draw the character on a separate, very small, offscreen canvas
+  var small = scr.small_offscreen.getContext('2d');
+  var height = scr.font.char_height;
+  var width = scr.font.char_width;
+  small.clearRect(0, 0, width, height);
+  small.drawImage(scr.font.bitmap,
+		  bitmap_x, bitmap_y,
+		  width, height,
+		  0, 0,
+		  width, height);
+  // for each non-transparent pixel on the small canvas, draw the pixel
+  // at the same position onto the 'main' offscreen canvas
+  var pixels = small.getImageData(0, 0, width, height).data;
+  ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
+  var y, x;
+  for (y = 0; y < height; y++) {
+    for (x = 0; x < width; x++) {
+      var alpha = pixels[(y * width + x) * 4 + 3];
+      if (alpha !== 0) {
+	// TODO: use putImageData() to improve performance in some
+	// browsers
+	// ctx.putImageData(dot, sx + x, sy + y);
+	ctx.fillRect(sx + x, sy + y, 1, 1);
+      }
+    }
+  }
+  // return an object telling where to find the offscreen character
+  return char_cache[c][attrs];
+};
+
+var draw_offscreen_char_ttf = function(scr, c, attrs) {
+  // used for storing the drawn character in case it has to be redrawn
+  // (for better performance)
+  var char_cache = scr.char_cache;
+  // calculate the colours for everything
+  var color_pair = pair_number(attrs);
+  var bg = color_pairs[color_pair].bg;
+  var fg = color_pairs[color_pair].fg;
+  // calculate where to draw the character
+  var canvas =
+      scr.offscreen_canvases[scr.offscreen_canvases.length - 1];
+  var ctx = canvas.ctx;
+  var sy = 0;
+  var sx = Math.round(scr.offscreen_canvas_index * scr.font.char_width);
+  // save info in the char cache
+  if (! char_cache[c]) {
+    char_cache[c] = {};
+  }
+  scr.char_cache[c][attrs] = {
+    src: canvas[0],
+    sy: sy,
+    sx: sx
+  };
+  // draw a background
+  ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
+  ctx.fillRect(sx, sy, scr.font.char_width, scr.font.char_height);
+  // choose the font
+  var font = (attrs & A_BOLD) ? 'Bold' : '';
+  font += scr.font.size + 'px ' + scr.font.name;
+  ctx.font = font;
+  ctx.textBaseline = 'hanging';
+  // draw the character
+  ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
+  ctx.fillText(c, sx, sy + 1);
+  // return an object telling where to find the offscreen character
+  return char_cache[c][attrs];
 };
 
