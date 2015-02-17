@@ -48,9 +48,23 @@ var load_ttf_font = function(scr, font_name, font_size) {
     char_height: height,
     char_width: width
   };
-  // create an offscreen canvas for rendering
+  // create the canvas pool for drawing offscreen characters
+  scr.canvas_pool = {
+    normal: {
+      x: 0,
+      canvases: null
+    },
+    bold: {
+      x: 0,
+      canvases: null
+    }
+  };
   var offscreen = make_offscreen_canvas(scr.font);
-  scr.offscreen_canvases = [offscreen];
+  offscreen.ctx.font = font_size + 'px ' + font_name;
+  scr.canvas_pool.normal.canvases = [offscreen];
+  offscreen = make_offscreen_canvas(scr.font);
+  offscreen.ctx.font = 'Bold ' + font_size + 'px ' + font_name;
+  scr.canvas_pool.bold.canvases = [offscreen];
 };
 
 // last arguments are slurped for the char map (to know which
@@ -86,8 +100,17 @@ var load_bitmap_font = function(scr, bitmap, char_height, char_width, chars) {
     char_width: char_width,
     char_map: char_map
   };
+  // create the canvas pool for drawing offscreen characters
+  scr.canvas_pool = {
+    normal: {
+      x: 0,
+      canvases: null
+    }
+  };
   var offscreen = make_offscreen_canvas(scr.font);
-  scr.offscreen_canvases = [offscreen];
+  scr.canvas_pool.normal.canvases = [offscreen];
+  // a very small, very temporary, canvas, for drawing the characters before
+  // changing their color
   var small_offscreen = $('<canvas></canvas>');
   small_offscreen.attr({
     height: char_height,
@@ -298,6 +321,7 @@ var make_offscreen_canvas = function(font) {
     width: CHARS_PER_CANVAS * font.char_width
   });
   canvas.ctx = canvas[0].getContext('2d');
+  canvas.ctx.textBaseline = 'hanging';
   return canvas;
 };
 
@@ -311,7 +335,6 @@ var draw_char = function(scr, y, x, c, attrs) {
   var offscreen = find_offscreen_char(scr, c, attrs);
   if (! offscreen) {
     // silently fail, and return false
-    console.log('omg fail');
     return false;
   }
   // apply the drawing onto the visible canvas
@@ -347,21 +370,16 @@ var find_offscreen_char = function(scr, c, attrs) {
   grow_canvas_pool(scr);
   if (scr.font.type === "ttf") {
     // TTF font
-    found = draw_offscreen_char_ttf(scr, c, attrs);
+    return draw_offscreen_char_ttf(scr, c, attrs);
   }
   else if (scr.font.type === "bmp") {
     // bitmap font
-    found = draw_offscreen_char_bmp(scr, c, attrs);
+    return draw_offscreen_char_bmp(scr, c, attrs);
   }
   else {
     // unrecognized font-type
     throw new Error("invalid font");
   }
-  if (found) {
-    // a character was drawn, move the pointer to the right
-    scr.offscreen_canvas_index++;
-  }
-  return found;
 };
 
 // return an object describing where the character is if it can be
@@ -380,10 +398,15 @@ var find_in_cache = function(scr, c, attrs) {
 // character never ends up being drawn outside of its corresponding
 // offscreen canvas (by being drawn too far to the right)
 var grow_canvas_pool = function(scr) {
-  if (scr.offscreen_canvas_index >= CHARS_PER_CANVAS - 1) {
-    scr.offscreen_canvas_index = 0;
-    var canvas = make_offscreen_canvas(scr.font);
-    scr.offscreen_canvases.push(canvas);
+  var k;
+  for (k in scr.canvas_pool) {
+    var pool = scr.canvas_pool[k];
+    if (pool.x >= CHARS_PER_CANVAS - 1) {
+      pool.x = 0;
+      var canvas = make_offscreen_canvas(scr.font);
+      canvas.ctx.font = pool.canvases[pool.canvases.length - 1].ctx.font;
+      pool.canvases.push(canvas);
+    }
   }
 };
 
@@ -396,11 +419,11 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   var bg = color_pairs[color_pair].bg;
   var fg = color_pairs[color_pair].fg;
   // calculate where to draw the character
-  var canvas =
-      scr.offscreen_canvases[scr.offscreen_canvases.length - 1];
+  var pool = scr.canvas_pool.normal;
+  var canvas = pool.canvases[pool.canvases.length - 1];
   var ctx = canvas.ctx;
   var sy = 0;
-  var sx = Math.round(scr.offscreen_canvas_index * scr.font.char_width);
+  var sx = Math.round(pool.x * scr.font.char_width);
   // save info in the char cache
   if (! char_cache[c]) {
     char_cache[c] = {};
@@ -449,6 +472,8 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
       }
     }
   }
+  // increment the canvas pool's counter: move to the next character
+  pool.x++;
   // return an object telling where to find the offscreen character
   return char_cache[c][attrs];
 };
@@ -462,11 +487,11 @@ var draw_offscreen_char_ttf = function(scr, c, attrs) {
   var bg = color_pairs[color_pair].bg;
   var fg = color_pairs[color_pair].fg;
   // calculate where to draw the character
-  var canvas =
-      scr.offscreen_canvases[scr.offscreen_canvases.length - 1];
+  var pool = (attrs & A_BOLD) ? scr.canvas_pool.bold : scr.canvas_pool.normal;
+  var canvas = pool.canvases[pool.canvases.length - 1];
   var ctx = canvas.ctx;
   var sy = 0;
-  var sx = Math.round(scr.offscreen_canvas_index * scr.font.char_width);
+  var sx = Math.round(pool.x * scr.font.char_width);
   // save info in the char cache
   if (! char_cache[c]) {
     char_cache[c] = {};
@@ -479,14 +504,11 @@ var draw_offscreen_char_ttf = function(scr, c, attrs) {
   // draw a background
   ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
   ctx.fillRect(sx, sy, scr.font.char_width, scr.font.char_height);
-  // choose the font
-  var font = (attrs & A_BOLD) ? 'Bold' : '';
-  font += scr.font.size + 'px ' + scr.font.name;
-  ctx.font = font;
-  ctx.textBaseline = 'hanging';
   // draw the character
   ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
   ctx.fillText(c, sx, sy + 1);
+  // increment the canvas pool's counter: move to the next character
+  pool.x++;
   // return an object telling where to find the offscreen character
   return char_cache[c][attrs];
 };

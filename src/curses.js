@@ -93,8 +93,16 @@ var screen_t = function() {
   // on a small canvas. this allows very fast rendering, but makes the
   // application use more memory to save all the characters
   this.char_cache = {};
-  this.offscreen_canvases = [];
-  this.offscreen_canvas_index = 0;
+  this.canvas_pool = {
+    normal: {
+      x: 0,
+      canvases: []
+    },
+    bold: {
+      x: 0,
+      canvases: []
+    }
+  };
   // event listeners
   this.listeners = {
     keydown: []
