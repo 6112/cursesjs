@@ -19,7 +19,7 @@ $(window).load(function() {
   subwin.addstr(2, 2, 'I am a subwindow.');
   console.log(subwin);
   subwin.box('#', COLOR_PAIR(2), '#', COLOR_PAIR(3), '#', COLOR_PAIR(4));
-  // raw();
+  raw();
   var selected = 0;
   var options = [
     'Roguelike-like player movement',
