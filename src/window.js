@@ -140,8 +140,6 @@ window_t.prototype.border = function(ls, rs, ts, bs, tl, tr, bl, br) {
   var defaults = ['│', '│', '─', '─', '┌', '┐', '└', '┘'];
   var chars = parse_chtypes(arguments, defaults, this);
   // draw corners
-  console.log(arguments);
-  console.log(chars);
   this.addch(0, 0, chars[4].value, chars[4].attrs);
   this.addch(0, this.width - 1, chars[5].value, chars[5].attrs);
   this.addch(this.height - 1, 0, chars[6].value, chars[6].attrs);

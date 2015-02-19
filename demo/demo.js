@@ -9,6 +9,7 @@ $(window).load(function() {
     "└   ─                    ┘┌"
   ];
   $('#preload').remove();
+  /*
   var win = initscr({
     container: '#stage',
     height: 30,
@@ -20,22 +21,19 @@ $(window).load(function() {
     },
     require_focus: true
   });
-  /*
+    */
   var win = initscr({
     container: '#stage',
-    height: 30,
-    width: 60,
     font: {
       type: 'bmp',
       name: 'vgafont.png',
       height: 16,
       width: 9,
       chars: char_table,
-      line_spacing: 4
+      line_spacing: 0
     },
     require_focus: true
   });
-   */
   init_pair(1, COLOR_RED, COLOR_BLACK);
   init_pair(2, COLOR_GREEN, COLOR_BLACK);
   init_pair(3, COLOR_YELLOW, COLOR_BLACK);
@@ -46,7 +44,6 @@ $(window).load(function() {
   subwin.attron(COLOR_PAIR(1) | A_REVERSE);
   subwin.bkgd('.', COLOR_PAIR(1) | A_REVERSE);
   subwin.addstr(2, 2, 'I am a subwindow.');
-  console.log(subwin);
   subwin.border();
   raw();
   var selected = 0;
@@ -58,10 +55,13 @@ $(window).load(function() {
   ];
   var demo = window.demo = {};
   var redraw = demo.redraw = function() {
+    var bounds = getmaxyx();
+    var max_y = bounds.y;
+    var max_x = bounds.x;
     attron(A_BOLD | A_REVERSE | COLOR_PAIR(1));
     addstr(0, 0, '  js-curses demonstration');
     var x = win.x;
-    while (x++ < 60) {
+    while (x++ <= max_x) {
       addstr(' ');
     }
     attroff(A_BOLD | A_REVERSE | COLOR_PAIR(1));
@@ -80,7 +80,7 @@ $(window).load(function() {
       }
       addstr(i + 3, 0, options[i]);
       var x = win.x;
-      while (x++ < 60) {
+      while (x++ <= max_x) {
         addstr(' ');
       }
       if (i === selected) {

@@ -546,8 +546,16 @@ var keypad = exports.keypad = function() {};
  * @param {String|HTMLElement|jQuery} [opts.container=$('<pre></pre>')] HTML
  * element or CSS selector for the element that will wrap the <canvas> element
  * used for drawing.
- * @param {Integer} opts.height Height of the screen, in characters.
- * @param {Integer} opts.width Width of the screen, in chracters.
+ * @param {Integer} [opts.height=(auto)] Height of the screen, in characters. If
+ * unspecified or 0, will be just enough characters to fill the `container`
+ * element, rounded down.
+ * @param {Integer} [opts.min_height=0] Minimum height of the screen, in
+ * characters, for when `height` is unspecified.
+ * @param {Integer} [opts.width=(auto)] Width of the screen, in chracters. If
+ * unspecified or 0, will be just enough characters to fill the `container`
+ * element, rounded down.
+ * @param {Integer} [opts.min_width=0] Minimum width of the screen, in
+ * characters, for when `width` is unspecified.
  * @param {Boolean} [opts.require_focus=false] Whether focus is required for
  * keyboard events to be registered; if `true`, forces `opts.container` to be
  * able to receive keyboard focus, by setting its `tabindex` HTML attribute.
@@ -608,11 +616,31 @@ var initscr = exports.initscr = function(opts) {
     load_bitmap_font(scr, opts.font.name, opts.font.height, opts.font.width,
 		     opts.font.chars, opts.font.line_spacing);
   }
+  // handle default, 'cover the whole container' size
+  // TODO: handle resizing
+  if (! opts.height) {
+    scr.height = Math.floor(opts.container.height() / scr.font.char_height);
+    if (opts.min_height) {
+      scr.height = Math.max(scr.height, opts.min_height);
+      scr.min_height = opts.min_height;
+    }
+  }
+  if (! opts.width) {
+    scr.width = Math.floor(opts.container.width() / scr.font.char_width);
+    if (opts.min_width) {
+      scr.width = Math.max(scr.width, opts.min_width);
+      scr.min_width = opts.min_width;
+    }
+  }
+  scr.canvas.attr({
+    height: scr.height * scr.font.char_height,
+    width: scr.width * scr.font.char_width
+  });
   // initialize the character tiles to default values
   var y, x;
-  for (y = 0; y < opts.height; y++) {
+  for (y = 0; y < scr.height; y++) {
     scr.tiles[y] = [];
-    for (x = 0; x < opts.width; x++) {
+    for (x = 0; x < scr.width; x++) {
       scr.tiles[y][x] = new tile_t();
     }
   }
@@ -635,17 +663,27 @@ var check_initscr_args = function(opts) {
   if (typeof opts !== "object") {
     throw new TypeError("opts is not an object");
   }
-  if (typeof opts.height !== "number") {
-    throw new TypeError("height is not a number");
+  if (opts.height) {
+    if (typeof opts.height !== "number" ) {
+      throw new TypeError("height is not a number");
+    }
+    if (opts.height < 0) {
+      throw new RangeError("height is negative");
+    }
   }
-  if (opts.height < 0) {
-    throw new RangeError("height is negative");
+  if (opts.min_height && typeof opts.min_height !== "number") {
+    throw new TypeError("min_height is not a number");
   }
-  if (typeof opts.width !== "number") {
-    throw new TypeError("width is not a number");
+  if (opts.width) {
+    if (typeof opts.width !== "number") {
+      throw new TypeError("width is not a number");
+    }
+    if (opts.width < 0) {
+      throw new RangeError("width is negative");
+    }
   }
-  if (opts.width < 0) {
-    throw new RangeError("width is negative");
+  if (opts.min_width && typeof opts.min_width !== "number") {
+    throw new TypeError("min_width is not a number");
   }
   if (typeof opts.font !== "object") {
     throw new TypeError("font is not an object");
@@ -664,13 +702,35 @@ var check_initscr_args = function(opts) {
       throw new TypeError("font.chars is not an array");
     }
   }
-  if (opts.font.line_spacing && typeof opts.font.line_spacing !== "number") {
-    throw new TypeError("font.line_spacing is not a number");
-  }
-  if (opts.font.line_spacing && opts.font.line_spacing < 0) {
-    throw new TypeError("font.line_spacing is negative");
+  if (opts.font.line_spacing) {
+    if (typeof opts.font.line_spacing !== "number") {
+      throw new TypeError("font.line_spacing is not a number");
+    }
+    if (opts.font.line_spacing < 0) {
+      throw new TypeError("font.line_spacing is negative");
+    }
   }
 };
+
+/**
+ * Return the maximum possible position the cursor can have in the window. This
+ * corresponds to the position of the cursor in the bottom right corner. The
+ * object is returned in the following format:
+ *
+ *     {
+ *       y: (maximum y),
+ *       x: (maximum x)
+ *     }
+ *
+ * @return {Object} Object describing the bottom right corner of the screen.
+ **/
+screen_t.prototype.getmaxyx = function() {
+  return {
+    y: this.height - 1,
+    x: this.width - 1
+  };
+};
+exports.getmaxyx = simplify(screen_t.prototype.getmaxyx);
 
 /**
  * Enable a blinking cursor.
@@ -798,11 +858,6 @@ var load_ttf_font = function(scr, font_name, font_size, line_spacing) {
       console.warn(font_name + ' does not seem to be a monospace font');
     }
   }
-  // resize the canvas
-  scr.canvas.attr({
-    height: Math.round(scr.height * height),
-    width: Math.round(scr.width * width)
-  });
   // save the currently used font
   scr.font = {
     type: "ttf",
@@ -857,10 +912,7 @@ var load_bitmap_font = function(scr, bitmap, char_height, char_width, chars,
       }
     }
   }
-  scr.canvas.attr({
-    height: Math.round(scr.height * char_height),
-    width: Math.round(scr.width * char_width)
-  });
+  // save the currently used font
   scr.font = {
     type: "bmp",
     bitmap: bitmap,
@@ -1429,8 +1481,6 @@ window_t.prototype.border = function(ls, rs, ts, bs, tl, tr, bl, br) {
   var defaults = ['│', '│', '─', '─', '┌', '┐', '└', '┘'];
   var chars = parse_chtypes(arguments, defaults, this);
   // draw corners
-  console.log(arguments);
-  console.log(chars);
   this.addch(0, 0, chars[4].value, chars[4].attrs);
   this.addch(0, this.width - 1, chars[5].value, chars[5].attrs);
   this.addch(this.height - 1, 0, chars[6].value, chars[6].attrs);

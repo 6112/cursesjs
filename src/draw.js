@@ -33,11 +33,6 @@ var load_ttf_font = function(scr, font_name, font_size, line_spacing) {
       console.warn(font_name + ' does not seem to be a monospace font');
     }
   }
-  // resize the canvas
-  scr.canvas.attr({
-    height: Math.round(scr.height * height),
-    width: Math.round(scr.width * width)
-  });
   // save the currently used font
   scr.font = {
     type: "ttf",
@@ -92,10 +87,7 @@ var load_bitmap_font = function(scr, bitmap, char_height, char_width, chars,
       }
     }
   }
-  scr.canvas.attr({
-    height: Math.round(scr.height * char_height),
-    width: Math.round(scr.width * char_width)
-  });
+  // save the currently used font
   scr.font = {
     type: "bmp",
     bitmap: bitmap,
