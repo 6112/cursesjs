@@ -1,12 +1,17 @@
 $(window).load(function() {
   var char_table = [
+    "",
     " !\"#$%&'()*+,-./0123456789:;<=>?",
     "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_",
-    "`abcdefghijklmnopqrstuvwxyz{|}~"
+    "`abcdefghijklmnopqrstuvwxyz{|}~",
+    "",
+    "                   │           ┐",
+    "└   ─                    ┘┌"
   ];
   $('#preload').remove();
   // var win = initscr('#stage', 30, 60, 'Source Code Pro', 14, true);
-  var win = initscr('#stage', 30, 60, 'fixedsys.png', 15, 8, char_table, true);
+  // var win = initscr('#stage', 30, 60, 'fixedsys.png', 15, 8, char_table, true);
+  var win = initscr('#stage', 30, 60, 'vgafont.png', 16, 9, char_table, true);
   init_pair(1, COLOR_RED, COLOR_BLACK);
   init_pair(2, COLOR_GREEN, COLOR_BLACK);
   init_pair(3, COLOR_YELLOW, COLOR_BLACK);
@@ -18,7 +23,7 @@ $(window).load(function() {
   subwin.bkgd('.', COLOR_PAIR(1) | A_REVERSE);
   subwin.addstr(2, 2, 'I am a subwindow.');
   console.log(subwin);
-  subwin.box('#', COLOR_PAIR(2), '#', COLOR_PAIR(3), '#', COLOR_PAIR(4));
+  subwin.border();
   raw();
   var selected = 0;
   var options = [

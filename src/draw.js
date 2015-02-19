@@ -22,7 +22,7 @@ var load_ttf_font = function(scr, font_name, font_size) {
   var c = 'm';
   // calculate the probable font metrics
   var metrics = scr.context.measureText(c);
-  var height = font_size + 2;
+  var height = font_size + 0;
   var width = Math.round(metrics.width);
   // check that it's (probably) a monospace font
   var testChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" + 
@@ -85,10 +85,11 @@ var load_bitmap_font = function(scr, bitmap, char_height, char_width, chars) {
   var y, x;
   for (y = 0; y < chars.length; y++) {
     for (x = 0; x < chars[y].length; x++) {
-      char_map[chars[y][x]] = [y, x];
+      if (! char_map[chars[y][x]]) {
+	char_map[chars[y][x]] = [y, x];
+      }
     }
   }
-  console.log(char_map);
   scr.canvas.attr({
     height: Math.round(scr.height * char_height),
     width: Math.round(scr.width * char_width)

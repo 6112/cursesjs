@@ -712,7 +712,7 @@ var load_ttf_font = function(scr, font_name, font_size) {
   var c = 'm';
   // calculate the probable font metrics
   var metrics = scr.context.measureText(c);
-  var height = font_size + 2;
+  var height = font_size + 0;
   var width = Math.round(metrics.width);
   // check that it's (probably) a monospace font
   var testChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" + 
@@ -775,10 +775,11 @@ var load_bitmap_font = function(scr, bitmap, char_height, char_width, chars) {
   var y, x;
   for (y = 0; y < chars.length; y++) {
     for (x = 0; x < chars[y].length; x++) {
-      char_map[chars[y][x]] = [y, x];
+      if (! char_map[chars[y][x]]) {
+	char_map[chars[y][x]] = [y, x];
+      }
     }
   }
-  console.log(char_map);
   scr.canvas.attr({
     height: Math.round(scr.height * char_height),
     width: Math.round(scr.width * char_width)
@@ -1332,7 +1333,7 @@ window_t.prototype.bkgd = function(c, attrs) {
  *   character for the left and right borders, and its attributes.
  **/
 window_t.prototype.box = function(corner, vert, horiz) {
-  var defaults = ['O', '|', '-'];
+  var defaults = ['+', '|', '-'];
   var chars = parse_chtypes(arguments, defaults, this);
   corner = chars[0];
   vert = chars[1];
@@ -1344,7 +1345,7 @@ window_t.prototype.box = function(corner, vert, horiz) {
 };
 
 window_t.prototype.border = function(ls, rs, ts, bs, tl, tr, bl, br) {
-  var defaults = ['|', '|', '-', '-', 'O', 'O', 'O', 'O'];
+  var defaults = ['│', '│', '─', '─', '┌', '┐', '└', '┘'];
   var chars = parse_chtypes(arguments, defaults, this);
   // draw corners
   console.log(arguments);
@@ -1401,6 +1402,8 @@ var parse_chtypes = function(arglist, defaults, win) {
  * Delete a window, and remove it from its parent window. Force a redraw
  * on the part of the parent window that was being covered by this window.
  * The redraw only happens when refresh() is next called.
+ * 
+ * TODO
  **/
 window_t.prototype.delwin = function() {
   // force a redraw on the parent, in the area corresponding to this window
