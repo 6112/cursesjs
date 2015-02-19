@@ -1,1 +1,5 @@
+# vim swap files
 .*.sw*
+
+# emacs swap files
+*~
