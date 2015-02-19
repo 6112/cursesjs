@@ -8,6 +8,10 @@ $(window).load(function() {
     "                   │           ┐",
     "└   ─                    ┘┌"
   ];
+  var i;
+  for (i = 0; i < 32; i++) {
+    char_table[0] += String.fromCharCode(i);
+  }
   $('#preload').remove();
   /*
   var win = initscr({
@@ -49,8 +53,8 @@ $(window).load(function() {
   var selected = 0;
   var options = [
     'Roguelike-like player movement',
-    'Text editor (TODO)',
-    'Window demo (TODO)',
+    'Text editor (TODO \01)',
+    'Window demo (TODO \01)',
     'Benchmark'
   ];
   var demo = window.demo = {};
