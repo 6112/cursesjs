@@ -71,11 +71,14 @@ var window_t = function() {
 var screen_t = function() {
   window_t.call(this);
   // font used for rendering
+  // TODO: support a default font
   this.font = {
+    type: 'ttf',
     name: 'monospace',
     size: 12,
     char_width: -1,
-    char_height: -1
+    char_height: -1,
+    line_spacing: 0
   };
   // default values for some input flags
   this._echo = false;   // do not print all keyboard input

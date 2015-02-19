@@ -1,28 +1,26 @@
 // number of chars saved per off-screen canvas
 var CHARS_PER_CANVAS = 256;
 
-/**
- * Load a font with given attributes `font_name` and `font_size`. You should
- * ensure that the font has already been loaded by the browser before calling
- * `load_font`. The bold variant of the font should already have been loaded,
- * if you intend to use it. The usual way to do this is to insert an element
- * that uses that font in your webpage's HTML. This function is automatically
- * called by `initscr`.
- *
- * Print warning messages to the web console when the font does not appear to
- * be a monospace font.
- *
- * @param {String} font_name Name of the font to be loaded.
- * @param {Integer} font_size Size of the font to be loaded.
- **/
-// load a font with given attributes font_name and font_size
-var load_ttf_font = function(scr, font_name, font_size) {
+// Load a font with given attributes `font_name` and `font_size`. You should
+// ensure that the font has already been loaded by the browser before calling
+// `load_font`. The bold variant of the font should already have been loaded,
+// if you intend to use it. The usual way to do this is to insert an element
+// that uses that font in your webpage's HTML. This function is automatically
+// called by `initscr`.
+//
+// Print warning messages to the web console when the font does not appear to
+// be a monospace font.
+//
+// @param {String} font_name Name of the font to be loaded.
+// @param {Integer} font_size Size of the font to be loaded.
+// @param {Integer} line_spacing Number of pixels between two lines of text.
+var load_ttf_font = function(scr, font_name, font_size, line_spacing) {
   scr.context.font = 'Bold ' + font_size + 'px ' + font_name;
   scr.context.textAlign = 'left';
   var c = 'm';
   // calculate the probable font metrics
   var metrics = scr.context.measureText(c);
-  var height = font_size + 0;
+  var height = Math.round(font_size + line_spacing);
   var width = Math.round(metrics.width);
   // check that it's (probably) a monospace font
   var testChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" + 
@@ -46,7 +44,8 @@ var load_ttf_font = function(scr, font_name, font_size) {
     name: font_name,
     size: font_size,
     char_height: height,
-    char_width: width
+    char_width: width,
+    line_spacing: line_spacing
   };
   // create the canvas pool for drawing offscreen characters
   scr.canvas_pool = {
@@ -77,10 +76,13 @@ var load_ttf_font = function(scr, font_name, font_size) {
 // @param {Array[String]} chars A string for each line in the bitmap
 //   file; each character in the string corresponds to a character on
 //   that line in the bitmap file.
-var load_bitmap_font = function(scr, bitmap, char_height, char_width, chars) {
+// @param {Integer} line_spacing Number of pixels between two lines of text.
+var load_bitmap_font = function(scr, bitmap, char_height, char_width, chars,
+			        line_spacing) {
   if (typeof bitmap === "string") {
     bitmap = $('<img src="' + bitmap + '" />')[0];
   }
+  char_height += line_spacing;
   var char_map = {};
   var y, x;
   for (y = 0; y < chars.length; y++) {
@@ -99,7 +101,8 @@ var load_bitmap_font = function(scr, bitmap, char_height, char_width, chars) {
     bitmap: bitmap,
     char_height: char_height,
     char_width: char_width,
-    char_map: char_map
+    char_map: char_map,
+    line_spacing: line_spacing
   };
   // create the canvas pool for drawing offscreen characters
   scr.canvas_pool = {
@@ -440,7 +443,8 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
     return null;
   }
   // calculate coordinates from the source image
-  var bitmap_y = scr.font.char_map[c][0] * scr.font.char_height;
+  var bitmap_y = scr.font.char_map[c][0] *
+	(scr.font.char_height - scr.font.line_spacing);
   bitmap_y = Math.round(bitmap_y);
   var bitmap_x = scr.font.char_map[c][1] * scr.font.char_width;
   bitmap_x = Math.round(bitmap_x);
@@ -462,14 +466,16 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   var pixels = small.getImageData(0, 0, width, height).data;
   ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
   var y, x;
-  for (y = 0; y < height; y++) {
+  for (y = 0; y < height - scr.font.line_spacing; y++) {
     for (x = 0; x < width; x++) {
       var alpha = pixels[(y * width + x) * 4 + 3];
       if (alpha !== 0) {
 	// TODO: use putImageData() to improve performance in some
 	// browsers
 	// ctx.putImageData(dot, sx + x, sy + y);
-	ctx.fillRect(sx + x, sy + y, 1, 1);
+	var dst_x = Math.round(sx + x);
+	var dst_y = Math.round(sy + y + scr.font.line_spacing / 2);
+	ctx.fillRect(dst_x, dst_y, 1, 1);
       }
     }
   }
@@ -507,7 +513,7 @@ var draw_offscreen_char_ttf = function(scr, c, attrs) {
   ctx.fillRect(sx, sy, scr.font.char_width, scr.font.char_height);
   // draw the character
   ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
-  ctx.fillText(c, sx, sy + 1);
+  ctx.fillText(c, sx, Math.round(sy + scr.font.line_spacing / 2));
   // increment the canvas pool's counter: move to the next character
   pool.x++;
   // return an object telling where to find the offscreen character

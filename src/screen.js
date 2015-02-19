@@ -8,10 +8,20 @@
  * The created screen is set as the "default screen". This allows calling
  * all js-curses in a C-style way, without explicitly specifying the screen
  * most method calls apply to, assuming initscr() is called only once for the
- * webpage. For isntance, the following are legal:
+ * webpage. For instance, the following are legal:
  *
  *     // creating the screen
- *     var screen = initscr('#container', 30, 30, 'Oxygen Mono', 14, true);
+ *     var screen = initscr({
+ *       container: '#container',
+ *       height: 30,
+ *       width: 30,
+ *       font: {
+ *         type: 'ttf',
+ *         name: 'Oxygen Mono',
+ *         height: 14
+ *       },
+ *       require_focus: true
+ *     });
  *     // explicitly calling screen.move() and screen.addstr()
  *     screen.move(10, 10);
  *     screen.addstr("hello world");
@@ -29,7 +39,8 @@
  * specified by the `height` and `width` arguments.
  *
  * The font to use must be specified by the `font_name` and `font_size`
- * arguments. See load_font() for more information on font loading.
+ * arguments. See load_ttf_font() and load_bmp_font() for more information on
+ * font loading.
  *
  * If `require_focus` is true, the screen will only grab keyboard events when
  * it receives focus; additionally, it will make sure that it has a way to
@@ -39,89 +50,108 @@
  * of the web browser's shortcuts, and a lot of other things.
  *
  * Examples:
- *     initscr('#container', 80, 60, 'Source Code Pro', 12, true);
+ *     // ttf font:
+ *     initscr({
+ *       container: '#container',
+ *       height: 60,
+ *       width: 80,
+ *       font: {
+ *         type: 'ttf',
+ *         name: 'Source Code Pro',
+ *         height: 12
+ *       },
+ *       require_focus: true
+ *     });
+ *     // bitmap font:
  *     var char_table = [
  *       'abcdefghijklmnopqrstuvwxyz', // each line corresponds to a line inside
  *       'ABCDEFGHIJKLMNOPQRSTUVWXYZ', // the image to be loaded
  *       ' ,.!@#$%?&*()[]{}'
  *     ];
- *     initscr('#canvas', 40, 30, 'my_image.bmp', 16, 8, char_table);
+ *     initscr({
+ *       container: '#canvas',
+ *       height: 30,
+ *       width: 40,
+ *       font: {
+ *         type: 'bmp',
+ *         name: 'my_image.png',
+ *         height: 16,
+ *         width: 8
+ *       },
+ *       require_focus: true
+ *     });
  * 
- * @param {HTMLElement|String|undefined} container The container for the
- *    display canvas.
- * @param {Integer} height Height, in characters, of the screen.
- * @param {Integer} width Width, in chracters, of the screen.
- * @param {String} [font_name] Name of the TTF font to be loaded. If `font_name`
- * is specified, `font_size` must be specified, and `font_path` and friends
- * cannot be specified.
- * @param {Integer} [font_size] Size, in pixels, of the TTF font to be loaded.
- * @param {String|HTMLImageElement} [font_path] Name, or <img> element, for the
- * image to be used as a spritesheet for the characters for a Bitmap font. If
- * `font_path` is specified, `font_height`, `font_width`, and `font_chars` must
- * be specified, and `font_size` and friends cannot be specified. The characters
- * in the images to be loaded must be contiguous rectangles of constant size.
- * @param {Integer} [font_height] Height, in pixels, of each character in the
- * bitmap font to be loaded.
- * @param {Integer} [font_width] Width, in pixels, of each character in the
- * bitmap font to be loaded.
- * @param {Array[String]} [font_chars] Each array element describes a line in the
- * image for the Bitmap font being loaded. Each element should be a string that
+ * @param {Object} opts Options object for the initscr() function.
+ * @param {String|HTMLElement|jQuery} [opts.container=$('<pre></pre>')] HTML
+ * element or CSS selector for the element that will wrap the <canvas> element
+ * used for drawing.
+ * @param {Integer} opts.height Height of the screen, in characters.
+ * @param {Integer} opts.width Width of the screen, in chracters.
+ * @param {Boolean} [opts.require_focus=false] Whether focus is required for
+ * keyboard events to be registered; if `true`, forces `opts.container` to be
+ * able to receive keyboard focus, by setting its `tabindex` HTML attribute.
+ * @param {Object} opts.font Object describing the font to use.
+ * @param {String} [opts.font.type="ttf"] Either "ttf" or "bmp"; says which type
+ * of font should be loaded. "ttf" indicates that it is a font name, and "bmp"
+ * indicates that the font should be loaded from an image.
+ * @param {String} opts.font.name For a TTF, indicates the name of the font. The
+ * filetype should not be added to the end for TTF fonts. For a BMP font,
+ * indicates the path for downloading the .png image for the font. The image
+ * should be composed of characters with set height and width, in a grid
+ * disposition, and starting from pixel (0,0) in the image. In any case, the
+ * font that you want to load should already have been preloaded by the browser
+ * before `initscr()` is called.
+ * @param {Integer} opts.font.height Height, in pixels, of a character from the
+ * loaded font.
+ * @param {Integer} opts.font.width Width, in pixels, of a character from the
+ * loaded font. Only relevant if a BMP font is loaded, and must be supplied if a
+ * BMP font is loaded.
+ * @param {Integer} [opts.font.line_spacing=0] Number of pixels between two
+ * lines of text.
+ * @param {Array[String]} opts.font.chars Each array element describes a line in
+ * the image for the BMP font being loaded. Each element should be a string that
  * describes the contiguous characters on that line. See the example code.
- * @param {Boolean} [require_focus=false] Whether focus is required for keyboard
- *   events to be registered.
- * @return {screen_t} The created screen, and the new default screen.
  **/
-var initscr = exports.initscr = function(container, height, width,
-                                         font_name, font_size,
-                                         require_focus) {
-  if (typeof height !== "number") {
-    throw new TypeError("height is not a number");
-  }
-  if (height < 0) {
-    throw new RangeError("height is negative");
-  }
-  if (typeof width !== "number") {
-    throw new TypeError("width is not a number");
-  }
-  if (width < 0) {
-    throw new RangeError("width is negative");
-  }
+var initscr = exports.initscr = function(opts) {
+  // check arg validity
+  check_initscr_args.apply(this, arguments);
+  // set some default values for arguments
+  opts.require_focus |= false;
+  opts.font.type = /^bmp$/i.test(opts.font.type) ? "bmp" : "ttf";
+  opts.font.line_spacing |= 0;
   // `container` can either be a DOM element, or an ID for a DOM element
-  if (container !== undefined) {
-    container = $(container);
+  if (opts.container !== undefined) {
+    opts.container = $(opts.container);
   }
   else {
-    container = $('<pre></pre>');
+    opts.container = $('<pre></pre>');
   }
   // clear the container
-  container.html('');
+  opts.container.html('');
   // create a new screen_t object
   var scr = new screen_t();
-  scr.container = container;
+  scr.container = opts.container;
   // set the height, in characters
-  scr.height = height;
-  scr.width = width;
+  scr.height = opts.height;
+  scr.width = opts.width;
   // create the canvas
   scr.canvas = $('<canvas></canvas>');
   scr.container.append(scr.canvas);
   scr.context = scr.canvas[0].getContext('2d');
   // load the specified font
   // TODO: specify sane default values
-  if (typeof font_name === "string" &&
-      ! /\.(jpe?g|png|bmp|gif)$/.test(font_name)) {
-    // not an image: load the TTF font
-    load_ttf_font(scr, font_name, font_size);
+  if (opts.font.type === "ttf") {
+    load_ttf_font(scr, opts.font.name, opts.font.height, opts.font.line_spacing);
   }
   else {
-    // seems to be an image: load the bitmap font
-    load_bitmap_font(scr, arguments[3], arguments[4], arguments[5], arguments[6]);
-    require_focus = arguments[7];
+    load_bitmap_font(scr, opts.font.name, opts.font.height, opts.font.width,
+		     opts.font.chars, opts.font.line_spacing);
   }
   // initialize the character tiles to default values
   var y, x;
-  for (y = 0; y < height; y++) {
+  for (y = 0; y < opts.height; y++) {
     scr.tiles[y] = [];
-    for (x = 0; x < width; x++) {
+    for (x = 0; x < opts.width; x++) {
       scr.tiles[y][x] = new tile_t();
     }
   }
@@ -131,12 +161,54 @@ var initscr = exports.initscr = function(container, height, width,
   // draw a background
   scr.clear();
   // add keyboard hooks
-  handle_keyboard(scr, container, require_focus);
+  handle_keyboard(scr, opts.container, opts.require_focus);
   // make a blinking cursor
   // TODO: reimplement blinking
   // startBlink(scr);
   // return the created window
   return scr;
+};
+
+// helper function for checking the type & validity of arguments to initscr()
+var check_initscr_args = function(opts) {
+  if (typeof opts !== "object") {
+    throw new TypeError("opts is not an object");
+  }
+  if (typeof opts.height !== "number") {
+    throw new TypeError("height is not a number");
+  }
+  if (opts.height < 0) {
+    throw new RangeError("height is negative");
+  }
+  if (typeof opts.width !== "number") {
+    throw new TypeError("width is not a number");
+  }
+  if (opts.width < 0) {
+    throw new RangeError("width is negative");
+  }
+  if (typeof opts.font !== "object") {
+    throw new TypeError("font is not an object");
+  }
+  if (typeof opts.font.name !== "string" ) {
+    throw new TypeError("font.name is not a string");
+  }
+  if (typeof opts.font.height !== "number") {
+    throw new TypeError("font.height is not a number");
+  }
+  if (/^bmp$/i.test(opts.font.name)) {
+    if (typeof opts.font.width !== "number") {
+      throw new TypeError("font.width is not a number, for a BMP font");
+    }
+    if (! (opts.font.chars instanceof Array)) {
+      throw new TypeError("font.chars is not an array");
+    }
+  }
+  if (opts.font.line_spacing && typeof opts.font.line_spacing !== "number") {
+    throw new TypeError("font.line_spacing is not a number");
+  }
+  if (opts.font.line_spacing && opts.font.line_spacing < 0) {
+    throw new TypeError("font.line_spacing is negative");
+  }
 };
 
 /**

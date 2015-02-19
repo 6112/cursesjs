@@ -9,9 +9,33 @@ $(window).load(function() {
     "└   ─                    ┘┌"
   ];
   $('#preload').remove();
-  // var win = initscr('#stage', 30, 60, 'Source Code Pro', 14, true);
-  // var win = initscr('#stage', 30, 60, 'fixedsys.png', 15, 8, char_table, true);
-  var win = initscr('#stage', 30, 60, 'vgafont.png', 16, 9, char_table, true);
+  var win = initscr({
+    container: '#stage',
+    height: 30,
+    width: 60,
+    font: {
+      type: 'ttf',
+      name: 'Source Code Pro',
+      height: 14
+    },
+    require_focus: true
+  });
+  /*
+  var win = initscr({
+    container: '#stage',
+    height: 30,
+    width: 60,
+    font: {
+      type: 'bmp',
+      name: 'vgafont.png',
+      height: 16,
+      width: 9,
+      chars: char_table,
+      line_spacing: 4
+    },
+    require_focus: true
+  });
+   */
   init_pair(1, COLOR_RED, COLOR_BLACK);
   init_pair(2, COLOR_GREEN, COLOR_BLACK);
   init_pair(3, COLOR_YELLOW, COLOR_BLACK);
