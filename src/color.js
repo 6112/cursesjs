@@ -2,7 +2,7 @@
  * Named constants for colors: COLOR_WHITE, COLOR_RED, COLOR_GREEN, etc.
  **/
 var colors = {
-  // COLORNAME: [NORMALCOLOR, BOLDCOLOR]
+  // COLOR_NAME: [NORMAL_COLOR, BOLD_COLOR]
   WHITE: ['#CCCCCC', '#FFFFFF'],
   RED: ['#CC4444', '#FF8888'],
   GREEN: ['#44CC44', '#88FF88'],
@@ -80,4 +80,46 @@ var init_pair = exports.init_pair = function(pair_index,
     fg: foreground,
     bg: background
   };
+};
+
+/**
+ * Define a color for use with init_pair(). Use this function at the beginning
+ * of your program to replace the default colors in js-curses, or define new
+ * colors.
+ *
+ * Example:
+ *     initscr(...);
+ *     // COLOR_BLUE now means red (not bold) or pink (bold)
+ *     define_color(COLOR_BLUE, '#FF0000', '#FF8888');
+ *     init_pair(1, COLOR_BLUE, COLOR_BLACK);
+ *     // write something in pink
+ *     addstr(10, 10, "hello pink!", COLOR_PAIR(1) | A_BOLD);
+ *     // define a new color, and call it COLOR_OCHRE
+ *     var COLOR_OCHRE = define_color(null, '#CC7722');
+ *     init_pair(2, COLOR_OCHRE, COLOR_BLACK);
+ *     // write something in ochre
+ *     addstr(11, 10, "hello ochre!", COLOR_PAIR(2));
+ *
+ * @param {Color|Array[String]} [color_name=[]] Color to be modified. This can be a
+ * built-in color (COLOR_RED, COLOR_BLUE, etc.) or any array, that will be
+ * modified in-place to be a pair that describes the color. If unspecified, a
+ * new array will be created to represent the pair.
+ * @param {String} normal_color CSS color for the color that non-bold text
+ * should have if affected by this color.
+ * @param {String} [bold_color=normal_color] CSS color for the color that bold
+ * text should have if affected by this color.
+ * @return {Array} An array describing the normal color, and the bold color, for
+ * the defined color.
+ **/
+var define_color = exports.define_color = function(color, normal_color,
+						   bold_color) {
+  if (! color) {
+    color = [];
+  }
+  if (! bold_color) {
+    bold_color = normal_color;
+  }
+  color[0] = normal_color;
+  color[1] = bold_color;
+  return color;
 };
