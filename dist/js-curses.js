@@ -11,27 +11,6 @@ var BLINK_DELAY = 500;
 // default value for the character on 'empty' space
 var EMPTY_CHAR = ' ';
 
-/**
- * Named constants for colors: COLOR_WHITE, COLOR_RED, COLOR_GREEN, etc.
- **/
-var colors = {
-  WHITE: '#CCCCCC',
-  RED: '#CC4444',
-  GREEN: '#44CC44',
-  YELLOW: '#CCCC44',
-  BLUE: '#4444CC',
-  MAGENTA: '#CC44CC',
-  CYAN: '#44CCCC',
-  BLACK: '#222222'
-};
-
-var construct_color_table = function() {
-  for (var k in colors) {
-    exports['COLOR_' + k] = colors[k];
-  }
-};
-construct_color_table();
-
 // default window: will be used as a default object for all curses functions,
 // such as print(), addch(), move(), etc., if called directly instead of using
 // scr.print(), scr.addch(), scr.move(), etc.
@@ -223,15 +202,26 @@ var attributify = function(f) {
 
 
 /**
- * Some flags that can be used for attron(), attroff(), and attrset().
+ * Named constants for colors: COLOR_WHITE, COLOR_RED, COLOR_GREEN, etc.
  **/
-var A_NORMAL = exports.A_NORMAL = 0;
-var A_STANDOUT = exports.A_STANDOUT = 0x10000; // TODO
-var A_UNDERLINE = exports.A_UNDERLINE = A_STANDOUT << 1; // TODO
-var A_REVERSE = exports.A_REVERSE = A_STANDOUT << 2;
-var A_BLINK = exports.A_BLINK = A_STANDOUT << 3; // TODO
-var A_DIM = exports.A_DIM = A_STANDOUT << 4; // TODO
-var A_BOLD = exports.A_BOLD = A_STANDOUT << 5;
+var colors = {
+  // COLORNAME: [NORMALCOLOR, BOLDCOLOR]
+  WHITE: ['#CCCCCC', '#FFFFFF'],
+  RED: ['#CC4444', '#FF8888'],
+  GREEN: ['#44CC44', '#88FF88'],
+  YELLOW: ['#CCCC44', '#FFFF88'],
+  BLUE: ['#4444CC', '#8888FF'],
+  MAGENTA: ['#CC44CC', '#FF88FF'],
+  CYAN: ['#44CCCC', '#88FFFF'],
+  BLACK: ['#000000', '#222222']
+};
+
+var construct_color_table = function() {
+  for (var k in colors) {
+    exports['COLOR_' + k] = colors[k];
+  }
+};
+construct_color_table();
 
 /**
  * Use this as a flag for attron(), attroff(), and attrset().
@@ -287,8 +277,6 @@ var color_pairs = {
  * @param {String} background Background color to be used; must be supported by
  *   the canvas element.
  **/
-// initialize a color pair so it can be used with COLOR_PAIR(n) to describe
-// a given (fg,bg) pair of colors.
 var init_pair = exports.init_pair = function(pair_index,
                                             foreground, background) {
   color_pairs[pair_index] = {
@@ -297,6 +285,17 @@ var init_pair = exports.init_pair = function(pair_index,
   };
 };
 
+
+/**
+ * Some flags that can be used for attron(), attroff(), and attrset().
+ **/
+var A_NORMAL = exports.A_NORMAL = 0;
+var A_STANDOUT = exports.A_STANDOUT = 0x10000; // TODO
+var A_UNDERLINE = exports.A_UNDERLINE = A_STANDOUT << 1; // TODO
+var A_REVERSE = exports.A_REVERSE = A_STANDOUT << 2;
+var A_BLINK = exports.A_BLINK = A_STANDOUT << 3; // TODO
+var A_DIM = exports.A_DIM = A_STANDOUT << 4; // TODO
+var A_BOLD = exports.A_BOLD = A_STANDOUT << 5;
 
 /**
  * Set the new attrlist for the screen to the specified attrlist. Any previous
@@ -950,7 +949,7 @@ screen_t.prototype.clear = function() {
   var height = this.height * this.font.char_height;
   var width = this.width * this.font.char_width;
   // clear the window
-  this.context.fillStyle = color_pairs[0].bg;
+  this.context.fillStyle = color_pairs[0].bg[0];
   this.context.fillRect(0, 0, width, height);
   // reset all the character tiles
   var y, x;
@@ -1239,6 +1238,20 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   var color_pair = pair_number(attrs);
   var bg = color_pairs[color_pair].bg;
   var fg = color_pairs[color_pair].fg;
+  if (attrs & A_REVERSE) {
+    // swap background and foreground
+    var tmp = bg;
+    bg = fg;
+    fg = tmp;
+  }
+  // always use the first color as background color
+  if (bg instanceof Array) {
+    bg = bg[0];
+  }
+  // use a bright foreground if bold
+  if (fg instanceof Array) {
+    fg = (attrs & A_BOLD) ? fg[1] : fg[0];
+  }
   // calculate where to draw the character
   var pool = scr.canvas_pool.normal;
   var canvas = pool.canvases[pool.canvases.length - 1];
@@ -1266,7 +1279,7 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   var bitmap_x = scr.font.char_map[c][1] * scr.font.char_width;
   bitmap_x = Math.round(bitmap_x);
   // draw a background
-  ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
+  ctx.fillStyle = bg;
   ctx.fillRect(sx, sy, scr.font.char_width, scr.font.char_height);
   // draw the character on a separate, very small, offscreen canvas
   var small = scr.small_offscreen.getContext('2d');
@@ -1281,7 +1294,7 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   // for each non-transparent pixel on the small canvas, draw the pixel
   // at the same position onto the 'main' offscreen canvas
   var pixels = small.getImageData(0, 0, width, height).data;
-  ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
+  ctx.fillStyle = fg;
   var y, x;
   for (y = 0; y < height - scr.font.line_spacing; y++) {
     for (x = 0; x < width; x++) {
@@ -1310,6 +1323,21 @@ var draw_offscreen_char_ttf = function(scr, c, attrs) {
   var color_pair = pair_number(attrs);
   var bg = color_pairs[color_pair].bg;
   var fg = color_pairs[color_pair].fg;
+  if (attrs & A_REVERSE) {
+    // swap background and foreground
+    var tmp = bg;
+    bg = fg;
+    fg = tmp;
+  }
+  // always use the first color as background color
+  if (bg instanceof Array) {
+    bg = bg[0];
+  }
+  // use a bright foreground if bold
+  if (fg instanceof Array) {
+    fg = (attrs & A_BOLD) ? fg[1] : fg[0];
+  }
+  // select between normal & bold colors
   // calculate where to draw the character
   var pool = (attrs & A_BOLD) ? scr.canvas_pool.bold : scr.canvas_pool.normal;
   var canvas = pool.canvases[pool.canvases.length - 1];
@@ -1326,10 +1354,10 @@ var draw_offscreen_char_ttf = function(scr, c, attrs) {
     sx: sx
   };
   // draw a background
-  ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
+  ctx.fillStyle = bg;
   ctx.fillRect(sx, sy, scr.font.char_width, scr.font.char_height);
   // draw the character
-  ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
+  ctx.fillStyle = fg;
   ctx.fillText(c, sx, Math.round(sy + scr.font.line_spacing / 2));
   // increment the canvas pool's counter: move to the next character
   pool.x++;

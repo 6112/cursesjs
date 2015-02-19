@@ -15,66 +15,67 @@
  *     $ grunt watch
  */
 module.exports = function(grunt) {
-	grunt.initConfig({
-		pkg: grunt.file.readJSON('package.json'),
-		concat: {
-			options: {
+  grunt.initConfig({
+    pkg: grunt.file.readJSON('package.json'),
+    concat: {
+      options: {
         // wrap the ouptut with (function(){...})(); so that package-local
         // functions/variables are actually local to the package
-				banner: '(function() {\n',
-				separator: '\n\n', // for better human-readability
-				footer: '\n})();'
-			},
-			dist: {
+	banner: '(function() {\n',
+	separator: '\n\n', // for better human-readability
+	footer: '\n})();'
+      },
+      dist: {
         // files to compile into a single JavaScript file located in dist/.
         // order is important, because some functions are defined in a file,
         // but used in another
-				src: [
-					'src/curses.js',
-					'src/decorators.js',
-					'src/attrs.js',
+	src: [
+	  'src/curses.js',
+	  'src/decorators.js',
+	  'src/color.js',
+	  'src/attrs.js',
           'src/keyboard.js',
-					'src/screen.js',
-					'src/functions.js',
-					'src/draw.js',
+	  'src/screen.js',
+	  'src/functions.js',
+	  'src/draw.js',
           'src/window.js',
-					'src/event.js'
-				],
-				dest: 'dist/js-curses.js'
-			}
-		},
-		jshint: {
+	  'src/event.js'
+	],
+	dest: 'dist/js-curses.js'
+      }
+    },
+    jshint: {
       // files to check for common programming errors
-			files: ['Gruntfile.js', 'src/**/*.js', 'dist/**/*.js'],
-			options: {
+      files: ['Gruntfile.js', 'src/**/*.js', 'dist/**/*.js'],
+      options: {
         // global variables that do not yield warnings for being used without
         // being defined
-				globals: {
-					'$': true,
+	globals: {
+	  '$': true,
           jQuery: true,
-					console: true,
-					window: true,
-					document: true
-				}
-			}
-		},
-		watch: {
+	  console: true,
+	  window: true,
+	  document: true
+	}
+      }
+    },
+    watch: {
       // run a command everytime one of the source files in src/ changes
-			files: ['src/**/*.js'],
+      files: ['src/**/*.js'],
       // what to do: concatenate into dist/, and run JSHint
-		 	tasks: ['concat', 'jshint']
-		}
-	});
+      tasks: ['concat', 'jshint']
+    }
+  });
 
   // grunt concat
-	grunt.loadNpmTasks('grunt-contrib-concat');
+  grunt.loadNpmTasks('grunt-contrib-concat');
 
   // grunt jshint
-	grunt.loadNpmTasks('grunt-contrib-jshint');
+  grunt.loadNpmTasks('grunt-contrib-jshint');
 
   // grunt watch
-	grunt.loadNpmTasks('grunt-contrib-watch');
+  grunt.loadNpmTasks('grunt-contrib-watch');
 
   // default task: concatenate into dist/, and run JSHint
-	grunt.registerTask('default', ['concat', 'jshint']);
+  grunt.registerTask('default', ['concat', 'jshint']);
 };

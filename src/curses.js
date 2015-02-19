@@ -10,27 +10,6 @@ var BLINK_DELAY = 500;
 // default value for the character on 'empty' space
 var EMPTY_CHAR = ' ';
 
-/**
- * Named constants for colors: COLOR_WHITE, COLOR_RED, COLOR_GREEN, etc.
- **/
-var colors = {
-  WHITE: '#CCCCCC',
-  RED: '#CC4444',
-  GREEN: '#44CC44',
-  YELLOW: '#CCCC44',
-  BLUE: '#4444CC',
-  MAGENTA: '#CC44CC',
-  CYAN: '#44CCCC',
-  BLACK: '#222222'
-};
-
-var construct_color_table = function() {
-  for (var k in colors) {
-    exports['COLOR_' + k] = colors[k];
-  }
-};
-construct_color_table();
-
 // default window: will be used as a default object for all curses functions,
 // such as print(), addch(), move(), etc., if called directly instead of using
 // scr.print(), scr.addch(), scr.move(), etc.

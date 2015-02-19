@@ -25,7 +25,7 @@ $(window).load(function() {
     },
     require_focus: true
   });
-    */
+  */
   var win = initscr({
     container: '#stage',
     font: {

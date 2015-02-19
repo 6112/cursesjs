@@ -125,7 +125,7 @@ screen_t.prototype.clear = function() {
   var height = this.height * this.font.char_height;
   var width = this.width * this.font.char_width;
   // clear the window
-  this.context.fillStyle = color_pairs[0].bg;
+  this.context.fillStyle = color_pairs[0].bg[0];
   this.context.fillRect(0, 0, width, height);
   // reset all the character tiles
   var y, x;
@@ -414,6 +414,20 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   var color_pair = pair_number(attrs);
   var bg = color_pairs[color_pair].bg;
   var fg = color_pairs[color_pair].fg;
+  if (attrs & A_REVERSE) {
+    // swap background and foreground
+    var tmp = bg;
+    bg = fg;
+    fg = tmp;
+  }
+  // always use the first color as background color
+  if (bg instanceof Array) {
+    bg = bg[0];
+  }
+  // use a bright foreground if bold
+  if (fg instanceof Array) {
+    fg = (attrs & A_BOLD) ? fg[1] : fg[0];
+  }
   // calculate where to draw the character
   var pool = scr.canvas_pool.normal;
   var canvas = pool.canvases[pool.canvases.length - 1];
@@ -441,7 +455,7 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   var bitmap_x = scr.font.char_map[c][1] * scr.font.char_width;
   bitmap_x = Math.round(bitmap_x);
   // draw a background
-  ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
+  ctx.fillStyle = bg;
   ctx.fillRect(sx, sy, scr.font.char_width, scr.font.char_height);
   // draw the character on a separate, very small, offscreen canvas
   var small = scr.small_offscreen.getContext('2d');
@@ -456,7 +470,7 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   // for each non-transparent pixel on the small canvas, draw the pixel
   // at the same position onto the 'main' offscreen canvas
   var pixels = small.getImageData(0, 0, width, height).data;
-  ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
+  ctx.fillStyle = fg;
   var y, x;
   for (y = 0; y < height - scr.font.line_spacing; y++) {
     for (x = 0; x < width; x++) {
@@ -485,6 +499,21 @@ var draw_offscreen_char_ttf = function(scr, c, attrs) {
   var color_pair = pair_number(attrs);
   var bg = color_pairs[color_pair].bg;
   var fg = color_pairs[color_pair].fg;
+  if (attrs & A_REVERSE) {
+    // swap background and foreground
+    var tmp = bg;
+    bg = fg;
+    fg = tmp;
+  }
+  // always use the first color as background color
+  if (bg instanceof Array) {
+    bg = bg[0];
+  }
+  // use a bright foreground if bold
+  if (fg instanceof Array) {
+    fg = (attrs & A_BOLD) ? fg[1] : fg[0];
+  }
+  // select between normal & bold colors
   // calculate where to draw the character
   var pool = (attrs & A_BOLD) ? scr.canvas_pool.bold : scr.canvas_pool.normal;
   var canvas = pool.canvases[pool.canvases.length - 1];
@@ -501,10 +530,10 @@ var draw_offscreen_char_ttf = function(scr, c, attrs) {
     sx: sx
   };
   // draw a background
-  ctx.fillStyle = (attrs & A_REVERSE) ? fg : bg;
+  ctx.fillStyle = bg;
   ctx.fillRect(sx, sy, scr.font.char_width, scr.font.char_height);
   // draw the character
-  ctx.fillStyle = (attrs & A_REVERSE) ? bg : fg;
+  ctx.fillStyle = fg;
   ctx.fillText(c, sx, Math.round(sy + scr.font.line_spacing / 2));
   // increment the canvas pool's counter: move to the next character
   pool.x++;
