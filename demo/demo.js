@@ -23,7 +23,7 @@ $(window).load(function() {
       name: 'Source Code Pro',
       height: 14
     },
-    require_focus: true
+    require_focus: false
   });
   */
   var win = initscr({
@@ -36,7 +36,7 @@ $(window).load(function() {
       chars: char_table,
       line_spacing: 0
     },
-    require_focus: true
+    require_focus: false
   });
   init_pair(1, COLOR_RED, COLOR_BLACK);
   init_pair(2, COLOR_GREEN, COLOR_BLACK);
@@ -49,7 +49,7 @@ $(window).load(function() {
   subwin.bkgd('.', COLOR_PAIR(1) | A_REVERSE);
   subwin.addstr(2, 2, 'I am a subwindow.');
   subwin.border();
-  raw();
+  // raw();
   var selected = 0;
   var options = [
     'Roguelike-like player movement',
