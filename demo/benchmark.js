@@ -18,7 +18,7 @@
     },
     redraw: function() {
       var y, x;
-      for (y = 0; y < 28; y++) {
+      for (y = 0; y < 29; y++) {
         for (x = 0; x < 60; x++) {
           var k = Math.round(Math.random() 
                              * ('Z'.charCodeAt(0) - 'A'.charCodeAt(0)));
@@ -35,7 +35,6 @@
           addstr(y, x, c, attrs);
         }
       }
-      addstr(28, 0, 'press a key to update screen', A_BOLD | A_REVERSE);
       addstr(29, 0, 'press q to quit', A_BOLD | A_REVERSE);
       if (bm.fps) {
         var msg = bm.fps + ' FPS';

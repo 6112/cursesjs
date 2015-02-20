@@ -435,7 +435,9 @@ screen_t.prototype.addstr = window_t.prototype.addstr = function(str) {
 }; 
 // allow calling as addstr(y, x, str);
 screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
+screen_t.prototype.addstr = attributify(screen_t.prototype.addstr);
 window_t.prototype.addstr = shortcut_move(window_t.prototype.addstr);
+window_t.prototype.addstr = attributify(window_t.prototype.addstr);
 exports.addstr = simplify(screen_t.prototype.addstr);
 
 /**
