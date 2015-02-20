@@ -1302,10 +1302,58 @@ screen_t.prototype.addstr = window_t.prototype.addstr = function(str) {
 }; 
 // allow calling as addstr(y, x, str);
 screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
-screen_t.prototype.addstr = attributify(screen_t.prototype.addstr);
 window_t.prototype.addstr = shortcut_move(window_t.prototype.addstr);
-window_t.prototype.addstr = attributify(window_t.prototype.addstr);
 exports.addstr = simplify(screen_t.prototype.addstr);
+
+/**
+ * Draw a vertical line using `ch` at the current position. The cursor does not
+ * move. The maximum length of the line is `n` characters. If the end of the
+ * screen or window is reached, the line stops.
+ * 
+ * If called with two integers as the first arguments, move to those coordinates
+ * first (as per move()), and stay there after the line is drawn.
+ *
+ * @param {Character} ch Character used to draw the line.
+ * @param {Integer} n Length of the line, in characters.
+ * @param {Attrlist} attrs Attributes to apply to `ch`.
+ **/
+screen_t.prototype.vline = window_t.prototype.vline = function(ch, n, attrs) {
+  var start_y = this.y;
+  var start_x = this.x;
+  var y;
+  for (y = 0; y < n && y + start_y < this.height; y++) {
+    this.addch(y + start_y, start_x, ch, attrs);
+  }
+  this.move(start_y, start_x);
+};
+screen_t.prototype.vline = shortcut_move(screen_t.prototype.vline);
+window_t.prototype.vline = shortcut_move(window_t.prototype.vline);
+exports.vline = simplify(screen_t.prototype.vline);
+
+/**
+ * Draw a horizontal line using `ch` at the current position. The cursor does
+ * not move. The maximum length of the line is `n` characters. If the end of the
+ * screen or window is reached, the line stops.
+ *
+ * If called with two integers as the first arguments, move to those coordinates
+ * first (as per move()), and stay there after the line is drawn.
+ *
+ * @param {Character} ch Character used to draw the line.
+ * @param {Integer} n Length of the line, in characters.
+ * @param {Attrlist} attrs Attributes to apply to `ch`.
+ **/
+screen_t.prototype.hline = window_t.prototype.hline = function(ch, n, attrs) {
+  var start_y = this.y;
+  var start_x = this.x;
+  var x;
+  for (x = 0; x < n && x + start_x < this.width; x++) {
+    this.addch(start_y, x + start_x, ch, attrs);
+  }
+  this.move(start_y, start_x);
+};
+screen_t.prototype.hline = shortcut_move(screen_t.prototype.hline);
+window_t.prototype.hline = shortcut_move(window_t.prototype.hline);
+exports.hline = simplify(screen_t.prototype.hline);
 
 // used for creating an off-screen canvas for pre-rendering characters
 var make_offscreen_canvas = function(font) {
@@ -1657,54 +1705,74 @@ window_t.prototype.bkgd = function(c, attrs) {
  * in order to force each character's attributes to the specified values.
  *
  * For instance, you can call box() by doing:
- *     win.box('+', '|', '-'); // default attributes for everything
- *     win.box('+', A_BOLD, '|', '-', A_BOLD); // corners and top/bottom borders
- *                                             // are bold; left/right borders
- *                                             // are normal
+ *     win.box(); // default attributes for everything
+ *     win.box('|', '-', A_BOLD); // top/bottom borders are bold;
+ *                                // corners and left/right borders are normal
  *
- * @param {ChType} [corner='+'] One, or two arguments, that describe the 
- *   character for the corners, and its attributes.
- * @param {ChType} [vert='|'] One, or two arguments, that describe the character
- *   for the left and right borders, and its attributes.
- * @param {ChType} [horiz='-'] One, or two arguments, that describe the
+ * @param {ChType} [vert=ACS_VLINE] One, or two arguments, that describe the
+ *   character for the left and right borders, and its attributes.
+ * @param {ChType} [horiz=ACS_HLINE] One, or two arguments, that describe the
  *   character for the left and right borders, and its attributes.
  **/
-window_t.prototype.box = function(corner, vert, horiz) {
-  // TODO: remove corner argument
-  var defaults = ['+', '|', '-'];
-  var chars = parse_chtypes(arguments, defaults, this);
-  corner = chars[0];
-  vert = chars[1];
-  horiz = chars[2];
-  this.border(vert.value, vert.attrs, vert.value, vert.attrs,
-              horiz.value, horiz.attrs, horiz.value, horiz.attrs,
-              corner.value, corner.attrs, corner.value, corner.attrs,
-              corner.value, corner.attrs, corner.value, corner.attrs);
-};
+screen_t.prototype.box =
+  window_t.prototype.box = function(vert, horiz) {
+    var defaults = [ACS_VLINE, ACS_HLINE];
+    var chars = parse_chtypes(arguments, defaults, this);
+    vert = chars[0];
+    horiz = chars[1];
+    this.border(vert.value, vert.attrs, vert.value, vert.attrs,
+		horiz.value, horiz.attrs, horiz.value, horiz.attrs);
+  };
+exports.box = simplify(screen_t.prototype.box);
 
-// TODO: hline() and vline() functions
-
-window_t.prototype.border = function(ls, rs, ts, bs, tl, tr, bl, br) {
-  var defaults = [ACS_VLINE, ACS_VLINE,
-		  ACS_HLINE, ACS_HLINE,
-		  ACS_ULCORNER, ACS_URCORNER, ACS_LLCORNER, ACS_LRCORNER];
-  var chars = parse_chtypes(arguments, defaults, this);
-  // draw corners
-  this.addch(0, 0, chars[4].value, chars[4].attrs);
-  this.addch(0, this.width - 1, chars[5].value, chars[5].attrs);
-  this.addch(this.height - 1, 0, chars[6].value, chars[6].attrs);
-  this.addch(this.height - 1, this.width - 1, chars[7].value, chars[7].attrs);
-  // draw borders
-  var y, x;
-  for (y = 1; y < this.height - 1; y++) {
-    this.addch(y, 0, chars[0].value, chars[0].attrs);
-    this.addch(y, this.width - 1, chars[1].value, chars[1].attrs);
-  }
-  for (x = 1; x < this.width - 1; x++) {
-    this.addch(0, x, chars[2].value, chars[2].attrs);
-    this.addch(this.height - 1, x, chars[3].value, chars[3].attrs);
-  }
-};
+/**
+ * Draw a box around a window, using the specified characters and attributes for
+ * each side of the box.
+ *
+ * You can call this function specifying only character arguments, in which case
+ * the window's current default attributes are used for the characters. You
+ * can also specify an attrlist argument after each character argument in order
+ * to force each character's attributes to the specified values.
+ *
+ * For instance, you can call border() by doing:
+ *     win.border(); // default for everything
+ *     win.border('|', '|', '-', '-'); // specify character for non-corners
+ *     // left border is bold, right border is reverse:
+ *     win.border('|', A_BOLD, '|', A_REVERSE);
+ *
+ * @param {ChType} [ls=ACS_VLINE] Character (and attributes) for left side.
+ * @param {ChType} [rs=ACS_VLINE] Character (and attributes) for right side.
+ * @param {ChType} [ts=ACS_HLINE] Character (and attributes) for top side.
+ * @param {ChType} [bs=ACS_HLINE] Character (and attributes) for bottom side.
+ * @param {ChType} [tl=ACS_ULCORNER] Character (and attributes) for top left
+ * corner.
+ * @param {ChType} [tr=ACS_URCORNER] Character (and attributes) for top right
+ * corner.
+ * @param {ChType} [bl=ACS_LLCORNER] Character (and attributes) for bottom left
+ * corner.
+ * @param {ChType} [br=ACS_LRCORNER] Character (and attributes) for bottom right
+ * corner.
+ */
+screen_t.prototype.border =
+  window_t.prototype.border = function(ls, rs, ts, bs, tl, tr, bl, br) {
+    var defaults = [ACS_VLINE, ACS_VLINE,
+		    ACS_HLINE, ACS_HLINE,
+		    ACS_ULCORNER, ACS_URCORNER, ACS_LLCORNER, ACS_LRCORNER];
+    var chars = parse_chtypes(arguments, defaults, this);
+    // draw corners
+    this.addch(0, 0, chars[4].value, chars[4].attrs);
+    this.addch(0, this.width - 1, chars[5].value, chars[5].attrs);
+    this.addch(this.height - 1, 0, chars[6].value, chars[6].attrs);
+    this.addch(this.height - 1, this.width - 1, chars[7].value, chars[7].attrs);
+    // draw borders
+    this.vline(1, 0, chars[0].value, this.height - 2, chars[0].attrs);
+    this.vline(1, this.width - 1, chars[1].value, this.height - 2,
+	       chars[1].attrs);
+    this.hline(0, 1, chars[2].value, this.width - 2, chars[2].attrs);
+    this.hline(this.height - 1, 1, chars[3].value, this.width - 2,
+	       chars[3].attrs);
+  };
+exports.border = simplify(screen_t.prototype.border);
 
 // helper function for passing arguments to box() and border()
 var parse_chtypes = function(arglist, defaults, win) {

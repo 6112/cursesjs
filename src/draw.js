@@ -435,10 +435,58 @@ screen_t.prototype.addstr = window_t.prototype.addstr = function(str) {
 }; 
 // allow calling as addstr(y, x, str);
 screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
-screen_t.prototype.addstr = attributify(screen_t.prototype.addstr);
 window_t.prototype.addstr = shortcut_move(window_t.prototype.addstr);
-window_t.prototype.addstr = attributify(window_t.prototype.addstr);
 exports.addstr = simplify(screen_t.prototype.addstr);
+
+/**
+ * Draw a vertical line using `ch` at the current position. The cursor does not
+ * move. The maximum length of the line is `n` characters. If the end of the
+ * screen or window is reached, the line stops.
+ * 
+ * If called with two integers as the first arguments, move to those coordinates
+ * first (as per move()), and stay there after the line is drawn.
+ *
+ * @param {Character} ch Character used to draw the line.
+ * @param {Integer} n Length of the line, in characters.
+ * @param {Attrlist} attrs Attributes to apply to `ch`.
+ **/
+screen_t.prototype.vline = window_t.prototype.vline = function(ch, n, attrs) {
+  var start_y = this.y;
+  var start_x = this.x;
+  var y;
+  for (y = 0; y < n && y + start_y < this.height; y++) {
+    this.addch(y + start_y, start_x, ch, attrs);
+  }
+  this.move(start_y, start_x);
+};
+screen_t.prototype.vline = shortcut_move(screen_t.prototype.vline);
+window_t.prototype.vline = shortcut_move(window_t.prototype.vline);
+exports.vline = simplify(screen_t.prototype.vline);
+
+/**
+ * Draw a horizontal line using `ch` at the current position. The cursor does
+ * not move. The maximum length of the line is `n` characters. If the end of the
+ * screen or window is reached, the line stops.
+ *
+ * If called with two integers as the first arguments, move to those coordinates
+ * first (as per move()), and stay there after the line is drawn.
+ *
+ * @param {Character} ch Character used to draw the line.
+ * @param {Integer} n Length of the line, in characters.
+ * @param {Attrlist} attrs Attributes to apply to `ch`.
+ **/
+screen_t.prototype.hline = window_t.prototype.hline = function(ch, n, attrs) {
+  var start_y = this.y;
+  var start_x = this.x;
+  var x;
+  for (x = 0; x < n && x + start_x < this.width; x++) {
+    this.addch(start_y, x + start_x, ch, attrs);
+  }
+  this.move(start_y, start_x);
+};
+screen_t.prototype.hline = shortcut_move(screen_t.prototype.hline);
+window_t.prototype.hline = shortcut_move(window_t.prototype.hline);
+exports.hline = simplify(screen_t.prototype.hline);
 
 // used for creating an off-screen canvas for pre-rendering characters
 var make_offscreen_canvas = function(font) {
