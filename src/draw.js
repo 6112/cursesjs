@@ -1,6 +1,137 @@
 // number of chars saved per off-screen canvas
 var CHARS_PER_CANVAS = 256;
 
+/**
+ * Drawing characters. Can be used as variables when a specific character is
+ * needed in order to draw a shape.
+ **/
+// box drawing
+exports.ACS_ULCORNER = '┌';
+exports.ACS_LLCORNER = '└';
+exports.ACS_URCORNER = '┐';
+exports.ACS_LRCORNER = '┘';
+exports.ACS_LTEE = '├';
+exports.ACS_RTEE = '┤';
+exports.ACS_BTEE = '┴';
+exports.ACS_TTEE = '┬';
+exports.ACS_HLINE = '─';
+exports.ACS_VLINE = '│';
+exports.ACS_PLUS = '┼';
+
+// box drawing, with double borders
+exports.ACS_ULCORNER_DOUBLE = '╔';
+exports.ACS_LLCORNER_DOUBLE = '╚';
+exports.ACS_URCORNER_DOUBLE = '╗';
+exports.ACS_LRCORNER_DOUBLE = '╝';
+exports.ACS_LTEE_DOUBLE = '╠';
+exports.ACS_RTEE_DOUBLE = '╣';
+exports.ACS_BTEE_DOUBLE = '╩';
+exports.ACS_TTEE_DOUBLE = '╦';
+exports.ACS_HLINE_DOUBLE = '═';
+exports.ACS_VLINE_DOUBLE = '║';
+exports.ACS_PLUS_DOUBLE = '╬';
+
+// box drawing, with only one double border
+exports.ACS_ULCORNER_DOUBLE_RIGHT = '╒';
+exports.ACS_ULCORNER_DOUBLE_DOWN = '╓';
+exports.ACS_LLCORNER_DOUBLE_RIGHT = '╘';
+exports.ACS_LLCORNER_DOUBLE_UP = '╙';
+exports.ACS_URCORNER_DOUBLE_LEFT = '╕';
+exports.ACS_URCORNER_DOUBLE_DOWN = '╖';
+exports.ACS_LRCORNER_DOUBLE_LEFT = '╛';
+exports.ACS_LRCORNER_DOUBLE_UP = '╜';
+exports.ACS_LTEE_DOUBLE_RIGHT = '╞';
+exports.ACS_LTEE_DOUBLE_VERT = '╟';
+exports.ACS_RTEE_DOUBLE_LEFT = '╡';
+exports.ACS_RTEE_DOUBLE_VERT = '╢';
+exports.ACS_TTEE_DOUBLE_HORIZ = '╤';
+exports.ACS_TTEE_DOUBLE_DOWN = '╥';
+exports.ACS_BTEE_DOUBLE_HORIZ = '╧';
+exports.ACS_BTEE_DOUBLE_UP = '╨';
+exports.ACS_PLUS_DOUBLE_HORIZ = '╪';
+exports.ACS_PLUS_DOUBLE_VERT = '╫';
+
+// blocks
+exports.ACS_BLOCK = '█';
+exports.ACS_LIGHT_BLOCK = '░';
+exports.ACS_MEDIUM_BLOCK = exports.ACS_CKBOARD = '▒';
+exports.ACS_DARK_BLOCK = '▓';
+
+// misc symbols
+exports.ACS_DIAMOND = '♦';
+exports.ACS_PLMINUS = '±';
+exports.ACS_DEGREE = '°';
+exports.ACS_BULLET = '•';
+exports.ACS_LARROW = '<';
+exports.ACS_RARROW = '>';
+exports.ACS_DARROW = 'v';
+exports.ACS_UARROW = '^';
+exports.ACS_BOARD = '#';
+exports.ACS_LEQUAL = '≥';
+exports.ACS_GEQUAL = '≤';
+exports.ACS_PI = 'π';
+exports.ACS_STERLING = '£';
+
+// The following are not part of codepage 437, and as such, cannot be used if
+// you use `CODEPAGE_437` directly.
+
+// wide box drawing
+exports.ACS_ULCORNER_HEAVY = '┏';
+exports.ACS_LLCORNER_HEAVY = '┓';
+exports.ACS_URCORNER_HEAVY = '┗';
+exports.ACS_LRCORNER_HEAVY = '┛';
+exports.ACS_LTEE_HEAVY = '┣';
+exports.ACS_RTEE_HEAVY = '┫';
+exports.ACS_BTEE_HEAVY = '┻';
+exports.ACS_TTEE_HEAVY = '┳';
+exports.ACS_HLINE_HEAVY = '━';
+exports.ACS_VLINE_HEAVY = '┃';
+exports.ACS_PLUS_HEAVY = '╋';
+
+// misc symbols
+exports.ACS_NEQUAL = '≠';
+
+/**
+ * Can be given to the initscr() function as the `font.chars` option, if you
+ * know that your BMP font uses the standard code page 437 format.
+ *
+ * This is a 'fake' codepage-437, in that it allows you to enter many characters
+ * as their actual Unicode equivalent, not as their 8-bit codepage-437 value.
+ * This means that you can use some characters like 'é' and all the ACS_*
+ * variables without having to worry about this codepage.
+ *
+ * If you need the *actual* codepage 437 (where the characters are just ordered
+ * by ASCII value), you can generate it using two nested loops:
+ *
+ *     var my_code_page = [];
+ *     var y, x;
+ *     for (y = 0; y < 0x08; y++) {
+ *       my_code_page[y] = '';
+ *       for (x = 0; x < 0x20; x++) {
+ *         exports.my_code_page[y] += String.fromCharCode(y * 0x20 + x);
+ *       }
+ *     }
+ **/
+exports.CODEPAGE_437 = [];
+
+var init_codepage_437 = function() {
+  // lines 2-4 are normal ASCII characters
+  var y, x;
+  for (y = 1; y < 0x04; y++) {
+    exports.CODEPAGE_437[y] = '';
+    for (x = 0; x < 0x20; x++) {
+      exports.CODEPAGE_437[y] += String.fromCharCode(y * 0x20 + x);
+    }
+  }
+  exports.CODEPAGE_437[0] = '\0☺☻♥♦♣♠•◘○◙♂♀♪♫☼►◄↕‼¶§▬↨↑↓→←∟↔▲▼';
+  exports.CODEPAGE_437[3][31] = '⌂';
+  exports.CODEPAGE_437[4] = 'ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒ';
+  exports.CODEPAGE_437[5] = 'áíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐';
+  exports.CODEPAGE_437[6] = '└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀';
+  exports.CODEPAGE_437[7] = 'αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ ';
+};
+init_codepage_437();
+
 // Load a font with given attributes `font_name` and `font_size`. You should
 // ensure that the font has already been loaded by the browser before calling
 // `load_font`. The bold variant of the font should already have been loaded,

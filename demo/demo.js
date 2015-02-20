@@ -1,17 +1,4 @@
 $(window).load(function() {
-  var char_table = [
-    "",
-    " !\"#$%&'()*+,-./0123456789:;<=>?",
-    "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_",
-    "`abcdefghijklmnopqrstuvwxyz{|}~",
-    "",
-    "                   │           ┐",
-    "└   ─                    ┘┌"
-  ];
-  var i;
-  for (i = 0; i < 32; i++) {
-    char_table[0] += String.fromCharCode(i);
-  }
   $('#preload').remove();
   /*
   var win = initscr({
@@ -28,12 +15,14 @@ $(window).load(function() {
   */
   var win = initscr({
     container: '#stage',
+    min_height: 30,
+    min_width: 60,
     font: {
       type: 'bmp',
       name: 'vgafont.png',
       height: 16,
       width: 9,
-      chars: char_table,
+      chars: CODEPAGE_437,
       line_spacing: 0
     },
     require_focus: false
@@ -46,15 +35,23 @@ $(window).load(function() {
   init_pair(6, COLOR_CYAN, COLOR_BLACK);
   var subwin = newwin(20, 5, 5, 22);
   subwin.attron(COLOR_PAIR(1) | A_REVERSE);
-  subwin.bkgd('.', COLOR_PAIR(1) | A_REVERSE);
-  subwin.addstr(2, 2, 'I am a subwindow.');
+  subwin.bkgd('.');
+  subwin.addstr(2, 2, 'I am a subwîndòw.');
   subwin.border();
+  subwin = newwin(15, 5, 5, 6);
+  subwin.attron(COLOR_PAIR(2));
+  subwin.bkgd('.');
+  subwin.addstr(2,2, '#2');
+  subwin.border(ACS_VLINE, ACS_VLINE_DOUBLE,
+	        ACS_HLINE, ACS_HLINE_DOUBLE,
+	        ACS_ULCORNER, ACS_URCORNER_DOUBLE_DOWN,
+		ACS_LLCORNER_DOUBLE_RIGHT, ACS_LRCORNER_DOUBLE);
   // raw();
   var selected = 0;
   var options = [
     'Roguelike-like player movement',
-    'Text editor (TODO \01)',
-    'Window demo (TODO \01)',
+    'Text editor (TODO ☺)',
+    'Window demo (TODO ☻)',
     'Benchmark'
   ];
   var demo = window.demo = {};

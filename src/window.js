@@ -18,6 +18,7 @@
  **/
 window_t.prototype.newwin = 
   screen_t.prototype.newwin = function(y, x, height, width) {
+    // TODO: change argument order to (height, width, y, x)
   if (typeof y !== "number") {
     throw new TypeError("y is not a number");
   }
@@ -82,6 +83,7 @@ exports.newwin = simplify(screen_t.prototype.newwin);
  * @param {Attrlist} attrs New attrlist for the background.
  **/
 window_t.prototype.bkgd = function(c, attrs) {
+  // TODO: use attrset() instead of attron()
   attrs |= 0;
   var y, x;
   for (y = 0; y < this.height; y++) {
@@ -125,6 +127,7 @@ window_t.prototype.bkgd = function(c, attrs) {
  *   character for the left and right borders, and its attributes.
  **/
 window_t.prototype.box = function(corner, vert, horiz) {
+  // TODO: remove corner argument
   var defaults = ['+', '|', '-'];
   var chars = parse_chtypes(arguments, defaults, this);
   corner = chars[0];
@@ -136,8 +139,12 @@ window_t.prototype.box = function(corner, vert, horiz) {
               corner.value, corner.attrs, corner.value, corner.attrs);
 };
 
+// TODO: hline() and vline() functions
+
 window_t.prototype.border = function(ls, rs, ts, bs, tl, tr, bl, br) {
-  var defaults = ['│', '│', '─', '─', '┌', '┐', '└', '┘'];
+  var defaults = [ACS_VLINE, ACS_VLINE,
+		  ACS_HLINE, ACS_HLINE,
+		  ACS_ULCORNER, ACS_URCORNER, ACS_LLCORNER, ACS_LRCORNER];
   var chars = parse_chtypes(arguments, defaults, this);
   // draw corners
   this.addch(0, 0, chars[4].value, chars[4].attrs);

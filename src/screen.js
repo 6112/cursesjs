@@ -116,9 +116,10 @@
  * BMP font is loaded.
  * @param {Integer} [opts.font.line_spacing=0] Number of pixels between two
  * lines of text.
- * @param {Array[String]} opts.font.chars Each array element describes a line in
- * the image for the BMP font being loaded. Each element should be a string that
- * describes the contiguous characters on that line. See the example code.
+ * @param {Array[String]} [opts.font.chars=CODEPAGE_437] Each array element
+ * describes a line in the image for the BMP font being loaded. Each element
+ * should be a string that describes the contiguous characters on that line. See
+ * the example code.
  **/
 var initscr = exports.initscr = function(opts) {
   // check arg validity
