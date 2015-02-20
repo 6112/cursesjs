@@ -33,12 +33,12 @@ $(window).load(function() {
   init_pair(4, COLOR_BLUE, COLOR_BLACK);
   init_pair(5, COLOR_MAGENTA, COLOR_BLACK);
   init_pair(6, COLOR_CYAN, COLOR_BLACK);
-  var subwin = newwin(20, 5, 5, 22);
+  var subwin = newwin(5, 22, 20, 5);
   subwin.attron(COLOR_PAIR(1) | A_REVERSE);
   subwin.bkgd('.');
   subwin.addstr(2, 2, 'I am a subwîndòw.');
   subwin.border();
-  subwin = newwin(15, 5, 5, 6);
+  subwin = newwin(5, 6, 15, 5);
   subwin.attron(COLOR_PAIR(2));
   subwin.bkgd('.');
   subwin.addstr(2,2, '#2');

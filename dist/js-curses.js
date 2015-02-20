@@ -1608,60 +1608,59 @@ var draw_offscreen_char_ttf = function(scr, c, attrs) {
  * @return {window_t} The created child window.
  **/
 window_t.prototype.newwin = 
-  screen_t.prototype.newwin = function(y, x, height, width) {
-    // TODO: change argument order to (height, width, y, x)
-  if (typeof y !== "number") {
-    throw new TypeError("y is not a number");
-  }
-  if (y < 0) {
-    throw new RangeError("y is negative");
-  }
-  if (typeof x !== "number") {
-    throw new TypeError("x is not a number");
-  }
-  if (x < 0) {
-    throw new RangeError("x is negative");
-  }
-  if (typeof height !== "number") {
-    throw new TypeError("height is not a number");
-  }
-  if (height < 0) {
-    throw new RangeError("height is negative");
-  }
-  if (typeof width !== "number") {
-    throw new TypeError("width is not a number");
-  }
-  if (width < 0) {
-    throw new RangeError("width is negative");
-  }
-  // create the window
-  var win = new window_t();
-  win.win_y = y;
-  win.win_x = x;
-  win.height = height;
-  win.width = width;
-  win.parent = this;
-  // add to parent's subwindows
-  this.subwindows.push(win);
-  // create the 2D array of tiles
-  for (j = 0; j < height; j++) {
-    win.tiles[j] = [];
-    for (i = 0; i < width; i++) {
-      win.tiles[j][i] = new tile_t();
+  screen_t.prototype.newwin = function(height, width, y, x) {
+    if (typeof y !== "number") {
+      throw new TypeError("y is not a number");
     }
-  }
-  // draw each tile
-  for (j = 0; j < height; j++) {
-    for (i = 0; i < width; i++) {
-      win.addch(j, i, win.empty_char);
-      win.tiles[j][i].empty = true;
+    if (y < 0) {
+      throw new RangeError("y is negative");
     }
-  }
-  // undraw each 'covered' tile in the parent
-  this.unexpose(y, x, height, width);
-  // return the created window
-  return win;
-};
+    if (typeof x !== "number") {
+      throw new TypeError("x is not a number");
+    }
+    if (x < 0) {
+      throw new RangeError("x is negative");
+    }
+    if (typeof height !== "number") {
+      throw new TypeError("height is not a number");
+    }
+    if (height < 0) {
+      throw new RangeError("height is negative");
+    }
+    if (typeof width !== "number") {
+      throw new TypeError("width is not a number");
+    }
+    if (width < 0) {
+      throw new RangeError("width is negative");
+    }
+    // create the window
+    var win = new window_t();
+    win.win_y = y;
+    win.win_x = x;
+    win.height = height;
+    win.width = width;
+    win.parent = this;
+    // add to parent's subwindows
+    this.subwindows.push(win);
+    // create the 2D array of tiles
+    for (j = 0; j < height; j++) {
+      win.tiles[j] = [];
+      for (i = 0; i < width; i++) {
+	win.tiles[j][i] = new tile_t();
+      }
+    }
+    // draw each tile
+    for (j = 0; j < height; j++) {
+      for (i = 0; i < width; i++) {
+	win.addch(j, i, win.empty_char);
+	win.tiles[j][i].empty = true;
+      }
+    }
+    // undraw each 'covered' tile in the parent
+    this.unexpose(y, x, height, width);
+    // return the created window
+    return win;
+  };
 exports.newwin = simplify(screen_t.prototype.newwin);
 
 /**
