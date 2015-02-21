@@ -622,6 +622,10 @@ var keypad = exports.keypad = function() {};
  * describes a line in the image for the BMP font being loaded. Each element
  * should be a string that describes the contiguous characters on that line. See
  * the example code.
+ * @param {Boolean} [opts.font.use_bold=true] `true` iff the bold font variant
+ * should be used for bold text. `false` indicates that bold text will only be
+ * drawn in a brighter color, without actually being bold. Only relevant for TTF
+ * fonts.
  **/
 var initscr = exports.initscr = function(opts) {
   // check arg validity
@@ -630,6 +634,10 @@ var initscr = exports.initscr = function(opts) {
   opts.require_focus |= false;
   opts.font.type = /^bmp$/i.test(opts.font.type) ? "bmp" : "ttf";
   opts.font.line_spacing |= 0;
+  opts.font.chars = opts.font.chars || CODEPAGE_437;
+  if (opts.font.use_bold === undefined) {
+    opts.font.use_bold = true;
+  }
   // `container` can either be a DOM element, or an ID for a DOM element
   if (opts.container !== undefined) {
     opts.container = $(opts.container);
@@ -652,11 +660,10 @@ var initscr = exports.initscr = function(opts) {
   // load the specified font
   // TODO: specify sane default values
   if (opts.font.type === "ttf") {
-    load_ttf_font(scr, opts.font.name, opts.font.height, opts.font.line_spacing);
+    load_ttf_font(scr, opts.font);
   }
   else {
-    load_bitmap_font(scr, opts.font.name, opts.font.height, opts.font.width,
-		     opts.font.chars, opts.font.line_spacing);
+    load_bitmap_font(scr, opts.font);
   }
   // handle default, 'cover the whole container' size
   // TODO: handle resizing
@@ -740,7 +747,7 @@ var check_initscr_args = function(opts) {
     if (typeof opts.font.width !== "number") {
       throw new TypeError("font.width is not a number, for a BMP font");
     }
-    if (! (opts.font.chars instanceof Array)) {
+    if (opts.font.chars && ! (opts.font.chars instanceof Array)) {
       throw new TypeError("font.chars is not an array");
     }
   }
@@ -999,26 +1006,20 @@ var init_codepage_437 = function() {
 };
 init_codepage_437();
 
-// Load a font with given attributes `font_name` and `font_size`. You should
-// ensure that the font has already been loaded by the browser before calling
-// `load_font`. The bold variant of the font should already have been loaded,
-// if you intend to use it. The usual way to do this is to insert an element
-// that uses that font in your webpage's HTML. This function is automatically
-// called by `initscr`.
+// Load a TTF font. The font should already be preloaded before calling this
+// function. Automatically called by initscr().
 //
 // Print warning messages to the web console when the font does not appear to
 // be a monospace font.
 //
-// @param {String} font_name Name of the font to be loaded.
-// @param {Integer} font_size Size of the font to be loaded.
-// @param {Integer} line_spacing Number of pixels between two lines of text.
-var load_ttf_font = function(scr, font_name, font_size, line_spacing) {
-  scr.context.font = 'Bold ' + font_size + 'px ' + font_name;
+// @param {Object} font Font to be loaded, as passed to initscr().
+var load_ttf_font = function(scr, font) {
+  scr.context.font = 'Bold ' + font.height + 'px ' + font.name;
   scr.context.textAlign = 'left';
   var c = 'm';
   // calculate the probable font metrics
   var metrics = scr.context.measureText(c);
-  var height = Math.round(font_size + line_spacing);
+  var height = Math.round(font.height + font.line_spacing);
   var width = Math.round(metrics.width);
   // check that it's (probably) a monospace font
   var testChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" + 
@@ -1028,60 +1029,60 @@ var load_ttf_font = function(scr, font_name, font_size, line_spacing) {
     c = testChars[i];
     metrics = scr.context.measureText(c);
     if (Math.round(metrics.width) !== width) {
-      console.warn(font_name + ' does not seem to be a monospace font');
+      console.warn(font.name + ' does not seem to be a monospace font');
     }
   }
   // save the currently used font
   scr.font = {
     type: "ttf",
-    name: font_name,
-    size: font_size,
+    name: font.name,
+    size: font.height,
     char_height: height,
     char_width: width,
-    line_spacing: line_spacing
+    line_spacing: font.line_spacing,
+    use_bold: font.use_bold
   };
   // create the canvas pool for drawing offscreen characters
   scr.canvas_pool = {
     normal: {
       x: 0,
       canvases: null
-    },
-    bold: {
-      x: 0,
-      canvases: null
     }
   };
+  if (font.use_bold) {
+    scr.canvas_pool.bold = {
+      x: 0,
+      canvases: null
+    };
+  }
   var offscreen = make_offscreen_canvas(scr.font);
-  offscreen.ctx.font = font_size + 'px ' + font_name;
+  offscreen.ctx.font = font.height + 'px ' + font.name;
   scr.canvas_pool.normal.canvases = [offscreen];
-  offscreen = make_offscreen_canvas(scr.font);
-  offscreen.ctx.font = 'Bold ' + font_size + 'px ' + font_name;
-  scr.canvas_pool.bold.canvases = [offscreen];
+  if (font.use_bold) {
+    offscreen = make_offscreen_canvas(scr.font);
+    offscreen.ctx.font = 'Bold ' + font.height + 'px ' + font.name;
+    scr.canvas_pool.bold.canvases = [offscreen];
+  }
 };
 
-// last arguments are slurped for the char map (to know which
-// character is where in the image)
-//
-// @param {String|HTMLImageElement} bitmap The image to use for
-//   drawing
-// @param {Integer} char_height Height of a character in the bitmap.
-// @param {Integer} char_width Width of a character in the bitmap.
-// @param {Array[String]} chars A string for each line in the bitmap
-//   file; each character in the string corresponds to a character on
-//   that line in the bitmap file.
-// @param {Integer} line_spacing Number of pixels between two lines of text.
-var load_bitmap_font = function(scr, bitmap, char_height, char_width, chars,
-			        line_spacing) {
+// Load a BMP font from an image. The image should already be preloaded before
+// calling this function. This function is called automatically by initscr().
+// 
+// @param {Object} font Font description, as passed to initscr().
+var load_bitmap_font = function(scr, font) {
+  var bitmap = font.name;
+  var char_height = font.height;
+  var char_width = font.width;
   if (typeof bitmap === "string") {
     bitmap = $('<img src="' + bitmap + '" />')[0];
   }
-  char_height += line_spacing;
+  char_height += font.line_spacing;
   var char_map = {};
   var y, x;
-  for (y = 0; y < chars.length; y++) {
-    for (x = 0; x < chars[y].length; x++) {
-      if (! char_map[chars[y][x]]) {
-	char_map[chars[y][x]] = [y, x];
+  for (y = 0; y < font.chars.length; y++) {
+    for (x = 0; x < font.chars[y].length; x++) {
+      if (! char_map[font.chars[y][x]]) {
+	char_map[font.chars[y][x]] = [y, x];
       }
     }
   }
@@ -1092,7 +1093,7 @@ var load_bitmap_font = function(scr, bitmap, char_height, char_width, chars,
     char_height: char_height,
     char_width: char_width,
     char_map: char_map,
-    line_spacing: line_spacing
+    line_spacing: font.line_spacing
   };
   // create the canvas pool for drawing offscreen characters
   scr.canvas_pool = {
@@ -1563,7 +1564,9 @@ var draw_offscreen_char_ttf = function(scr, c, attrs) {
   }
   // select between normal & bold colors
   // calculate where to draw the character
-  var pool = (attrs & A_BOLD) ? scr.canvas_pool.bold : scr.canvas_pool.normal;
+  var pool = ((attrs & A_BOLD) && scr.font.use_bold) ?
+	scr.canvas_pool.bold :
+	scr.canvas_pool.normal;
   var canvas = pool.canvases[pool.canvases.length - 1];
   var ctx = canvas.ctx;
   var sy = 0;

@@ -1,10 +1,11 @@
 $(window).load(function() {
   $('#preload').remove();
   /*
+  // * /
   var win = initscr({
     container: '#stage',
-    height: 30,
-    width: 60,
+    min_height: 30,
+    min_width: 60,
     font: {
       type: 'ttf',
       name: 'Source Code Pro',
@@ -12,7 +13,9 @@ $(window).load(function() {
     },
     require_focus: false
   });
-  */
+  // */
+  /*
+  // */
   var win = initscr({
     container: '#stage',
     min_height: 30,
@@ -22,11 +25,11 @@ $(window).load(function() {
       name: 'vgafont.png',
       height: 16,
       width: 9,
-      chars: CODEPAGE_437,
       line_spacing: 0
     },
     require_focus: false
   });
+  // */
   init_pair(1, COLOR_RED, COLOR_BLACK);
   init_pair(2, COLOR_GREEN, COLOR_BLACK);
   init_pair(3, COLOR_YELLOW, COLOR_BLACK);

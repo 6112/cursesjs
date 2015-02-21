@@ -120,6 +120,10 @@
  * describes a line in the image for the BMP font being loaded. Each element
  * should be a string that describes the contiguous characters on that line. See
  * the example code.
+ * @param {Boolean} [opts.font.use_bold=true] `true` iff the bold font variant
+ * should be used for bold text. `false` indicates that bold text will only be
+ * drawn in a brighter color, without actually being bold. Only relevant for TTF
+ * fonts.
  **/
 var initscr = exports.initscr = function(opts) {
   // check arg validity
@@ -128,6 +132,10 @@ var initscr = exports.initscr = function(opts) {
   opts.require_focus |= false;
   opts.font.type = /^bmp$/i.test(opts.font.type) ? "bmp" : "ttf";
   opts.font.line_spacing |= 0;
+  opts.font.chars = opts.font.chars || CODEPAGE_437;
+  if (opts.font.use_bold === undefined) {
+    opts.font.use_bold = true;
+  }
   // `container` can either be a DOM element, or an ID for a DOM element
   if (opts.container !== undefined) {
     opts.container = $(opts.container);
@@ -150,11 +158,10 @@ var initscr = exports.initscr = function(opts) {
   // load the specified font
   // TODO: specify sane default values
   if (opts.font.type === "ttf") {
-    load_ttf_font(scr, opts.font.name, opts.font.height, opts.font.line_spacing);
+    load_ttf_font(scr, opts.font);
   }
   else {
-    load_bitmap_font(scr, opts.font.name, opts.font.height, opts.font.width,
-		     opts.font.chars, opts.font.line_spacing);
+    load_bitmap_font(scr, opts.font);
   }
   // handle default, 'cover the whole container' size
   // TODO: handle resizing
@@ -238,7 +245,7 @@ var check_initscr_args = function(opts) {
     if (typeof opts.font.width !== "number") {
       throw new TypeError("font.width is not a number, for a BMP font");
     }
-    if (! (opts.font.chars instanceof Array)) {
+    if (opts.font.chars && ! (opts.font.chars instanceof Array)) {
       throw new TypeError("font.chars is not an array");
     }
   }
