@@ -7,13 +7,18 @@
  * @param {String} event_name Name of the event to be fired.
  **/
 screen_t.prototype.trigger = function(event_name) {
+  var last_return = undefined;
   if (this.listeners[event_name]) {
     var args = [].slice.call(arguments, 1);
     var i;
     for (i = 0; i < this.listeners[event_name].length; i++) {
-      this.listeners[event_name][i].apply(this, args);
+      var returned = this.listeners[event_name][i].apply(this, args);
+      if (returned !== undefined) {
+	last_return = returned;
+      }
     }
   }
+  return last_return;
 };
 
 /**

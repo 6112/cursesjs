@@ -47,12 +47,12 @@ var handle_keyboard = function(scr, container, require_focus) {
       // trigger the event, and call event handlers as
       // handler(keycode, event, screen);
       var returned = scr.trigger('keydown', event.which, event, scr);
-      if (returned === false) {
-	cancel = false;
+      if (typeof returned === "boolean") {
+	cancel = ! returned;
       }
     }
     // disable most browser shortcuts if the _raw flag is on for the window, and
-    // the handlers did not return false
+    // the handlers did not return true
     return ! cancel;
   });
   if (scr.auto_height || scr.auto_width) {

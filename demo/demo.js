@@ -36,20 +36,13 @@ $(window).load(function() {
   init_pair(4, COLOR_BLUE, COLOR_BLACK);
   init_pair(5, COLOR_MAGENTA, COLOR_BLACK);
   init_pair(6, COLOR_CYAN, COLOR_BLACK);
+  init_pair(7, COLOR_BLACK, COLOR_BLACK);
   var subwin = newwin(5, 22, 20, 5);
   subwin.attron(COLOR_PAIR(1) | A_REVERSE);
   subwin.bkgd('.');
-  subwin.addstr(2, 2, 'I am a subwîndòw.');
+  subwin.addstr(2, 2, 'I am a subwindow.');
   subwin.border();
-  subwin = newwin(5, 6, 15, 5);
-  subwin.attron(COLOR_PAIR(2));
-  subwin.bkgd('.');
-  subwin.addstr(2,2, '#2');
-  subwin.border(ACS_VLINE, ACS_VLINE_DOUBLE,
-	        ACS_HLINE, ACS_HLINE_DOUBLE,
-	        ACS_ULCORNER, ACS_URCORNER_DOUBLE_DOWN,
-		ACS_LLCORNER_DOUBLE_RIGHT, ACS_LRCORNER_DOUBLE);
-  // raw();
+  raw();
   var selected = 0;
   var options = [
     'Roguelike-like player movement',
@@ -77,6 +70,19 @@ $(window).load(function() {
     addstr(2, 2, 'press ');
     addstr('enter', A_BOLD);
     addstr(' to run that demo');
+
+    addstr(9, 4, "ncurses", A_BOLD);
+    addstr(" is a C library for console programs.");
+    addstr(10, 4, "It handles colors, bold, windows, etc.");
+    addstr(11, 4, "js-curses", A_BOLD);
+    addstr(" is a port of ");
+    addstr("ncurses ", A_BOLD);
+    addstr("for the web.");
+
+    addstr(14, 8, "(made by ");
+    addstr("Nicolas Ouellet-Payeur", COLOR_PAIR(2));
+    addch(')');
+    addstr(15, 8, "http://github.com/6112/js-curses", COLOR_PAIR(6));
     var i;
     for (i = 0; i < options.length; i++) {
       if (i === selected) {
@@ -97,6 +103,7 @@ $(window).load(function() {
   };
   redraw();
   var update = demo.update = function(c) {
+    var cancel = true;
     switch(c) {
       case KEY_J:
       case KEY_DOWN:
@@ -127,10 +134,13 @@ $(window).load(function() {
         }
         break;
 
-      default: break;
+      default:
+        cancel = false;
+        break;
     }
     selected = Math.min(options.length - 1, Math.max(0, selected));
     redraw();
+    return ! cancel;
   };
   ongetch(update);
 });

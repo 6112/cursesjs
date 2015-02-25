@@ -450,12 +450,12 @@ var handle_keyboard = function(scr, container, require_focus) {
       // trigger the event, and call event handlers as
       // handler(keycode, event, screen);
       var returned = scr.trigger('keydown', event.which, event, scr);
-      if (returned === false) {
-	cancel = false;
+      if (typeof returned === "boolean") {
+	cancel = ! returned;
       }
     }
     // disable most browser shortcuts if the _raw flag is on for the window, and
-    // the handlers did not return false
+    // the handlers did not return true
     return ! cancel;
   });
   if (scr.auto_height || scr.auto_width) {
@@ -1951,13 +1951,18 @@ window_t.prototype.delwin = function() {
  * @param {String} event_name Name of the event to be fired.
  **/
 screen_t.prototype.trigger = function(event_name) {
+  var last_return = undefined;
   if (this.listeners[event_name]) {
     var args = [].slice.call(arguments, 1);
     var i;
     for (i = 0; i < this.listeners[event_name].length; i++) {
-      this.listeners[event_name][i].apply(this, args);
+      var returned = this.listeners[event_name][i].apply(this, args);
+      if (returned !== undefined) {
+	last_return = returned;
+      }
     }
   }
+  return last_return;
 };
 
 /**
