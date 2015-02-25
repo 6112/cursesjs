@@ -19,6 +19,7 @@
   };
   var rl = window.rl = {
     redraw: function() {
+      clear();
       var y, x;
       for (y = 0; y < state.map.length; y++) {
         for (x = 0; x < state.map[y].length; x++) {

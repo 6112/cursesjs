@@ -1,3 +1,6 @@
+// TODO: move everything in this file to more relevant files, and delete this
+// file
+
 // keys that are to be ignored for the purposes of events
 // TODO
 var ignoreKeys = {

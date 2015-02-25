@@ -17,6 +17,7 @@
       bm.redraw();
     },
     redraw: function() {
+      clear();
       var y, x;
       for (y = 0; y < 29; y++) {
         for (x = 0; x < 60; x++) {

@@ -72,7 +72,7 @@ $(window).load(function() {
     addstr(1, 2, 'use ');
     addstr('jk', A_BOLD);
     addstr(' or the ');
-    addstr ('arrow keys', A_BOLD);
+    addstr('arrow keys', A_BOLD);
     addstr(' to select a demo');
     addstr(2, 2, 'press ');
     addstr('enter', A_BOLD);
@@ -91,6 +91,7 @@ $(window).load(function() {
         attroff(A_REVERSE);
       }
     }
+    addch(max_y, max_x, 'M');
     move(i + 3, 0);
     refresh();
   };

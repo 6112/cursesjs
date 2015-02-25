@@ -246,24 +246,38 @@ var load_bitmap_font = function(scr, font) {
  * times per second.
  **/
 screen_t.prototype.clear = function() {
+  // TODO: implement for window_t as well
   // window height and width
   var height = this.height * this.font.char_height;
   var width = this.width * this.font.char_width;
-  // clear the window
-  this.context.fillStyle = color_pairs[0].bg[0];
-  this.context.fillRect(0, 0, width, height);
   // reset all the character tiles
+  // TODO: support setting attributes for empty_char
   var y, x;
   for (y = 0; y < this.height; y++) {
     for (x = 0; x < this.width; x++) {
       var tile = this.tiles[y][x];
-      tile.content = this.empty_char;
       tile.empty = true;
+      if (tile.content === this.empty_char && tile.attrs === A_NORMAL)
+	continue;
+      tile.content = this.empty_char;
       tile.attrs = A_NORMAL;
+      this.changes[y + ',' + x] = {
+	at: {
+	  y: y,
+	  x: x
+	},
+	value: this.empty_char,
+	attrs: A_NORMAL
+      };
     }
   }
 };
 exports.clear = simplify(screen_t.prototype.clear);
+
+screen_t.prototype.clrtoeol = function() {
+  hline(this.empty_char, this.width - this.x, A_NORMAL);
+};
+exports.clrtoeol = simplify(screen_t.prototype.clrtoeol);
 
 /**
  * Push the changes made to the buffer, such as those made with addstr() and
@@ -299,6 +313,32 @@ var refresh_window = function(win, dy, dx, drawfunc) {
     if (win.tiles[pos.y][pos.x].exposed) {
       drawfunc(pos.y + win.win_y + dy, pos.x + win.win_x + dx, 
                change.value, change.attrs);
+    }
+  }
+};
+
+screen_t.prototype.full_refresh = function() {
+  var scr = this;
+  var drawfunc = function(y, x, c, attrs) {
+    draw_char(scr, y, x, c, attrs);
+  };
+  full_refresh_window(this, 0, 0, drawfunc);
+  this.changes = {};
+};
+
+var full_refresh_window = function(win, dy, dx, drawfunc) {
+  var i;
+  for (i = 0; i < win.subwindows.length; i++) {
+    var subwin = win.subwindows[i];
+    full_refresh_window(subwin, dy + win.win_y, dx + win.win_x, drawfunc);
+  }
+  var y, x;
+  for (y = 0; y < win.height; y++) {
+    for (x = 0; x < win.width; x++) {
+      if (win.tiles[y][x].exposed) {
+	drawfunc(y + win.win_y + dy, x + win.win_x + dx,
+		 win.tiles[y][x].content, win.tiles[y][x].attrs);
+      }
     }
   }
 };

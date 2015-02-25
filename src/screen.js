@@ -166,6 +166,7 @@ var initscr = exports.initscr = function(opts) {
   // handle default, 'cover the whole container' size
   // TODO: handle resizing
   if (! opts.height) {
+    scr.auto_height = true;
     scr.height = Math.floor(opts.container.height() / scr.font.char_height);
     if (opts.min_height) {
       scr.height = Math.max(scr.height, opts.min_height);
@@ -173,6 +174,7 @@ var initscr = exports.initscr = function(opts) {
     }
   }
   if (! opts.width) {
+    scr.auto_width = true;
     scr.width = Math.floor(opts.container.width() / scr.font.char_width);
     if (opts.min_width) {
       scr.width = Math.max(scr.width, opts.min_width);
@@ -189,6 +191,7 @@ var initscr = exports.initscr = function(opts) {
     scr.tiles[y] = [];
     for (x = 0; x < scr.width; x++) {
       scr.tiles[y][x] = new tile_t();
+      scr.tiles[y][x].content = '';
     }
   }
   // set the created window as the default window for most operations
