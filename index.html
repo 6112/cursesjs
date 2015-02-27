@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>js-curses demonstration</title>
+  <link href='http://fonts.googleapis.com/css?family=Source+Code+Pro:400,700' 
+    rel='stylesheet' type='text/css'>
+  <link href="bower_components/bootstrap/dist/css/bootstrap.css"
+    rel="stylesheet" type="text/css" />
+  <style>
+    body {
+      background-color: #222;
+    }
+    
+    #stage {
+      float: left;
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 10px;
+      bottom: 10px;
+      z-index: 99;
+    }
+
+    #stage > canvas {
+    }
+  </style>
+<body>
+  <div id="stage">
+  </div>
+  
+  <!-- for preloading the fonts -->
+  <div id="preload">
+    <div style='font-family: "Source Code Pro";'>.</div>
+    <div style='font-family: "Source Code Pro"; font-weight: bold;'>.</div>
+    <img src="vgafont.png" />
+  </div>
+
+  <!-- js-curses requires jQuery -->
+  <script src="bower_components/jquery/dist/jquery.js"></script>
+
+  <!-- include js-curses -->
+  <script src="dist/js-curses.js"></script>
+
+  <!-- site-specific JavaScript for the demo -->
+  <script src="roguelike.js"></script>
+  <script src="benchmark.js"></script>
+  <script src="demo.js"></script>
+</body>
+</html>
