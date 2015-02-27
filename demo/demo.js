@@ -37,7 +37,7 @@ $(window).load(function() {
   init_pair(5, COLOR_MAGENTA, COLOR_BLACK);
   init_pair(6, COLOR_CYAN, COLOR_BLACK);
   init_pair(7, COLOR_BLACK, COLOR_BLACK);
-  var subwin = newwin(5, 22, 20, 5);
+  var subwin = newwin(5, 22, 24, 5);
   subwin.attron(COLOR_PAIR(1) | A_REVERSE);
   subwin.bkgd('.');
   subwin.addstr(2, 2, 'I am a subwindow.');

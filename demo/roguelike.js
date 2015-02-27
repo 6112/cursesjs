@@ -1,22 +1,16 @@
 (function() {
+  var map_height = 18;
+  var map_width = 40;
+  var room_count = 3;
   var state = {
     player: {
       x: 4,
       y: 4
     },
-    map: [
-      "##########",
-      "#........#",
-      "#........#",
-      "#........#",
-      "#.....#..#",
-      "#.....#..#",
-      "#..#.....#",
-      "#..##....#",
-      "#........#",
-      "##########"
-    ]
+    map: [],
+    rooms: []
   };
+  state.map = make_dungeon(map_height, map_width, room_count);
   var rl = window.rl = {
     redraw: function() {
       clear();
@@ -74,7 +68,7 @@
 
         default: break;
       }
-      if (state.map[state.player.y][state.player.x] === '#') {
+      if (state.map[state.player.y][state.player.x] !== '.') {
         state.player.y = old_y;
         state.player.x = old_x;
       }
