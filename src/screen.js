@@ -302,10 +302,12 @@ exports.blink = simplify(screen_t.prototype.blink);
  **/
 screen_t.prototype.noblink = function() {
   if (this._blink) {
+    clearTimeout(this._blink_timeout);
     do_unblink(this);
-    clearTimeout(this._blinkTimeout);
-    this._blinkTimeout = 0;
+    clearTimeout(this._blink_timeout);
+    this._blink_timeout = 0;
   }
+  this._blinking = false;
   this._blink = false;
 };
 exports.noblink = simplify(screen_t.prototype.noblink);

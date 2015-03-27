@@ -66,7 +66,7 @@ var screen_t = function() {
                         // copy/paste, select all, etc., and allow browser
                         // keyboard shortcuts
   this._blink = true;   // make the cursor blink
-  this._blinkTimeout = 0;
+  this._blink_timeout = 0;
   // wrapper element
   this.container = null;
   // canvas and its rendering context

@@ -67,7 +67,7 @@ var screen_t = function() {
                         // copy/paste, select all, etc., and allow browser
                         // keyboard shortcuts
   this._blink = true;   // make the cursor blink
-  this._blinkTimeout = 0;
+  this._blink_timeout = 0;
   // wrapper element
   this.container = null;
   // canvas and its rendering context
@@ -868,10 +868,12 @@ exports.blink = simplify(screen_t.prototype.blink);
  **/
 screen_t.prototype.noblink = function() {
   if (this._blink) {
+    clearTimeout(this._blink_timeout);
     do_unblink(this);
-    clearTimeout(this._blinkTimeout);
-    this._blinkTimeout = 0;
+    clearTimeout(this._blink_timeout);
+    this._blink_timeout = 0;
   }
+  this._blinking = false;
   this._blink = false;
 };
 exports.noblink = simplify(screen_t.prototype.noblink);
@@ -908,7 +910,7 @@ var is_key_press = function(event) {
 
 // used for making a blinking cursor
 var start_blink = function(scr) {
-  scr._blinkTimeout = setTimeout(function() {
+  scr._blink_timeout = setTimeout(function() {
     do_blink(scr);
   }, BLINK_DELAY);
 };
@@ -919,7 +921,7 @@ var do_blink = function(scr) {
   var tile = scr.tiles[y][x];
   draw_char(scr, y, x, tile.content, tile.attrs ^ A_REVERSE);
   scr._blinking = true;
-  scr._blinkTimeout = setTimeout(function() {
+  scr._blink_timeout = setTimeout(function() {
     do_unblink(scr);
   }, BLINK_DELAY);
 };
@@ -930,7 +932,7 @@ var do_unblink = function(scr) {
   var tile = scr.tiles[y][x];
   draw_char(scr, y, x, tile.content, tile.attrs);
   scr._blinking = false;
-  scr._blinkTimeout = setTimeout(function() {
+  scr._blink_timeout = setTimeout(function() {
     do_blink(scr);
   }, BLINK_DELAY);
 };

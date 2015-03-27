@@ -20,7 +20,7 @@ var is_key_press = function(event) {
 
 // used for making a blinking cursor
 var start_blink = function(scr) {
-  scr._blinkTimeout = setTimeout(function() {
+  scr._blink_timeout = setTimeout(function() {
     do_blink(scr);
   }, BLINK_DELAY);
 };
@@ -31,7 +31,7 @@ var do_blink = function(scr) {
   var tile = scr.tiles[y][x];
   draw_char(scr, y, x, tile.content, tile.attrs ^ A_REVERSE);
   scr._blinking = true;
-  scr._blinkTimeout = setTimeout(function() {
+  scr._blink_timeout = setTimeout(function() {
     do_unblink(scr);
   }, BLINK_DELAY);
 };
@@ -42,7 +42,7 @@ var do_unblink = function(scr) {
   var tile = scr.tiles[y][x];
   draw_char(scr, y, x, tile.content, tile.attrs);
   scr._blinking = false;
-  scr._blinkTimeout = setTimeout(function() {
+  scr._blink_timeout = setTimeout(function() {
     do_blink(scr);
   }, BLINK_DELAY);
 };
