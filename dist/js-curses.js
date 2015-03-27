@@ -17,12 +17,13 @@ var EMPTY_CHAR = ' ';
 var default_screen = null;
 
 // curses window
-// TODO: implement creating other windows, sub-wdinows (not just the global 
-// 'stdscr' window)
 var window_t = function() {
   // cursor position
   this.y = 0;
   this.x = 0;
+  // cursor position at last refresh() call
+  this.previous_y = 0;
+  this.previous_x = 0;
   // window position
   this.win_y = 0;
   this.win_x = 0;
@@ -732,7 +733,6 @@ var initscr = exports.initscr = function(opts) {
     load_bitmap_font(scr, opts.font);
   }
   // handle default, 'cover the whole container' size
-  // TODO: handle resizing
   if (! opts.height) {
     scr.auto_height = true;
     scr.height = Math.floor(opts.container.height() / scr.font.char_height);
@@ -770,8 +770,7 @@ var initscr = exports.initscr = function(opts) {
   // add keyboard hooks
   handle_keyboard(scr, opts.container, opts.require_focus);
   // make a blinking cursor
-  // TODO: reimplement blinking
-  // startBlink(scr);
+    start_blink(scr);
   // return the created window
   return scr;
 };
@@ -855,12 +854,10 @@ exports.getmaxyx = simplify(screen_t.prototype.getmaxyx);
 
 /**
  * Enable a blinking cursor.
- *
- * TODO
  **/
 screen_t.prototype.blink = function() {
   if (! this._blink) {
-    startBlink(this);
+    start_blink(this);
   }
   this._blink = true;
 };
@@ -868,12 +865,10 @@ exports.blink = simplify(screen_t.prototype.blink);
 
 /**
  * Disable a blinking cursor.
- *
- * TODO
  **/
 screen_t.prototype.noblink = function() {
   if (this._blink) {
-    this.tiles[this.y][this.x].element.addClass('a-reverse');
+    do_unblink(this);
     clearTimeout(this._blinkTimeout);
     this._blinkTimeout = 0;
   }
@@ -912,17 +907,32 @@ var is_key_press = function(event) {
 };
 
 // used for making a blinking cursor
-// TODO: rewrite for canvas
-var startBlink = function(scr) {
-  var do_blink = function() {
-    scr.tiles[scr.y][scr.x].element.addClass('a-reverse');
-    scr._blinkTimeout = setTimeout(do_unblink, BLINK_DELAY);
-  };
-  var do_unblink = function() {
-    scr.tiles[scr.y][scr.x].element.removeClass('a-reverse');
-    scr._blinkTimeout = setTimeout(do_blink, BLINK_DELAY);
-  };
-  scr._blinkTimeout = setTimeout(do_blink, BLINK_DELAY);
+var start_blink = function(scr) {
+  scr._blinkTimeout = setTimeout(function() {
+    do_blink(scr);
+  }, BLINK_DELAY);
+};
+
+var do_blink = function(scr) {
+  var y = scr.y;
+  var x = scr.x;
+  var tile = scr.tiles[y][x];
+  draw_char(scr, y, x, tile.content, tile.attrs ^ A_REVERSE);
+  scr._blinking = true;
+  scr._blinkTimeout = setTimeout(function() {
+    do_unblink(scr);
+  }, BLINK_DELAY);
+};
+
+var do_unblink = function(scr) {
+  var y = scr.y;
+  var x = scr.x;
+  var tile = scr.tiles[y][x];
+  draw_char(scr, y, x, tile.content, tile.attrs);
+  scr._blinking = false;
+  scr._blinkTimeout = setTimeout(function() {
+    do_blink(scr);
+  }, BLINK_DELAY);
 };
 
 /**
@@ -940,7 +950,10 @@ screen_t.prototype.move = window_t.prototype.move = function(y, x) {
     throw new RangeError("coordinates out of range");
   }
   // var tile = this.tiles[this.y][this.x];
-  // TODO: handle blinking/unblinking on move
+  if (this._blink) {
+    var tile = this.tiles[this.y][this.x];
+    draw_char(this, this.y, this.x, tile.content, tile.attrs);
+  }
   this.y = y;
   this.x = x;
 };
@@ -1254,6 +1267,18 @@ screen_t.prototype.refresh = function() {
     draw_char(scr, y, x, c, attrs);
   };
   refresh_window(this, 0, 0, drawfunc);
+  if (this._blinking) {
+    var y = this.previous_y;
+    var x = this.previous_x;
+    var tile = this.tiles[y][x];
+    draw_char(this, y, x, tile.content, tile.attrs);
+    y = this.y;
+    x = this.x;
+    tile = this.tiles[y][x];
+    draw_char(this, y, x, tile.content, tile.attrs ^ A_REVERSE);
+  }
+  this.previous_y = this.y;
+  this.previous_x = this.x;
   this.changes = {};
 };
 exports.refresh = simplify(screen_t.prototype.refresh);

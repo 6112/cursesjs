@@ -167,7 +167,6 @@ var initscr = exports.initscr = function(opts) {
     load_bitmap_font(scr, opts.font);
   }
   // handle default, 'cover the whole container' size
-  // TODO: handle resizing
   if (! opts.height) {
     scr.auto_height = true;
     scr.height = Math.floor(opts.container.height() / scr.font.char_height);
@@ -205,8 +204,7 @@ var initscr = exports.initscr = function(opts) {
   // add keyboard hooks
   handle_keyboard(scr, opts.container, opts.require_focus);
   // make a blinking cursor
-  // TODO: reimplement blinking
-  // startBlink(scr);
+    start_blink(scr);
   // return the created window
   return scr;
 };
@@ -290,12 +288,10 @@ exports.getmaxyx = simplify(screen_t.prototype.getmaxyx);
 
 /**
  * Enable a blinking cursor.
- *
- * TODO
  **/
 screen_t.prototype.blink = function() {
   if (! this._blink) {
-    startBlink(this);
+    start_blink(this);
   }
   this._blink = true;
 };
@@ -303,12 +299,10 @@ exports.blink = simplify(screen_t.prototype.blink);
 
 /**
  * Disable a blinking cursor.
- *
- * TODO
  **/
 screen_t.prototype.noblink = function() {
   if (this._blink) {
-    this.tiles[this.y][this.x].element.addClass('a-reverse');
+    do_unblink(this);
     clearTimeout(this._blinkTimeout);
     this._blinkTimeout = 0;
   }

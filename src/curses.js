@@ -16,12 +16,13 @@ var EMPTY_CHAR = ' ';
 var default_screen = null;
 
 // curses window
-// TODO: implement creating other windows, sub-wdinows (not just the global 
-// 'stdscr' window)
 var window_t = function() {
   // cursor position
   this.y = 0;
   this.x = 0;
+  // cursor position at last refresh() call
+  this.previous_y = 0;
+  this.previous_x = 0;
   // window position
   this.win_y = 0;
   this.win_x = 0;

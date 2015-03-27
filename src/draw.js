@@ -305,6 +305,18 @@ screen_t.prototype.refresh = function() {
     draw_char(scr, y, x, c, attrs);
   };
   refresh_window(this, 0, 0, drawfunc);
+  if (this._blinking) {
+    var y = this.previous_y;
+    var x = this.previous_x;
+    var tile = this.tiles[y][x];
+    draw_char(this, y, x, tile.content, tile.attrs);
+    y = this.y;
+    x = this.x;
+    tile = this.tiles[y][x];
+    draw_char(this, y, x, tile.content, tile.attrs ^ A_REVERSE);
+  }
+  this.previous_y = this.y;
+  this.previous_x = this.x;
   this.changes = {};
 };
 exports.refresh = simplify(screen_t.prototype.refresh);
