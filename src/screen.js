@@ -124,6 +124,9 @@
  * should be used for bold text. `false` indicates that bold text will only be
  * drawn in a brighter color, without actually being bold. Only relevant for TTF
  * fonts.
+ * @param {Integer} [opts.font.channel=CHANNEL_ALPHA] Use this to select the
+ * channel to be used for a BMP font. It should be one of CHANNEL_ALPHA,
+ * CHANNEL_RED, CHANNEL_GREEN, or CHANNEL_BLUE.
  **/
 var initscr = exports.initscr = function(opts) {
   // check arg validity
@@ -157,7 +160,7 @@ var initscr = exports.initscr = function(opts) {
   scr.context = scr.canvas[0].getContext('2d');
   // load the specified font
   // TODO: specify sane default values
-  if (opts.font.type === "ttf") {
+  if (/^ttf$/i.test(opts.font.type)) {
     load_ttf_font(scr, opts.font);
   }
   else {
@@ -244,12 +247,15 @@ var check_initscr_args = function(opts) {
   if (typeof opts.font.height !== "number") {
     throw new TypeError("font.height is not a number");
   }
-  if (/^bmp$/i.test(opts.font.name)) {
+  if (! /^ttf$/i.test(opts.font.type)) {
     if (typeof opts.font.width !== "number") {
       throw new TypeError("font.width is not a number, for a BMP font");
     }
     if (opts.font.chars && ! (opts.font.chars instanceof Array)) {
       throw new TypeError("font.chars is not an array");
+    }
+    if (typeof opts.font.channel !== "number") {
+      opts.font.channel = CHANNEL_ALPHA;
     }
   }
   if (opts.font.line_spacing) {

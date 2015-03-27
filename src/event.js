@@ -7,7 +7,7 @@
  * @param {String} event_name Name of the event to be fired.
  **/
 screen_t.prototype.trigger = function(event_name) {
-  var last_return = undefined;
+  var last_return;
   if (this.listeners[event_name]) {
     var args = [].slice.call(arguments, 1);
     var i;

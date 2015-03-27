@@ -2,6 +2,15 @@
 var CHARS_PER_CANVAS = 256;
 
 /**
+ * Used for selecting which channels to use to render a BMP font. Will default
+ * to CHANNEL_ALPHA.
+ */
+var CHANNEL_RED = exports.CHANNEL_RED = 0;
+var CHANNEL_GREEN = exports.CHANNEL_GREEN = 1;
+var CHANNEL_BLUE = exports.CHANNEL_BLUE = 2;
+var CHANNEL_ALPHA = exports.CHANNEL_ALPHA = 3;
+
+/**
  * Drawing characters. Can be used as variables when a specific character is
  * needed in order to draw a shape.
  **/
@@ -219,7 +228,8 @@ var load_bitmap_font = function(scr, font) {
     char_height: char_height,
     char_width: char_width,
     char_map: char_map,
-    line_spacing: font.line_spacing
+    line_spacing: font.line_spacing,
+    channel: font.channel
   };
   // create the canvas pool for drawing offscreen characters
   scr.canvas_pool = {
@@ -684,22 +694,24 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
 		  width, height);
   // for each non-transparent pixel on the small canvas, draw the pixel
   // at the same position onto the 'main' offscreen canvas
+  ctx.save();
   var pixels = small.getImageData(0, 0, width, height).data;
   ctx.fillStyle = fg;
   var y, x;
   for (y = 0; y < height - scr.font.line_spacing; y++) {
     for (x = 0; x < width; x++) {
-      var alpha = pixels[(y * width + x) * 4 + 3];
-      if (alpha !== 0) {
+      var value = pixels[(y * width + x) * 4 + scr.font.channel];
+      if (value !== 0) {
 	// TODO: use putImageData() to improve performance in some
 	// browsers
-	// ctx.putImageData(dot, sx + x, sy + y);
 	var dst_x = Math.round(sx + x);
 	var dst_y = Math.round(sy + y + scr.font.line_spacing / 2);
+	ctx.globalAlpha = value / 255;
 	ctx.fillRect(dst_x, dst_y, 1, 1);
       }
     }
   }
+  ctx.restore();
   // increment the canvas pool's counter: move to the next character
   pool.x++;
   // return an object telling where to find the offscreen character
