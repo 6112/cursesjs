@@ -52,11 +52,9 @@ in a web browser.
 ## TODO
 
 * Add mouse support
-* Implement blink(), noblink()
 * Implement scrollok()
 * Implement echo(), noecho()
 * Implement endwin(), delwin()
-* For BMP fonts, allow partial transparency
 * Improve the refresh()/wrefresh() cycle to be more similar to original ncurses
 * Improve bkgd()
 * Improve keyboard events
