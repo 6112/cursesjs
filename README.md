@@ -56,6 +56,7 @@ in a web browser.
 * Implement scrollok()
 * Implement echo(), noecho()
 * Implement endwin(), delwin()
-* For "bmp" fonts, allow using channels other than alpha
+* For BMP fonts, allow partial transparency
+* Improve the refresh()/wrefresh() cycle to be more similar to original ncurses
 * Improve bkgd()
 * Improve keyboard events
