@@ -770,7 +770,7 @@ var initscr = exports.initscr = function(opts) {
   // add keyboard hooks
   handle_keyboard(scr, opts.container, opts.require_focus);
   // make a blinking cursor
-    start_blink(scr);
+  start_blink(scr);
   // return the created window
   return scr;
 };
@@ -950,11 +950,6 @@ var do_unblink = function(scr) {
 screen_t.prototype.move = window_t.prototype.move = function(y, x) {
   if (y < 0 || y >= this.height || x < 0 || x >= this.width) {
     throw new RangeError("coordinates out of range");
-  }
-  // var tile = this.tiles[this.y][this.x];
-  if (this._blink) {
-    var tile = this.tiles[this.y][this.x];
-    draw_char(this, this.y, this.x, tile.content, tile.attrs);
   }
   this.y = y;
   this.x = x;

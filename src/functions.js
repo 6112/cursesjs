@@ -61,11 +61,6 @@ screen_t.prototype.move = window_t.prototype.move = function(y, x) {
   if (y < 0 || y >= this.height || x < 0 || x >= this.width) {
     throw new RangeError("coordinates out of range");
   }
-  // var tile = this.tiles[this.y][this.x];
-  if (this._blink) {
-    var tile = this.tiles[this.y][this.x];
-    draw_char(this, this.y, this.x, tile.content, tile.attrs);
-  }
   this.y = y;
   this.x = x;
 };
