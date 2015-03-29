@@ -245,7 +245,7 @@ var check_initscr_args = function(opts) {
   if (typeof opts.font.height !== "number") {
     throw new TypeError("font.height is not a number");
   }
-  if (! /^ttf$/i.test(opts.font.type)) {
+  if (/^bmp$/i.test(opts.font.type)) {
     if (typeof opts.font.width !== "number") {
       throw new TypeError("font.width is not a number, for a BMP font");
     }

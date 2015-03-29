@@ -3,7 +3,7 @@
  **/
 var A_NORMAL = exports.A_NORMAL = 0;
 var A_STANDOUT = exports.A_STANDOUT = 0x10000; // TODO
-var A_UNDERLINE = exports.A_UNDERLINE = A_STANDOUT << 1; // TODO
+var A_UNDERLINE = exports.A_UNDERLINE = A_STANDOUT << 1;
 var A_REVERSE = exports.A_REVERSE = A_STANDOUT << 2;
 var A_BLINK = exports.A_BLINK = A_STANDOUT << 3; // TODO
 var A_DIM = exports.A_DIM = A_STANDOUT << 4; // TODO

@@ -9,7 +9,8 @@ $(window).load(function() {
     font: {
       type: 'ttf',
       name: 'Source Code Pro',
-      height: 14
+      height: 14,
+      line_spacing: 1
     },
     require_focus: false
   });
@@ -63,12 +64,12 @@ $(window).load(function() {
     }
     attroff(A_BOLD | A_REVERSE | COLOR_PAIR(1));
     addstr(1, 2, 'use ');
-    addstr('jk', A_BOLD);
+    addstr('jk', A_BOLD | A_UNDERLINE);
     addstr(' or the ');
-    addstr('arrow keys', A_BOLD);
+    addstr('arrow keys', A_BOLD | A_UNDERLINE);
     addstr(' to select a demo');
     addstr(2, 2, 'press ');
-    addstr('enter', A_BOLD);
+    addstr('enter', A_BOLD | A_UNDERLINE);
     addstr(' to run that demo');
 
     addstr(9, 4, "ncurses", A_BOLD);
@@ -82,7 +83,8 @@ $(window).load(function() {
     addstr(14, 8, "(made by ");
     addstr("Nicolas Ouellet-Payeur", COLOR_PAIR(2));
     addch(')');
-    addstr(15, 8, "http://github.com/6112/js-curses", COLOR_PAIR(6));
+    addstr(15, 8, "http://github.com/6112/js-curses",
+	   COLOR_PAIR(6) | A_UNDERLINE);
     var i;
     for (i = 0; i < options.length; i++) {
       if (i === selected) {

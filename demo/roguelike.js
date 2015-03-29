@@ -29,12 +29,12 @@
       }
       addch(state.player.y, state.player.x, '@', A_BOLD | COLOR_PAIR(2));
       addstr(state.map.length + 1, 0, 'use ');
-      addstr('hjkl', A_BOLD);
+      addstr('hjkl', A_BOLD | A_UNDERLINE);
       addstr(' or ');
-      addstr('arrow keys', A_BOLD);
+      addstr('arrow keys', A_BOLD | A_UNDERLINE);
       addstr(' to move around');
       addstr(state.map.length + 2, 0, 'press ');
-      addstr('q', A_BOLD);
+      addstr('q', A_BOLD | A_UNDERLINE);
       addstr(' to quit');
       move(state.player.y, state.player.x);
       refresh();

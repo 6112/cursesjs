@@ -335,7 +335,7 @@ var define_color = exports.define_color = function(color, normal_color,
  **/
 var A_NORMAL = exports.A_NORMAL = 0;
 var A_STANDOUT = exports.A_STANDOUT = 0x10000; // TODO
-var A_UNDERLINE = exports.A_UNDERLINE = A_STANDOUT << 1; // TODO
+var A_UNDERLINE = exports.A_UNDERLINE = A_STANDOUT << 1;
 var A_REVERSE = exports.A_REVERSE = A_STANDOUT << 2;
 var A_BLINK = exports.A_BLINK = A_STANDOUT << 3; // TODO
 var A_DIM = exports.A_DIM = A_STANDOUT << 4; // TODO
@@ -812,7 +812,7 @@ var check_initscr_args = function(opts) {
   if (typeof opts.font.height !== "number") {
     throw new TypeError("font.height is not a number");
   }
-  if (! /^ttf$/i.test(opts.font.type)) {
+  if (/^bmp$/i.test(opts.font.type)) {
     if (typeof opts.font.width !== "number") {
       throw new TypeError("font.width is not a number, for a BMP font");
     }
@@ -1629,11 +1629,9 @@ var grow_canvas_pool = function(scr) {
   }
 };
 
-var draw_offscreen_char_bmp = function(scr, c, attrs) {
-  // used for storing the drawn character in case it has to be redrawn
-  // (for better performacne)
-  var char_cache = scr.char_cache;
-  // calculate the colours for everything
+// return an array [fg, bg] describing the foreground and background colors for
+// the given attrlist.
+var attr_colors = function(attrs) {
   var color_pair = pair_number(attrs);
   var bg = color_pairs[color_pair].bg;
   var fg = color_pairs[color_pair].fg;
@@ -1651,6 +1649,17 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   if (fg instanceof Array) {
     fg = (attrs & A_BOLD) ? fg[1] : fg[0];
   }
+  return [fg, bg];
+};
+
+var draw_offscreen_char_bmp = function(scr, c, attrs) {
+  // used for storing the drawn character in case it has to be redrawn
+  // (for better performacne)
+  var char_cache = scr.char_cache;
+  // calculate the colours for everything
+  var colors = attr_colors(attrs);
+  var fg = colors[0];
+  var bg = colors[1];
   // calculate where to draw the character
   var pool = scr.canvas_pool.normal;
   var canvas = pool.canvases[pool.canvases.length - 1];
@@ -1692,9 +1701,9 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
 		  width, height);
   // for each non-transparent pixel on the small canvas, draw the pixel
   // at the same position onto the 'main' offscreen canvas
+  ctx.fillStyle = fg;
   ctx.save();
   var pixels = small.getImageData(0, 0, width, height).data;
-  ctx.fillStyle = fg;
   var y, x;
   for (y = 0; y < height - scr.font.line_spacing; y++) {
     for (x = 0; x < width; x++) {
@@ -1710,6 +1719,10 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
     }
   }
   ctx.restore();
+  // draw the underline if necessary
+  if (attrs & A_UNDERLINE) {
+    ctx.fillRect(sx, sy + height - 1, width, 1);
+  }
   // increment the canvas pool's counter: move to the next character
   pool.x++;
   // return an object telling where to find the offscreen character
@@ -1721,24 +1734,9 @@ var draw_offscreen_char_ttf = function(scr, c, attrs) {
   // (for better performance)
   var char_cache = scr.char_cache;
   // calculate the colours for everything
-  var color_pair = pair_number(attrs);
-  var bg = color_pairs[color_pair].bg;
-  var fg = color_pairs[color_pair].fg;
-  if (attrs & A_REVERSE) {
-    // swap background and foreground
-    var tmp = bg;
-    bg = fg;
-    fg = tmp;
-  }
-  // always use the first color as background color
-  if (bg instanceof Array) {
-    bg = bg[0];
-  }
-  // use a bright foreground if bold
-  if (fg instanceof Array) {
-    fg = (attrs & A_BOLD) ? fg[1] : fg[0];
-  }
-  // select between normal & bold colors
+  var colors = attr_colors(attrs);
+  var fg = colors[0];
+  var bg = colors[1];
   // calculate where to draw the character
   var pool = ((attrs & A_BOLD) && scr.font.use_bold) ?
 	scr.canvas_pool.bold :
@@ -1762,6 +1760,10 @@ var draw_offscreen_char_ttf = function(scr, c, attrs) {
   // draw the character
   ctx.fillStyle = fg;
   ctx.fillText(c, sx, Math.round(sy + scr.font.line_spacing / 2));
+  // draw the underline if necessary
+  if (attrs & A_UNDERLINE) {
+    ctx.fillRect(sx, sy + scr.font.char_height - 1, scr.font.char_width, 1);
+  }
   // increment the canvas pool's counter: move to the next character
   pool.x++;
   // return an object telling where to find the offscreen character
