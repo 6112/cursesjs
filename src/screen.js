@@ -287,7 +287,7 @@ screen_t.prototype.getmaxyx = function() {
 exports.getmaxyx = simplify(screen_t.prototype.getmaxyx);
 
 /**
- * Enable a blinking cursor.
+ * Make the cursor blink once every BLINK_DELAY milliseconds, if it is visible.
  **/
 screen_t.prototype.blink = function() {
   if (! this._blink) {
@@ -298,12 +298,12 @@ screen_t.prototype.blink = function() {
 exports.blink = simplify(screen_t.prototype.blink);
 
 /**
- * Disable a blinking cursor.
+ * Make the cursor stop blinking, if it is visible. See blink().
  **/
 screen_t.prototype.noblink = function() {
   if (this._blink) {
     clearTimeout(this._blink_timeout);
-    do_unblink(this);
+    do_blink(this);
     clearTimeout(this._blink_timeout);
     this._blink_timeout = 0;
   }
@@ -311,6 +311,25 @@ screen_t.prototype.noblink = function() {
   this._blink = false;
 };
 exports.noblink = simplify(screen_t.prototype.noblink);
+
+/**
+ * Set the visibility of the cursor, as a number from 0 to 2, 2 being the most
+ * visible, and 0 being completely invisible.
+ *
+ * @param {Integer} visibility
+ **/
+screen_t.prototype.curs_set = function(visibility) {
+  if (! visibility && this._cursor_visibility &&
+      (! this._blink || this._blinking)) {
+    clearTimeout(this._blink_timeout);
+    do_unblink(this);
+    clearTimeout(this._blink_timeout);
+    this._blink_timeout = 0;
+  }
+  clearTimeout(this._blink_timeout);
+  this._cursor_visibility = visibility;
+};
+exports.curs_set = simplify(screen_t.prototype.curs_set);
 
 /**
  * Quit js-curses.

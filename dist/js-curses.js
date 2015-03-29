@@ -68,6 +68,7 @@ var screen_t = function() {
                         // keyboard shortcuts
   this._blink = true;   // make the cursor blink
   this._blink_timeout = 0;
+  this._cursor_visibility = 2;
   // wrapper element
   this.container = null;
   // canvas and its rendering context
@@ -853,7 +854,7 @@ screen_t.prototype.getmaxyx = function() {
 exports.getmaxyx = simplify(screen_t.prototype.getmaxyx);
 
 /**
- * Enable a blinking cursor.
+ * Make the cursor blink once every BLINK_DELAY milliseconds, if it is visible.
  **/
 screen_t.prototype.blink = function() {
   if (! this._blink) {
@@ -864,12 +865,12 @@ screen_t.prototype.blink = function() {
 exports.blink = simplify(screen_t.prototype.blink);
 
 /**
- * Disable a blinking cursor.
+ * Make the cursor stop blinking, if it is visible. See blink().
  **/
 screen_t.prototype.noblink = function() {
   if (this._blink) {
     clearTimeout(this._blink_timeout);
-    do_unblink(this);
+    do_blink(this);
     clearTimeout(this._blink_timeout);
     this._blink_timeout = 0;
   }
@@ -877,6 +878,25 @@ screen_t.prototype.noblink = function() {
   this._blink = false;
 };
 exports.noblink = simplify(screen_t.prototype.noblink);
+
+/**
+ * Set the visibility of the cursor, as a number from 0 to 2, 2 being the most
+ * visible, and 0 being completely invisible.
+ *
+ * @param {Integer} visibility
+ **/
+screen_t.prototype.curs_set = function(visibility) {
+  if (! visibility && this._cursor_visibility &&
+      (! this._blink || this._blinking)) {
+    clearTimeout(this._blink_timeout);
+    do_unblink(this);
+    clearTimeout(this._blink_timeout);
+    this._blink_timeout = 0;
+  }
+  clearTimeout(this._blink_timeout);
+  this._cursor_visibility = visibility;
+};
+exports.curs_set = simplify(screen_t.prototype.curs_set);
 
 /**
  * Quit js-curses.
@@ -919,7 +939,9 @@ var do_blink = function(scr) {
   var y = scr.y;
   var x = scr.x;
   var tile = scr.tiles[y][x];
-  draw_char(scr, y, x, tile.content, tile.attrs ^ A_REVERSE);
+  if (scr._cursor_visibility) {
+    draw_char(scr, y, x, tile.content, tile.attrs ^ A_REVERSE);
+  }
   scr._blinking = true;
   scr._blink_timeout = setTimeout(function() {
     do_unblink(scr);
@@ -930,7 +952,9 @@ var do_unblink = function(scr) {
   var y = scr.y;
   var x = scr.x;
   var tile = scr.tiles[y][x];
-  draw_char(scr, y, x, tile.content, tile.attrs);
+  if (scr._cursor_visibility) {
+    draw_char(scr, y, x, tile.content, tile.attrs);
+  }
   scr._blinking = false;
   scr._blink_timeout = setTimeout(function() {
     do_blink(scr);
@@ -1264,11 +1288,14 @@ screen_t.prototype.refresh = function() {
     draw_char(scr, y, x, c, attrs);
   };
   refresh_window(this, 0, 0, drawfunc);
-  if (this._blinking) {
+  // move the on-screen cursor if necessary
+  if (this._cursor_visibility && (! this._blink || this._blinking)) {
+    // undraw the cursor from the previous location
     var y = this.previous_y;
     var x = this.previous_x;
     var tile = this.tiles[y][x];
     draw_char(this, y, x, tile.content, tile.attrs);
+    // draw the cursor on the current location
     y = this.y;
     x = this.x;
     tile = this.tiles[y][x];

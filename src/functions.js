@@ -29,7 +29,9 @@ var do_blink = function(scr) {
   var y = scr.y;
   var x = scr.x;
   var tile = scr.tiles[y][x];
-  draw_char(scr, y, x, tile.content, tile.attrs ^ A_REVERSE);
+  if (scr._cursor_visibility) {
+    draw_char(scr, y, x, tile.content, tile.attrs ^ A_REVERSE);
+  }
   scr._blinking = true;
   scr._blink_timeout = setTimeout(function() {
     do_unblink(scr);
@@ -40,7 +42,9 @@ var do_unblink = function(scr) {
   var y = scr.y;
   var x = scr.x;
   var tile = scr.tiles[y][x];
-  draw_char(scr, y, x, tile.content, tile.attrs);
+  if (scr._cursor_visibility) {
+    draw_char(scr, y, x, tile.content, tile.attrs);
+  }
   scr._blinking = false;
   scr._blink_timeout = setTimeout(function() {
     do_blink(scr);

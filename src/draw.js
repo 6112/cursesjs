@@ -305,11 +305,14 @@ screen_t.prototype.refresh = function() {
     draw_char(scr, y, x, c, attrs);
   };
   refresh_window(this, 0, 0, drawfunc);
-  if (this._blinking) {
+  // move the on-screen cursor if necessary
+  if (this._cursor_visibility && (! this._blink || this._blinking)) {
+    // undraw the cursor from the previous location
     var y = this.previous_y;
     var x = this.previous_x;
     var tile = this.tiles[y][x];
     draw_char(this, y, x, tile.content, tile.attrs);
+    // draw the cursor on the current location
     y = this.y;
     x = this.x;
     tile = this.tiles[y][x];

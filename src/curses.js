@@ -67,6 +67,7 @@ var screen_t = function() {
                         // keyboard shortcuts
   this._blink = true;   // make the cursor blink
   this._blink_timeout = 0;
+  this._cursor_visibility = 2;
   // wrapper element
   this.container = null;
   // canvas and its rendering context
