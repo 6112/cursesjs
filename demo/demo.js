@@ -30,6 +30,8 @@ $(window).load(function() {
     },
     require_focus: false
   });
+  curs_set(1);
+  blink();
   // */
   init_pair(1, COLOR_RED, COLOR_BLACK);
   init_pair(2, COLOR_GREEN, COLOR_BLACK);

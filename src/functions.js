@@ -26,11 +26,8 @@ var start_blink = function(scr) {
 };
 
 var do_blink = function(scr) {
-  var y = scr.y;
-  var x = scr.x;
-  var tile = scr.tiles[y][x];
   if (scr._cursor_visibility) {
-    draw_char(scr, y, x, tile.content, tile.attrs ^ A_REVERSE);
+    draw_cursor(scr);
   }
   scr._blinking = true;
   scr._blink_timeout = setTimeout(function() {
@@ -39,11 +36,8 @@ var do_blink = function(scr) {
 };
 
 var do_unblink = function(scr) {
-  var y = scr.y;
-  var x = scr.x;
-  var tile = scr.tiles[y][x];
   if (scr._cursor_visibility) {
-    draw_char(scr, y, x, tile.content, tile.attrs);
+    undraw_cursor(scr);
   }
   scr._blinking = false;
   scr._blink_timeout = setTimeout(function() {

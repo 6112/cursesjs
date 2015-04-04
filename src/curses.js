@@ -5,7 +5,7 @@
 var exports = window;
 
 // milliseconds between cursor blinks
-var BLINK_DELAY = 500;
+var BLINK_DELAY = 200;
 
 // default value for the character on 'empty' space
 var EMPTY_CHAR = ' ';

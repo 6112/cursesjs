@@ -308,15 +308,9 @@ screen_t.prototype.refresh = function() {
   // move the on-screen cursor if necessary
   if (this._cursor_visibility && (! this._blink || this._blinking)) {
     // undraw the cursor from the previous location
-    var y = this.previous_y;
-    var x = this.previous_x;
-    var tile = this.tiles[y][x];
-    draw_char(this, y, x, tile.content, tile.attrs);
+    undraw_cursor(scr, this.previous_y, this.previous_x);
     // draw the cursor on the current location
-    y = this.y;
-    x = this.x;
-    tile = this.tiles[y][x];
-    draw_char(this, y, x, tile.content, tile.attrs ^ A_REVERSE);
+    draw_cursor(this);
   }
   this.previous_y = this.y;
   this.previous_x = this.x;
@@ -787,3 +781,33 @@ var draw_offscreen_char_ttf = function(scr, c, attrs) {
   return char_cache[c][attrs];
 };
 
+// draw the cursor at the current location
+var draw_cursor = function(scr) {
+  var y, x, tile;
+  if (scr._cursor_visibility === 1) {
+    // line cursor
+    y = Math.round((scr.y + 1) * scr.font.char_height - 2);
+    x = Math.round(scr.x * scr.font.char_width);
+    tile = scr.tiles[scr.y][scr.x];
+    scr.context.fillStyle = attr_colors(tile.attrs)[0];
+    scr.context.fillRect(x, y, Math.round(scr.font.char_width - 1), 2);
+  }
+  else {
+    // block cursor
+    y = scr.y;
+    x = scr.x;
+    tile = scr.tiles[y][x];
+    draw_char(scr, y, x, tile.content, tile.attrs ^ A_REVERSE);
+  }
+};
+
+// clear the cursor from its previous position
+// (optional: supply previous position)
+var undraw_cursor = function(scr, y, x) {
+  if (typeof y !== "number" || typeof x !== "number") {
+    y = scr.y;
+    x = scr.x;
+  }
+  var tile = scr.tiles[y][x];
+  draw_char(scr, y, x, tile.content, tile.attrs);
+};

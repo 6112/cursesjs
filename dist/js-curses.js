@@ -6,7 +6,7 @@
 var exports = window;
 
 // milliseconds between cursor blinks
-var BLINK_DELAY = 500;
+var BLINK_DELAY = 200;
 
 // default value for the character on 'empty' space
 var EMPTY_CHAR = ' ';
@@ -886,15 +886,13 @@ exports.noblink = simplify(screen_t.prototype.noblink);
  * @param {Integer} visibility
  **/
 screen_t.prototype.curs_set = function(visibility) {
-  if (! visibility && this._cursor_visibility &&
-      (! this._blink || this._blinking)) {
-    clearTimeout(this._blink_timeout);
-    do_unblink(this);
-    clearTimeout(this._blink_timeout);
-    this._blink_timeout = 0;
-  }
-  clearTimeout(this._blink_timeout);
   this._cursor_visibility = visibility;
+  if (visibility) {
+    draw_cursor(this);
+  }
+  else {
+    undraw_cursor(this);
+  }
 };
 exports.curs_set = simplify(screen_t.prototype.curs_set);
 
@@ -936,11 +934,8 @@ var start_blink = function(scr) {
 };
 
 var do_blink = function(scr) {
-  var y = scr.y;
-  var x = scr.x;
-  var tile = scr.tiles[y][x];
   if (scr._cursor_visibility) {
-    draw_char(scr, y, x, tile.content, tile.attrs ^ A_REVERSE);
+    draw_cursor(scr);
   }
   scr._blinking = true;
   scr._blink_timeout = setTimeout(function() {
@@ -949,11 +944,8 @@ var do_blink = function(scr) {
 };
 
 var do_unblink = function(scr) {
-  var y = scr.y;
-  var x = scr.x;
-  var tile = scr.tiles[y][x];
   if (scr._cursor_visibility) {
-    draw_char(scr, y, x, tile.content, tile.attrs);
+    undraw_cursor(scr);
   }
   scr._blinking = false;
   scr._blink_timeout = setTimeout(function() {
@@ -1291,15 +1283,9 @@ screen_t.prototype.refresh = function() {
   // move the on-screen cursor if necessary
   if (this._cursor_visibility && (! this._blink || this._blinking)) {
     // undraw the cursor from the previous location
-    var y = this.previous_y;
-    var x = this.previous_x;
-    var tile = this.tiles[y][x];
-    draw_char(this, y, x, tile.content, tile.attrs);
+    undraw_cursor(scr, this.previous_y, this.previous_x);
     // draw the cursor on the current location
-    y = this.y;
-    x = this.x;
-    tile = this.tiles[y][x];
-    draw_char(this, y, x, tile.content, tile.attrs ^ A_REVERSE);
+    draw_cursor(this);
   }
   this.previous_y = this.y;
   this.previous_x = this.x;
@@ -1770,6 +1756,36 @@ var draw_offscreen_char_ttf = function(scr, c, attrs) {
   return char_cache[c][attrs];
 };
 
+// draw the cursor at the current location
+var draw_cursor = function(scr) {
+  var y, x, tile;
+  if (scr._cursor_visibility === 1) {
+    // line cursor
+    y = Math.round((scr.y + 1) * scr.font.char_height - 2);
+    x = Math.round(scr.x * scr.font.char_width);
+    tile = scr.tiles[scr.y][scr.x];
+    scr.context.fillStyle = attr_colors(tile.attrs)[0];
+    scr.context.fillRect(x, y, Math.round(scr.font.char_width - 1), 2);
+  }
+  else {
+    // block cursor
+    y = scr.y;
+    x = scr.x;
+    tile = scr.tiles[y][x];
+    draw_char(scr, y, x, tile.content, tile.attrs ^ A_REVERSE);
+  }
+};
+
+// clear the cursor from its previous position
+// (optional: supply previous position)
+var undraw_cursor = function(scr, y, x) {
+  if (typeof y !== "number" || typeof x !== "number") {
+    y = scr.y;
+    x = scr.x;
+  }
+  var tile = scr.tiles[y][x];
+  draw_char(scr, y, x, tile.content, tile.attrs);
+};
 
 
 /**

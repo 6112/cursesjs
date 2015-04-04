@@ -319,15 +319,13 @@ exports.noblink = simplify(screen_t.prototype.noblink);
  * @param {Integer} visibility
  **/
 screen_t.prototype.curs_set = function(visibility) {
-  if (! visibility && this._cursor_visibility &&
-      (! this._blink || this._blinking)) {
-    clearTimeout(this._blink_timeout);
-    do_unblink(this);
-    clearTimeout(this._blink_timeout);
-    this._blink_timeout = 0;
-  }
-  clearTimeout(this._blink_timeout);
   this._cursor_visibility = visibility;
+  if (visibility) {
+    draw_cursor(this);
+  }
+  else {
+    undraw_cursor(this);
+  }
 };
 exports.curs_set = simplify(screen_t.prototype.curs_set);
 
