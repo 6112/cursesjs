@@ -41,16 +41,17 @@ $(window).load(function() {
   init_pair(6, COLOR_CYAN, COLOR_BLACK);
   init_pair(7, COLOR_BLACK, COLOR_BLACK);
   var subwin = newwin(5, 22, 20, 5);
-  wattron(subwin, COLOR_PAIR(1) | A_REVERSE);
-  wbkgd(subwin, '.');
+  wbkgd(subwin, '.', COLOR_PAIR(1) | A_REVERSE);
   waddstr(subwin, 2, 2, 'I am a subwindow.');
   wborder(subwin);
   var subwin2 = newwin(5, 20, 20, 28);
-  wattron(subwin2, COLOR_PAIR(2) | A_REVERSE);
-  wbkgd(subwin2, '_');
+  wbkgd(subwin2, '_', COLOR_PAIR(2) | A_REVERSE);
   waddstr(subwin2, 2, 1, "last line");
   scrollok(subwin2, true);
-  wscrl(subwin2, -2);
+  wscrl(subwin2, 2);
+  wscrl(subwin2, -1);
+  scroll(subwin2);
+  wscrl(subwin2, -4);
   raw();
   var selected = 0;
   var options = [

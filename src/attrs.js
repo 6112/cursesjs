@@ -16,7 +16,10 @@ var A_BOLD = exports.A_BOLD = A_STANDOUT << 5;
  * @param {Attrlist} attrs New attributes' values.
  **/
 screen_t.prototype.attrset = window_t.prototype.attrset = function(attrs) {
-  this.attrs = attrs;
+  this.attrs = attrs | (this.empty_attrs & ~COLOR_MASK);
+  if ((attrs & COLOR_MASK) === 0) {
+    this.attrs |= this.empty_attrs & COLOR_MASK;
+  }
 };
 exports.wattrset = windowify(window_t.prototype.attrset);
 exports.attrset = simplify(screen_t.prototype.attrset);

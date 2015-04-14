@@ -49,7 +49,7 @@ var window_t = function(parent_screen) {
   this.empty_attrs = A_NORMAL | COLOR_PAIR(0);
   // current attributes (bold, italics, color, etc.) being used for text that
   // is being added
-  this.current_attrs = A_NORMAL | COLOR_PAIR(0);
+  this.attrs = A_NORMAL | COLOR_PAIR(0);
   // list of subwindows that exist
   this.subwindows = [];
 };

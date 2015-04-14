@@ -50,7 +50,7 @@ var window_t = function(parent_screen) {
   this.empty_attrs = A_NORMAL | COLOR_PAIR(0);
   // current attributes (bold, italics, color, etc.) being used for text that
   // is being added
-  this.current_attrs = A_NORMAL | COLOR_PAIR(0);
+  this.attrs = A_NORMAL | COLOR_PAIR(0);
   // list of subwindows that exist
   this.subwindows = [];
 };
@@ -363,7 +363,10 @@ var A_BOLD = exports.A_BOLD = A_STANDOUT << 5;
  * @param {Attrlist} attrs New attributes' values.
  **/
 screen_t.prototype.attrset = window_t.prototype.attrset = function(attrs) {
-  this.attrs = attrs;
+  this.attrs = attrs | (this.empty_attrs & ~COLOR_MASK);
+  if ((attrs & COLOR_MASK) === 0) {
+    this.attrs |= this.empty_attrs & COLOR_MASK;
+  }
 };
 exports.wattrset = windowify(window_t.prototype.attrset);
 exports.attrset = simplify(screen_t.prototype.attrset);
@@ -1293,7 +1296,7 @@ screen_t.prototype.clear = window_t.prototype.clear = function() {
       var tile = this.tiles[y][x];
       tile.empty = true;
       tile.content = this.empty_char;
-      tile.attrs = A_NORMAL;
+      tile.attrs = this.empty_attrs;
     }
   }
 };
@@ -1894,17 +1897,20 @@ window_t.prototype.bkgd = function(c, attrs) {
   // TODO: use attrset() instead of attron()
   // TODO: implement for screen_t (and test)
   attrs |= 0;
+  var saved_attrs = this.attrs;
+  this.attrs = attrs;
   var y, x;
   for (y = 0; y < this.height; y++) {
     for (x = 0; x < this.width; x++) {
       if (this.tiles[y][x].empty) {
-        this.addch(y, x, c, attrs);
+        this.addch(y, x, c);
         this.tiles[y][x].empty = true;
       }
     }
   }
   this.empty_char = c;
   this.empty_attrs = attrs;
+  this.attrset(saved_attrs);
 };
 exports.wbkgd = windowify(window_t.prototype.bkgd);
 
@@ -2069,7 +2075,7 @@ screen_t.prototype.scrl = window_t.prototype.scrl = function(n) {
       for (x = 0; x < this.width; x++) {
 	tile = new tile_t();
 	tile.content = this.empty_char;
-	tile.attrs = A_NORMAL;
+	tile.attrs = this.empty_attrs;
 	this.tiles[this.height - 1][x] = tile;
       }
     }
@@ -2083,7 +2089,7 @@ screen_t.prototype.scrl = window_t.prototype.scrl = function(n) {
       for (x = 0; x < this.width; x++) {
 	tile = new tile_t();
 	tile.content = this.empty_char;
-	tile.attrs = A_NORMAL;
+	tile.attrs = this.empty_attrs;
 	this.tiles[0][x] = tile;
       }
     }

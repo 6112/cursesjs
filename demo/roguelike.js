@@ -7,10 +7,19 @@
       x: 4,
       y: 4
     },
-    map: [],
-    rooms: []
+    map: [
+      "##########",
+      "#........#",
+      "#........#",
+      "#........#",
+      "#....#...#",
+      "#...###..#",
+      "#....#...#",
+      "#........#",
+      "#........#",
+      "##########"
+    ],
   };
-  state.map = make_dungeon(map_height, map_width, room_count);
   var rl = window.rl = {
     redraw: function() {
       clear();

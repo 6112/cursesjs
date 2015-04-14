@@ -266,7 +266,7 @@ screen_t.prototype.clear = window_t.prototype.clear = function() {
       var tile = this.tiles[y][x];
       tile.empty = true;
       tile.content = this.empty_char;
-      tile.attrs = A_NORMAL;
+      tile.attrs = this.empty_attrs;
     }
   }
 };
