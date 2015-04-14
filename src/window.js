@@ -43,7 +43,7 @@ window_t.prototype.newwin =
       throw new RangeError("width is negative");
     }
     // create the window
-    var win = new window_t();
+    var win = new window_t(this.parent_screen);
     win.win_y = y;
     win.win_x = x;
     win.height = height;

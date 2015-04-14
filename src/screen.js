@@ -114,6 +114,10 @@
  * @param {Integer} opts.font.width Width, in pixels, of a character from the
  * loaded font. Only relevant if a BMP font is loaded, and must be supplied if a
  * BMP font is loaded.
+ * @param {Boolean} [opts.font.use_char_cache=true] true iff a cache should be
+ * used to store every drawn character, so that it can be redrawn much faster
+ * next time. This improves performance a lot, but can increase memory usage by
+ * a lot in some cases.
  * @param {Integer} [opts.font.line_spacing=0] Number of pixels between two
  * lines of text.
  * @param {Array[String]} [opts.font.chars=CODEPAGE_437] Each array element
@@ -138,6 +142,9 @@ var initscr = exports.initscr = function(opts) {
   opts.font.chars = opts.font.chars || CODEPAGE_437;
   if (opts.font.use_bold === undefined) {
     opts.font.use_bold = true;
+  }
+  if (opts.font.use_char_cache === undefined) {
+    opts.font.use_char_cache = true;
   }
   // `container` can either be a DOM element, or an ID for a DOM element
   if (opts.container !== undefined) {
@@ -191,9 +198,12 @@ var initscr = exports.initscr = function(opts) {
   var y, x;
   for (y = 0; y < scr.height; y++) {
     scr.tiles[y] = [];
+    scr.display[y] = [];
     for (x = 0; x < scr.width; x++) {
       scr.tiles[y][x] = new tile_t();
       scr.tiles[y][x].content = '';
+      scr.display[y][x] = new tile_t();
+      scr.display[y][x].content = '';
     }
   }
   // set the created window as the default window for most operations

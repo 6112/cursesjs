@@ -29,9 +29,11 @@ var simplify = function(f) {
 //
 // if you define:
 //   waddstr = generalize(f);
+//
+// TODO: *use* this, instead of just declaring it
 var generalize = function(f) {
   return function() {
-    return f.apply(arguments, [].slice.call(arguments, 1));
+    return f.apply(arguments[0], [].slice.call(arguments, 1));
   };
 };
 
@@ -48,6 +50,8 @@ var generalize = function(f) {
 //
 // if you define:
 //   screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
+//
+// TODO: rename this decorator
 var shortcut_move = function(f) {
   return function(y, x) {
     var args = arguments;

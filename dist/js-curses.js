@@ -17,7 +17,7 @@ var EMPTY_CHAR = ' ';
 var default_screen = null;
 
 // curses window
-var window_t = function() {
+var window_t = function(parent_screen) {
   // cursor position
   this.y = 0;
   this.x = 0;
@@ -32,6 +32,8 @@ var window_t = function() {
   this.height = 0;
   // parent window, if any
   this.parent = null;
+  // parent screen, or this if this is a screen
+  this.parent_screen = parent_screen;
   // 2-D array for tiles (see tile_t)
   this.tiles = [];
   // character used for filling empty tiles
@@ -41,16 +43,14 @@ var window_t = function() {
   // current attributes (bold, italics, color, etc.) being used for text that
   // is being added
   this.current_attrs = A_NORMAL | COLOR_PAIR(0);
-  // map of changes since last refresh: maps a [y,x] pair to a 'change' object
-  // that describes what new 'value' a character should have
-  this.changes = {};
   // list of subwindows that exist
   this.subwindows = [];
 };
 
 // curses screen display; can contain subwindows
 var screen_t = function() {
-  window_t.call(this);
+  // "soft" inherit window_t
+  window_t.call(this, this);
   // font used for rendering
   // TODO: support a default font
   this.font = {
@@ -59,11 +59,13 @@ var screen_t = function() {
     size: 12,
     char_width: -1,
     char_height: -1,
-    line_spacing: 0
+    line_spacing: 0,
+    use_bold: true,
+    use_char_cache: true
   };
   // default values for some input flags
   this._echo = false;   // do not print all keyboard input
-  this._raw = false; // allow Ctl+<char> to be used for normal things, like
+  this._raw = false;    // allow Ctl+<char> to be used for normal things, like
                         // copy/paste, select all, etc., and allow browser
                         // keyboard shortcuts
   this._blink = true;   // make the cursor blink
@@ -74,6 +76,9 @@ var screen_t = function() {
   // canvas and its rendering context
   this.canvas = null;
   this.context = null;
+  // actual characters currently displayed on-screen, taking into account any
+  // possible overlapping windows.
+  this.display = [];
   // maps a character (and its attributes) to an already-drawn character
   // on a small canvas. this allows very fast rendering, but makes the
   // application use more memory to save all the characters
@@ -103,8 +108,6 @@ var tile_t = function() {
   this.content = EMPTY_CHAR;
   // attributes (bold, italics, color, etc.)
   this.attrs = A_NORMAL | COLOR_PAIR(0);
-  // true iff this tile is not hidden by a subwindow that is "over" it
-  this.exposed = true;
 };
 
 
@@ -139,9 +142,11 @@ var simplify = function(f) {
 //
 // if you define:
 //   waddstr = generalize(f);
+//
+// TODO: *use* this, instead of just declaring it
 var generalize = function(f) {
   return function() {
-    return f.apply(arguments, [].slice.call(arguments, 1));
+    return f.apply(arguments[0], [].slice.call(arguments, 1));
   };
 };
 
@@ -158,6 +163,8 @@ var generalize = function(f) {
 //
 // if you define:
 //   screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
+//
+// TODO: rename this decorator
 var shortcut_move = function(f) {
   return function(y, x) {
     var args = arguments;
@@ -411,7 +418,6 @@ exports.attroff = simplify(screen_t.prototype.attroff);
  * There is also a constant for each letter of the alphabet (`KEY_A`, `KEY_B`,
  * etc.)
  **/
-
 exports.KEY_LEFT = 37;
 exports.KEY_UP = 38;
 exports.KEY_RIGHT = 39;
@@ -425,7 +431,7 @@ exports.KEY_ENTER = 13;
 exports.KEY_PAGE_UP = 33;
 exports.KEY_PAGE_DOWN = 34;
 
-
+// helper function for adding KEY_A, KEY_B, KEY_C, etc. to `exports`.
 var construct_key_table = function() {
   for (k = 'A'.charCodeAt(0); k <= 'Z'.charCodeAt(0); k++) {
     var c = String.fromCharCode(k);
@@ -477,44 +483,66 @@ var handle_keyboard = function(scr, container, require_focus) {
 	  width = Math.max(width, scr.min_width);
 	}
       }
+      if (height === scr.height && width === scr.width) {
+	// exit if unchanged
+	return;
+      }
       // resize the canvas
-      scr.canvas.attr({
-	height: height * scr.font.char_height,
-	width: width * scr.font.char_width
-      });
-      // add the necessary tiles to the tile-grid
-      var y, x;
-      for (y = 0; y < scr.height; y++) {
-	for (x = scr.width; x < width; x++) {
-	  scr.tiles[y][x] = new tile_t();
-	  scr.tiles[y][x].content = ' ';
-	}
-      }
-      for (y = scr.height; y < height; y++) {
-	scr.tiles[y] = [];
-	for (x = 0; x < width; x++) {
-	  scr.tiles[y][x] = new tile_t();
-	  scr.tiles[y][x].content = ' ';
-	}
-      }
-      // make sure the right tiles are exposed
-      var i;
-      for (i = 0; i < scr.subwindows.length; i++) {
-	var subwin = scr.subwindows[i];
-	for (y = subwin.win_y; y < subwin.win_y + subwin.height; y++) {
-	  for (x = subwin.win_x; x < subwin.win_x + subwin.width; x++) {
-	    scr.tiles[y][x].exposed = false;
-	  }
-	}
-      }
+      resize_canvas(scr, height, width);
       // change the 'official' width/height of the window
       scr.height = height;
       scr.width = width;
       // force redrawing of the whole window
-      scr.full_refresh();
+      // scr.full_refresh();
       // fire an event for getch() and the like, with KEY_RESIZE as the keycode
       scr.trigger('keydown', KEY_RESIZE);
     });
+  }
+};
+
+// helper function for resizing a canvas while trying to keep its current state
+var resize_canvas = function(scr, height, width) {
+  // create a new canvas to replace the current one (with the new size)
+  // this is because resizing a canvas also clears it
+  var h = height * scr.font.char_height;
+  var w = width * scr.font.char_width;
+  var new_canvas = $('<canvas></canvas>');
+  new_canvas.attr({
+    height: h,
+    width: w
+  });
+  var ctx = new_canvas[0].getContext('2d');
+  var prev_h = scr.height * scr.font.char_height;
+  var prev_w = scr.width * scr.font.char_width;
+  h = Math.min(prev_h, h);
+  w = Math.min(prev_w, w);
+  // copy the old canvas onto the new one
+  ctx.drawImage(scr.canvas[0],
+		0, 0, w, h,
+		0, 0, w, h);
+  // replace the old canvas with the new one
+  scr.canvas.replaceWith(new_canvas);
+  scr.canvas = new_canvas;
+  scr.context = ctx;
+  // add the necessary tiles to the tile-grid
+  var y, x;
+  for (y = 0; y < scr.height; y++) {
+    for (x = scr.width; x < width; x++) {
+      scr.tiles[y][x] = new tile_t();
+      scr.tiles[y][x].content = ' ';
+      scr.display[y][x] = new tile_t();
+      scr.display[y][x].content = '';
+    }
+  }
+  for (y = scr.height; y < height; y++) {
+    scr.tiles[y] = [];
+    scr.display[y] = [];
+    for (x = 0; x < width; x++) {
+      scr.tiles[y][x] = new tile_t();
+      scr.tiles[y][x].content = ' ';
+      scr.display[y][x] = new tile_t();
+      scr.display[y][x].content = '';
+    }
   }
 };
 
@@ -681,6 +709,10 @@ var keypad = exports.keypad = function() {};
  * @param {Integer} opts.font.width Width, in pixels, of a character from the
  * loaded font. Only relevant if a BMP font is loaded, and must be supplied if a
  * BMP font is loaded.
+ * @param {Boolean} [opts.font.use_char_cache=true] true iff a cache should be
+ * used to store every drawn character, so that it can be redrawn much faster
+ * next time. This improves performance a lot, but can increase memory usage by
+ * a lot in some cases.
  * @param {Integer} [opts.font.line_spacing=0] Number of pixels between two
  * lines of text.
  * @param {Array[String]} [opts.font.chars=CODEPAGE_437] Each array element
@@ -705,6 +737,9 @@ var initscr = exports.initscr = function(opts) {
   opts.font.chars = opts.font.chars || CODEPAGE_437;
   if (opts.font.use_bold === undefined) {
     opts.font.use_bold = true;
+  }
+  if (opts.font.use_char_cache === undefined) {
+    opts.font.use_char_cache = true;
   }
   // `container` can either be a DOM element, or an ID for a DOM element
   if (opts.container !== undefined) {
@@ -758,9 +793,12 @@ var initscr = exports.initscr = function(opts) {
   var y, x;
   for (y = 0; y < scr.height; y++) {
     scr.tiles[y] = [];
+    scr.display[y] = [];
     for (x = 0; x < scr.width; x++) {
       scr.tiles[y][x] = new tile_t();
       scr.tiles[y][x].content = '';
+      scr.display[y][x] = new tile_t();
+      scr.display[y][x].content = '';
     }
   }
   // set the created window as the default window for most operations
@@ -1150,7 +1188,8 @@ var load_ttf_font = function(scr, font) {
     char_height: height,
     char_width: width,
     line_spacing: font.line_spacing,
-    use_bold: font.use_bold
+    use_bold: font.use_bold,
+    use_char_cache: font.use_char_cache
   };
   // create the canvas pool for drawing offscreen characters
   scr.canvas_pool = {
@@ -1204,6 +1243,7 @@ var load_bitmap_font = function(scr, font) {
     char_width: char_width,
     char_map: char_map,
     line_spacing: font.line_spacing,
+    use_char_cache: font.use_char_cache,
     channel: font.channel
   };
   // create the canvas pool for drawing offscreen characters
@@ -1242,18 +1282,8 @@ screen_t.prototype.clear = function() {
     for (x = 0; x < this.width; x++) {
       var tile = this.tiles[y][x];
       tile.empty = true;
-      if (tile.content === this.empty_char && tile.attrs === A_NORMAL)
-	continue;
       tile.content = this.empty_char;
       tile.attrs = A_NORMAL;
-      this.changes[y + ',' + x] = {
-	at: {
-	  y: y,
-	  x: x
-	},
-	value: this.empty_char,
-	attrs: A_NORMAL
-      };
     }
   }
 };
@@ -1274,69 +1304,49 @@ exports.clrtoeol = simplify(screen_t.prototype.clrtoeol);
  * refresh() is called.
  **/
 screen_t.prototype.refresh = function() {
-  // for each changed character
-  var scr = this;
-  var drawfunc = function(y, x, c, attrs) {
-    draw_char(scr, y, x, c, attrs);
-  };
-  refresh_window(this, 0, 0, drawfunc);
+  window_t.prototype.refresh.call(this);
   // move the on-screen cursor if necessary
   if (this._cursor_visibility && (! this._blink || this._blinking)) {
     // undraw the cursor from the previous location
-    undraw_cursor(scr, this.previous_y, this.previous_x);
+    undraw_cursor(this, this.previous_y, this.previous_x);
     // draw the cursor on the current location
     draw_cursor(this);
   }
   this.previous_y = this.y;
   this.previous_x = this.x;
-  this.changes = {};
 };
 exports.refresh = simplify(screen_t.prototype.refresh);
 
-// refresh a window
-var refresh_window = function(win, dy, dx, drawfunc) {
-  var i;
-  for (i = 0; i < win.subwindows.length; i++) {
-    var subwin = win.subwindows[i];
-    refresh_window(subwin, dy + win.win_y, dx + win.win_x, drawfunc);
-  }
-  var k;
-  for (k in win.changes) {
-    var change = win.changes[k];
-    var pos = change.at;
-    if (win.tiles[pos.y][pos.x].exposed) {
-      drawfunc(pos.y + win.win_y + dy, pos.x + win.win_x + dx, 
-               change.value, change.attrs);
-    }
-  }
-};
-
-screen_t.prototype.full_refresh = function() {
-  var scr = this;
-  var drawfunc = function(y, x, c, attrs) {
-    draw_char(scr, y, x, c, attrs);
-  };
-  full_refresh_window(this, 0, 0, drawfunc);
-  this.changes = {};
-};
-
-var full_refresh_window = function(win, dy, dx, drawfunc) {
-  var i;
-  for (i = 0; i < win.subwindows.length; i++) {
-    var subwin = win.subwindows[i];
-    full_refresh_window(subwin, dy + win.win_y, dx + win.win_x, drawfunc);
-  }
+/**
+ * Push the changes made to the buffer, such as those made with addstr() and
+ * addch(). The canvas is updated to reflect the new state of the window. Uses
+ * differential display.
+ *
+ * Note that if ̀win` is a subwindow of `screen`, and `screen` wants to draw in
+ * the same place as `win`, win.refresh() should be called after
+ * screen.refresh(). (as in the original ncurses)
+ */
+window_t.prototype.refresh = function() {
+  var scr = this.parent_screen;
+  // for each changed character
   var y, x;
-  for (y = 0; y < win.height; y++) {
-    for (x = 0; x < win.width; x++) {
-      if (win.tiles[y][x].exposed) {
-	drawfunc(y + win.win_y + dy, x + win.win_x + dx,
-		 win.tiles[y][x].content, win.tiles[y][x].attrs);
+  for (y = 0; y < this.height; y++) {
+    for (x = 0; x < this.width; x++) {
+      var prev = scr.display[y + this.win_y][x + this.win_x];
+      var next = this.tiles[y][x];
+      // if it needs to be redrawn
+      if (prev.content !== next.content || prev.attrs !== next.attrs) {
+	// redraw the character on-screen
+	draw_char(scr, y + this.win_y, x + this.win_x,
+		  next.content, next.attrs);
+	prev.content = next.content;
+	prev.attrs = next.attrs;
       }
     }
   }
 };
 
+// TODO: remove expose/unexpose and related behavior
 window_t.prototype.expose =
   screen_t.prototype.expose = function(y, x, height, width) {
   var j, i;
@@ -1402,15 +1412,6 @@ screen_t.prototype.addch = window_t.prototype.addch = function(c) {
     tile.content = c;
     tile.empty = false;
     tile.attrs = this.attrs;
-    // add an instruction to the 'changes queue'
-    this.changes[this.y + ','  + this.x] = {
-      at: {
-        y: this.y,
-        x: this.x
-      },
-      value: c,
-      attrs: this.attrs
-    };
   }
   // move to the right
   if (this.x < this.width - 1) {
@@ -1567,7 +1568,7 @@ var find_offscreen_char = function(scr, c, attrs) {
   // check if it's a (c,attrs) pair that's already been drawn before;
   // if it is, use the same character as before
   var found = find_in_cache(scr, c, attrs);
-  if (found) {
+  if (found && scr.font.use_char_cache) {
     return found;
   }
   // not found, draw the character on an offscreen canvas, and add it
@@ -1833,7 +1834,7 @@ window_t.prototype.newwin =
       throw new RangeError("width is negative");
     }
     // create the window
-    var win = new window_t();
+    var win = new window_t(this.parent_screen);
     win.win_y = y;
     win.win_x = x;
     win.height = height;

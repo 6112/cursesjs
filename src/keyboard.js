@@ -6,7 +6,6 @@
  * There is also a constant for each letter of the alphabet (`KEY_A`, `KEY_B`,
  * etc.)
  **/
-
 exports.KEY_LEFT = 37;
 exports.KEY_UP = 38;
 exports.KEY_RIGHT = 39;
@@ -20,7 +19,7 @@ exports.KEY_ENTER = 13;
 exports.KEY_PAGE_UP = 33;
 exports.KEY_PAGE_DOWN = 34;
 
-
+// helper function for adding KEY_A, KEY_B, KEY_C, etc. to `exports`.
 var construct_key_table = function() {
   for (k = 'A'.charCodeAt(0); k <= 'Z'.charCodeAt(0); k++) {
     var c = String.fromCharCode(k);
@@ -72,44 +71,66 @@ var handle_keyboard = function(scr, container, require_focus) {
 	  width = Math.max(width, scr.min_width);
 	}
       }
+      if (height === scr.height && width === scr.width) {
+	// exit if unchanged
+	return;
+      }
       // resize the canvas
-      scr.canvas.attr({
-	height: height * scr.font.char_height,
-	width: width * scr.font.char_width
-      });
-      // add the necessary tiles to the tile-grid
-      var y, x;
-      for (y = 0; y < scr.height; y++) {
-	for (x = scr.width; x < width; x++) {
-	  scr.tiles[y][x] = new tile_t();
-	  scr.tiles[y][x].content = ' ';
-	}
-      }
-      for (y = scr.height; y < height; y++) {
-	scr.tiles[y] = [];
-	for (x = 0; x < width; x++) {
-	  scr.tiles[y][x] = new tile_t();
-	  scr.tiles[y][x].content = ' ';
-	}
-      }
-      // make sure the right tiles are exposed
-      var i;
-      for (i = 0; i < scr.subwindows.length; i++) {
-	var subwin = scr.subwindows[i];
-	for (y = subwin.win_y; y < subwin.win_y + subwin.height; y++) {
-	  for (x = subwin.win_x; x < subwin.win_x + subwin.width; x++) {
-	    scr.tiles[y][x].exposed = false;
-	  }
-	}
-      }
+      resize_canvas(scr, height, width);
       // change the 'official' width/height of the window
       scr.height = height;
       scr.width = width;
       // force redrawing of the whole window
-      scr.full_refresh();
+      // scr.full_refresh();
       // fire an event for getch() and the like, with KEY_RESIZE as the keycode
       scr.trigger('keydown', KEY_RESIZE);
     });
+  }
+};
+
+// helper function for resizing a canvas while trying to keep its current state
+var resize_canvas = function(scr, height, width) {
+  // create a new canvas to replace the current one (with the new size)
+  // this is because resizing a canvas also clears it
+  var h = height * scr.font.char_height;
+  var w = width * scr.font.char_width;
+  var new_canvas = $('<canvas></canvas>');
+  new_canvas.attr({
+    height: h,
+    width: w
+  });
+  var ctx = new_canvas[0].getContext('2d');
+  var prev_h = scr.height * scr.font.char_height;
+  var prev_w = scr.width * scr.font.char_width;
+  h = Math.min(prev_h, h);
+  w = Math.min(prev_w, w);
+  // copy the old canvas onto the new one
+  ctx.drawImage(scr.canvas[0],
+		0, 0, w, h,
+		0, 0, w, h);
+  // replace the old canvas with the new one
+  scr.canvas.replaceWith(new_canvas);
+  scr.canvas = new_canvas;
+  scr.context = ctx;
+  // add the necessary tiles to the tile-grid
+  var y, x;
+  for (y = 0; y < scr.height; y++) {
+    for (x = scr.width; x < width; x++) {
+      scr.tiles[y][x] = new tile_t();
+      scr.tiles[y][x].content = ' ';
+      scr.display[y][x] = new tile_t();
+      scr.display[y][x].content = '';
+    }
+  }
+  for (y = scr.height; y < height; y++) {
+    scr.tiles[y] = [];
+    scr.display[y] = [];
+    for (x = 0; x < width; x++) {
+      scr.tiles[y][x] = new tile_t();
+      scr.tiles[y][x].content = ' ';
+      scr.display[y][x] = new tile_t();
+      scr.display[y][x].content = '';
+    }
   }
 };
 

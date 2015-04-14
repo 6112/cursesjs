@@ -30,9 +30,9 @@ $(window).load(function() {
     },
     require_focus: false
   });
+  // */
   curs_set(1);
   blink();
-  // */
   init_pair(1, COLOR_RED, COLOR_BLACK);
   init_pair(2, COLOR_GREEN, COLOR_BLACK);
   init_pair(3, COLOR_YELLOW, COLOR_BLACK);
@@ -104,6 +104,7 @@ $(window).load(function() {
     addch(max_y, max_x, 'M');
     move(i + 3, 0);
     refresh();
+    subwin.refresh();
   };
   redraw();
   var update = demo.update = function(c) {
@@ -125,7 +126,7 @@ $(window).load(function() {
           clear();
           rl.redraw();
           ongetch(rl.update);
-          return;
+          return false;
         }
         if (selected === 3) {
           ungetch(update);
@@ -134,7 +135,7 @@ $(window).load(function() {
           bm.redraw();
           bm.fps_timeout = setTimeout(bm.count_fps, 1000);
           ongetch(bm.update);
-          return;
+          return false;
         }
         break;
 
