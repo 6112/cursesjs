@@ -32,6 +32,9 @@
           if (Math.round(Math.random())) {
             attrs |= A_REVERSE;
           }
+	  if (Math.round(Math.random())) {
+	    attrs |= A_UNDERLINE;
+	  }
           attrs |= COLOR_PAIR(Math.round(Math.random() * 6));
           addstr(y, x, c, attrs);
         }

@@ -19,17 +19,30 @@ var is_key_press = function(event) {
 };
 
 // used for making a blinking cursor
-// TODO: rewrite for canvas
-var startBlink = function(scr) {
-  var do_blink = function() {
-    scr.tiles[scr.y][scr.x].element.addClass('a-reverse');
-    scr._blinkTimeout = setTimeout(do_unblink, BLINK_DELAY);
-  };
-  var do_unblink = function() {
-    scr.tiles[scr.y][scr.x].element.removeClass('a-reverse');
-    scr._blinkTimeout = setTimeout(do_blink, BLINK_DELAY);
-  };
-  scr._blinkTimeout = setTimeout(do_blink, BLINK_DELAY);
+var start_blink = function(scr) {
+  scr._blink_timeout = setTimeout(function() {
+    do_blink(scr);
+  }, BLINK_DELAY);
+};
+
+var do_blink = function(scr) {
+  if (scr._cursor_visibility) {
+    draw_cursor(scr);
+  }
+  scr._blinking = true;
+  scr._blink_timeout = setTimeout(function() {
+    do_unblink(scr);
+  }, BLINK_DELAY);
+};
+
+var do_unblink = function(scr) {
+  if (scr._cursor_visibility) {
+    undraw_cursor(scr);
+  }
+  scr._blinking = false;
+  scr._blink_timeout = setTimeout(function() {
+    do_blink(scr);
+  }, BLINK_DELAY);
 };
 
 /**
@@ -46,9 +59,8 @@ screen_t.prototype.move = window_t.prototype.move = function(y, x) {
   if (y < 0 || y >= this.height || x < 0 || x >= this.width) {
     throw new RangeError("coordinates out of range");
   }
-  // var tile = this.tiles[this.y][this.x];
-  // TODO: handle blinking/unblinking on move
   this.y = y;
   this.x = x;
 };
+exports.wmove = windowify(window_t.prototype.move);
 exports.move = simplify(screen_t.prototype.move);

@@ -18,8 +18,8 @@ var simplify = function(f) {
   };
 };
 
-// similar to simplify, but convert the call so it can be done as in C with
-// ncurses.
+// similar to simplify, but convert the window call so it can be done as in C
+// with ncurses. (waddch(win, 'c') vs. win.addch('c'))
 //
 // for instance, the call:
 //   scr.addstr('hello world');
@@ -28,10 +28,12 @@ var simplify = function(f) {
 //   waddstr(scr, 'hello world');
 //
 // if you define:
-//   waddstr = generalize(f);
-var generalize = function(f) {
+//   waddstr = windowify(f);
+//
+// TODO: *use* this, instead of just declaring it
+var windowify = function(f) {
   return function() {
-    return f.apply(arguments, [].slice.call(arguments, 1));
+    return f.apply(arguments[0], [].slice.call(arguments, 1));
   };
 };
 
@@ -48,6 +50,8 @@ var generalize = function(f) {
 //
 // if you define:
 //   screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
+//
+// TODO: rename this decorator
 var shortcut_move = function(f) {
   return function(y, x) {
     var args = arguments;

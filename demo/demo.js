@@ -9,7 +9,8 @@ $(window).load(function() {
     font: {
       type: 'ttf',
       name: 'Source Code Pro',
-      height: 14
+      height: 14,
+      line_spacing: 1
     },
     require_focus: false
   });
@@ -30,6 +31,8 @@ $(window).load(function() {
     require_focus: false
   });
   // */
+  curs_set(1);
+  blink();
   init_pair(1, COLOR_RED, COLOR_BLACK);
   init_pair(2, COLOR_GREEN, COLOR_BLACK);
   init_pair(3, COLOR_YELLOW, COLOR_BLACK);
@@ -37,11 +40,11 @@ $(window).load(function() {
   init_pair(5, COLOR_MAGENTA, COLOR_BLACK);
   init_pair(6, COLOR_CYAN, COLOR_BLACK);
   init_pair(7, COLOR_BLACK, COLOR_BLACK);
-  var subwin = newwin(5, 22, 24, 5);
-  subwin.attron(COLOR_PAIR(1) | A_REVERSE);
-  subwin.bkgd('.');
-  subwin.addstr(2, 2, 'I am a subwindow.');
-  subwin.border();
+  var subwin = newwin(5, 22, 20, 5);
+  wattron(subwin, COLOR_PAIR(1) | A_REVERSE);
+  wbkgd(subwin, '.');
+  waddstr(subwin, 2, 2, 'I am a subwindow.');
+  wborder(subwin);
   raw();
   var selected = 0;
   var options = [
@@ -52,7 +55,7 @@ $(window).load(function() {
   ];
   var demo = window.demo = {};
   var redraw = demo.redraw = function() {
-    var bounds = getmaxyx();
+    var bounds = getmaxyx(win);
     var max_y = bounds.y;
     var max_x = bounds.x;
     attron(A_BOLD | A_REVERSE | COLOR_PAIR(1));
@@ -63,12 +66,12 @@ $(window).load(function() {
     }
     attroff(A_BOLD | A_REVERSE | COLOR_PAIR(1));
     addstr(1, 2, 'use ');
-    addstr('jk', A_BOLD);
+    addstr('jk', A_BOLD | A_UNDERLINE);
     addstr(' or the ');
-    addstr('arrow keys', A_BOLD);
+    addstr('arrow keys', A_BOLD | A_UNDERLINE);
     addstr(' to select a demo');
     addstr(2, 2, 'press ');
-    addstr('enter', A_BOLD);
+    addstr('enter', A_BOLD | A_UNDERLINE);
     addstr(' to run that demo');
 
     addstr(9, 4, "ncurses", A_BOLD);
@@ -82,7 +85,8 @@ $(window).load(function() {
     addstr(14, 8, "(made by ");
     addstr("Nicolas Ouellet-Payeur", COLOR_PAIR(2));
     addch(')');
-    addstr(15, 8, "http://github.com/6112/js-curses", COLOR_PAIR(6));
+    addstr(15, 8, "http://github.com/6112/js-curses",
+	   COLOR_PAIR(6) | A_UNDERLINE);
     var i;
     for (i = 0; i < options.length; i++) {
       if (i === selected) {
@@ -100,6 +104,7 @@ $(window).load(function() {
     addch(max_y, max_x, 'M');
     move(i + 3, 0);
     refresh();
+    wrefresh(subwin);
   };
   redraw();
   var update = demo.update = function(c) {
@@ -121,7 +126,7 @@ $(window).load(function() {
           clear();
           rl.redraw();
           ongetch(rl.update);
-          return;
+          return false;
         }
         if (selected === 3) {
           ungetch(update);
@@ -130,7 +135,7 @@ $(window).load(function() {
           bm.redraw();
           bm.fps_timeout = setTimeout(bm.count_fps, 1000);
           ongetch(bm.update);
-          return;
+          return false;
         }
         break;
 

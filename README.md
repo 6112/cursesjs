@@ -7,6 +7,10 @@ etc. Examples of applications that use `ncurses` are Emacs and Vim.
 
 So far, only Firefox and Google Chrome are supported.
 
+```
+This project is still under development. As such, the API is still subject to change.
+```
+
 ## Goal
 
 The goal was to make the syntax as close to that of the original `ncurses`
@@ -44,3 +48,13 @@ grunt watch & # with detaching
 
 In order to view a demo of the js-curses library, simply open `demo/index.html`
 in a web browser.
+
+## TODO
+
+* Add mouse support
+* Implement scrollok()
+* Implement echo(), noecho()
+* Implement endwin(), delwin()
+* Improve the refresh()/wrefresh() cycle to be more similar to original ncurses
+* Improve bkgd()
+* Improve keyboard events

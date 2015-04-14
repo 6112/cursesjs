@@ -2,6 +2,15 @@
 var CHARS_PER_CANVAS = 256;
 
 /**
+ * Used for selecting which channels to use to render a BMP font. Will default
+ * to CHANNEL_ALPHA.
+ */
+var CHANNEL_RED = exports.CHANNEL_RED = 0;
+var CHANNEL_GREEN = exports.CHANNEL_GREEN = 1;
+var CHANNEL_BLUE = exports.CHANNEL_BLUE = 2;
+var CHANNEL_ALPHA = exports.CHANNEL_ALPHA = 3;
+
+/**
  * Drawing characters. Can be used as variables when a specific character is
  * needed in order to draw a shape.
  **/
@@ -166,7 +175,8 @@ var load_ttf_font = function(scr, font) {
     char_height: height,
     char_width: width,
     line_spacing: font.line_spacing,
-    use_bold: font.use_bold
+    use_bold: font.use_bold,
+    use_char_cache: font.use_char_cache
   };
   // create the canvas pool for drawing offscreen characters
   scr.canvas_pool = {
@@ -219,7 +229,9 @@ var load_bitmap_font = function(scr, font) {
     char_height: char_height,
     char_width: char_width,
     char_map: char_map,
-    line_spacing: font.line_spacing
+    line_spacing: font.line_spacing,
+    use_char_cache: font.use_char_cache,
+    channel: font.channel
   };
   // create the canvas pool for drawing offscreen characters
   scr.canvas_pool = {
@@ -245,11 +257,7 @@ var load_bitmap_font = function(scr, font) {
  * this sparingly, as this can cause very bad performance if used too many
  * times per second.
  **/
-screen_t.prototype.clear = function() {
-  // TODO: implement for window_t as well
-  // window height and width
-  var height = this.height * this.font.char_height;
-  var width = this.width * this.font.char_width;
+screen_t.prototype.clear = window_t.prototype.clear = function() {
   // reset all the character tiles
   // TODO: support setting attributes for empty_char
   var y, x;
@@ -257,26 +265,18 @@ screen_t.prototype.clear = function() {
     for (x = 0; x < this.width; x++) {
       var tile = this.tiles[y][x];
       tile.empty = true;
-      if (tile.content === this.empty_char && tile.attrs === A_NORMAL)
-	continue;
       tile.content = this.empty_char;
       tile.attrs = A_NORMAL;
-      this.changes[y + ',' + x] = {
-	at: {
-	  y: y,
-	  x: x
-	},
-	value: this.empty_char,
-	attrs: A_NORMAL
-      };
     }
   }
 };
+exports.wclear = windowify(window_t.prototype.clear);
 exports.clear = simplify(screen_t.prototype.clear);
 
-screen_t.prototype.clrtoeol = function() {
+screen_t.prototype.clrtoeol = window_t.prototype.clrtoeol = function() {
   hline(this.empty_char, this.width - this.x, A_NORMAL);
 };
+exports.wclrtoeol = windowify(window_t.prototype.clrtoeol);
 exports.clrtoeol = simplify(screen_t.prototype.clrtoeol);
 
 /**
@@ -289,60 +289,50 @@ exports.clrtoeol = simplify(screen_t.prototype.clrtoeol);
  * refresh() is called.
  **/
 screen_t.prototype.refresh = function() {
-  // for each changed character
-  var scr = this;
-  var drawfunc = function(y, x, c, attrs) {
-    draw_char(scr, y, x, c, attrs);
-  };
-  refresh_window(this, 0, 0, drawfunc);
-  this.changes = {};
+  window_t.prototype.refresh.call(this);
+  // move the on-screen cursor if necessary
+  if (this._cursor_visibility && (! this._blink || this._blinking)) {
+    // undraw the cursor from the previous location
+    undraw_cursor(this, this.previous_y, this.previous_x);
+    // draw the cursor on the current location
+    draw_cursor(this);
+  }
+  this.previous_y = this.y;
+  this.previous_x = this.x;
 };
 exports.refresh = simplify(screen_t.prototype.refresh);
 
-// refresh a window
-var refresh_window = function(win, dy, dx, drawfunc) {
-  var i;
-  for (i = 0; i < win.subwindows.length; i++) {
-    var subwin = win.subwindows[i];
-    refresh_window(subwin, dy + win.win_y, dx + win.win_x, drawfunc);
-  }
-  var k;
-  for (k in win.changes) {
-    var change = win.changes[k];
-    var pos = change.at;
-    if (win.tiles[pos.y][pos.x].exposed) {
-      drawfunc(pos.y + win.win_y + dy, pos.x + win.win_x + dx, 
-               change.value, change.attrs);
-    }
-  }
-};
-
-screen_t.prototype.full_refresh = function() {
-  var scr = this;
-  var drawfunc = function(y, x, c, attrs) {
-    draw_char(scr, y, x, c, attrs);
-  };
-  full_refresh_window(this, 0, 0, drawfunc);
-  this.changes = {};
-};
-
-var full_refresh_window = function(win, dy, dx, drawfunc) {
-  var i;
-  for (i = 0; i < win.subwindows.length; i++) {
-    var subwin = win.subwindows[i];
-    full_refresh_window(subwin, dy + win.win_y, dx + win.win_x, drawfunc);
-  }
+/**
+ * Push the changes made to the buffer, such as those made with addstr() and
+ * addch(). The canvas is updated to reflect the new state of the window. Uses
+ * differential display.
+ *
+ * Note that if ̀win` is a subwindow of `screen`, and `screen` wants to draw in
+ * the same place as `win`, win.refresh() should be called after
+ * screen.refresh(). (as in the original ncurses)
+ */
+window_t.prototype.refresh = function() {
+  var scr = this.parent_screen;
+  // for each changed character
   var y, x;
-  for (y = 0; y < win.height; y++) {
-    for (x = 0; x < win.width; x++) {
-      if (win.tiles[y][x].exposed) {
-	drawfunc(y + win.win_y + dy, x + win.win_x + dx,
-		 win.tiles[y][x].content, win.tiles[y][x].attrs);
+  for (y = 0; y < this.height; y++) {
+    for (x = 0; x < this.width; x++) {
+      var prev = scr.display[y + this.win_y][x + this.win_x];
+      var next = this.tiles[y][x];
+      // if it needs to be redrawn
+      if (prev.content !== next.content || prev.attrs !== next.attrs) {
+	// redraw the character on-screen
+	draw_char(scr, y + this.win_y, x + this.win_x,
+		  next.content, next.attrs);
+	prev.content = next.content;
+	prev.attrs = next.attrs;
       }
     }
   }
 };
+exports.wrefresh = windowify(window_t.prototype.refresh);
 
+// TODO: remove expose/unexpose and related behavior
 window_t.prototype.expose =
   screen_t.prototype.expose = function(y, x, height, width) {
   var j, i;
@@ -408,15 +398,6 @@ screen_t.prototype.addch = window_t.prototype.addch = function(c) {
     tile.content = c;
     tile.empty = false;
     tile.attrs = this.attrs;
-    // add an instruction to the 'changes queue'
-    this.changes[this.y + ','  + this.x] = {
-      at: {
-        y: this.y,
-        x: this.x
-      },
-      value: c,
-      attrs: this.attrs
-    };
   }
   // move to the right
   if (this.x < this.width - 1) {
@@ -432,6 +413,7 @@ screen_t.prototype.addch = shortcut_move(screen_t.prototype.addch);
 screen_t.prototype.addch = attributify(screen_t.prototype.addch);
 window_t.prototype.addch = shortcut_move(window_t.prototype.addch);
 window_t.prototype.addch = attributify(window_t.prototype.addch);
+exports.waddch = windowify(window_t.prototype.addch);
 exports.addch = simplify(screen_t.prototype.addch);
 
 /**
@@ -472,6 +454,7 @@ screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
 screen_t.prototype.addstr = attributify(screen_t.prototype.addstr);
 window_t.prototype.addstr = shortcut_move(window_t.prototype.addstr);
 window_t.prototype.addstr = attributify(window_t.prototype.addstr);
+exports.waddstr = windowify(window_t.prototype.addstr);
 exports.addstr = simplify(screen_t.prototype.addstr);
 
 /**
@@ -497,6 +480,7 @@ screen_t.prototype.vline = window_t.prototype.vline = function(ch, n, attrs) {
 };
 screen_t.prototype.vline = shortcut_move(screen_t.prototype.vline);
 window_t.prototype.vline = shortcut_move(window_t.prototype.vline);
+exports.wvline = windowify(window_t.prototype.vline);
 exports.vline = simplify(screen_t.prototype.vline);
 
 /**
@@ -522,6 +506,7 @@ screen_t.prototype.hline = window_t.prototype.hline = function(ch, n, attrs) {
 };
 screen_t.prototype.hline = shortcut_move(screen_t.prototype.hline);
 window_t.prototype.hline = shortcut_move(window_t.prototype.hline);
+exports.whline = windowify(window_t.prototype.hline);
 exports.hline = simplify(screen_t.prototype.hline);
 
 // used for creating an off-screen canvas for pre-rendering characters
@@ -573,7 +558,7 @@ var find_offscreen_char = function(scr, c, attrs) {
   // check if it's a (c,attrs) pair that's already been drawn before;
   // if it is, use the same character as before
   var found = find_in_cache(scr, c, attrs);
-  if (found) {
+  if (found && scr.font.use_char_cache) {
     return found;
   }
   // not found, draw the character on an offscreen canvas, and add it
@@ -621,11 +606,9 @@ var grow_canvas_pool = function(scr) {
   }
 };
 
-var draw_offscreen_char_bmp = function(scr, c, attrs) {
-  // used for storing the drawn character in case it has to be redrawn
-  // (for better performacne)
-  var char_cache = scr.char_cache;
-  // calculate the colours for everything
+// return an array [fg, bg] describing the foreground and background colors for
+// the given attrlist.
+var attr_colors = function(attrs) {
   var color_pair = pair_number(attrs);
   var bg = color_pairs[color_pair].bg;
   var fg = color_pairs[color_pair].fg;
@@ -643,6 +626,17 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   if (fg instanceof Array) {
     fg = (attrs & A_BOLD) ? fg[1] : fg[0];
   }
+  return [fg, bg];
+};
+
+var draw_offscreen_char_bmp = function(scr, c, attrs) {
+  // used for storing the drawn character in case it has to be redrawn
+  // (for better performacne)
+  var char_cache = scr.char_cache;
+  // calculate the colours for everything
+  var colors = attr_colors(attrs);
+  var fg = colors[0];
+  var bg = colors[1];
   // calculate where to draw the character
   var pool = scr.canvas_pool.normal;
   var canvas = pool.canvases[pool.canvases.length - 1];
@@ -684,21 +678,27 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
 		  width, height);
   // for each non-transparent pixel on the small canvas, draw the pixel
   // at the same position onto the 'main' offscreen canvas
-  var pixels = small.getImageData(0, 0, width, height).data;
   ctx.fillStyle = fg;
+  ctx.save();
+  var pixels = small.getImageData(0, 0, width, height).data;
   var y, x;
   for (y = 0; y < height - scr.font.line_spacing; y++) {
     for (x = 0; x < width; x++) {
-      var alpha = pixels[(y * width + x) * 4 + 3];
-      if (alpha !== 0) {
+      var value = pixels[(y * width + x) * 4 + scr.font.channel];
+      if (value !== 0) {
 	// TODO: use putImageData() to improve performance in some
 	// browsers
-	// ctx.putImageData(dot, sx + x, sy + y);
 	var dst_x = Math.round(sx + x);
 	var dst_y = Math.round(sy + y + scr.font.line_spacing / 2);
+	ctx.globalAlpha = value / 255;
 	ctx.fillRect(dst_x, dst_y, 1, 1);
       }
     }
+  }
+  ctx.restore();
+  // draw the underline if necessary
+  if (attrs & A_UNDERLINE) {
+    ctx.fillRect(sx, sy + height - 1, width, 1);
   }
   // increment the canvas pool's counter: move to the next character
   pool.x++;
@@ -711,24 +711,9 @@ var draw_offscreen_char_ttf = function(scr, c, attrs) {
   // (for better performance)
   var char_cache = scr.char_cache;
   // calculate the colours for everything
-  var color_pair = pair_number(attrs);
-  var bg = color_pairs[color_pair].bg;
-  var fg = color_pairs[color_pair].fg;
-  if (attrs & A_REVERSE) {
-    // swap background and foreground
-    var tmp = bg;
-    bg = fg;
-    fg = tmp;
-  }
-  // always use the first color as background color
-  if (bg instanceof Array) {
-    bg = bg[0];
-  }
-  // use a bright foreground if bold
-  if (fg instanceof Array) {
-    fg = (attrs & A_BOLD) ? fg[1] : fg[0];
-  }
-  // select between normal & bold colors
+  var colors = attr_colors(attrs);
+  var fg = colors[0];
+  var bg = colors[1];
   // calculate where to draw the character
   var pool = ((attrs & A_BOLD) && scr.font.use_bold) ?
 	scr.canvas_pool.bold :
@@ -752,9 +737,43 @@ var draw_offscreen_char_ttf = function(scr, c, attrs) {
   // draw the character
   ctx.fillStyle = fg;
   ctx.fillText(c, sx, Math.round(sy + scr.font.line_spacing / 2));
+  // draw the underline if necessary
+  if (attrs & A_UNDERLINE) {
+    ctx.fillRect(sx, sy + scr.font.char_height - 1, scr.font.char_width, 1);
+  }
   // increment the canvas pool's counter: move to the next character
   pool.x++;
   // return an object telling where to find the offscreen character
   return char_cache[c][attrs];
 };
 
+// draw the cursor at the current location
+var draw_cursor = function(scr) {
+  var y, x, tile;
+  if (scr._cursor_visibility === 1) {
+    // line cursor
+    y = Math.round((scr.y + 1) * scr.font.char_height - 2);
+    x = Math.round(scr.x * scr.font.char_width);
+    tile = scr.tiles[scr.y][scr.x];
+    scr.context.fillStyle = attr_colors(tile.attrs)[0];
+    scr.context.fillRect(x, y, Math.round(scr.font.char_width - 1), 2);
+  }
+  else {
+    // block cursor
+    y = scr.y;
+    x = scr.x;
+    tile = scr.tiles[y][x];
+    draw_char(scr, y, x, tile.content, tile.attrs ^ A_REVERSE);
+  }
+};
+
+// clear the cursor from its previous position
+// (optional: supply previous position)
+var undraw_cursor = function(scr, y, x) {
+  if (typeof y !== "number" || typeof x !== "number") {
+    y = scr.y;
+    x = scr.x;
+  }
+  var tile = scr.tiles[y][x];
+  draw_char(scr, y, x, tile.content, tile.attrs);
+};

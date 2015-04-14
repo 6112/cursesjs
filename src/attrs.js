@@ -3,7 +3,7 @@
  **/
 var A_NORMAL = exports.A_NORMAL = 0;
 var A_STANDOUT = exports.A_STANDOUT = 0x10000; // TODO
-var A_UNDERLINE = exports.A_UNDERLINE = A_STANDOUT << 1; // TODO
+var A_UNDERLINE = exports.A_UNDERLINE = A_STANDOUT << 1;
 var A_REVERSE = exports.A_REVERSE = A_STANDOUT << 2;
 var A_BLINK = exports.A_BLINK = A_STANDOUT << 3; // TODO
 var A_DIM = exports.A_DIM = A_STANDOUT << 4; // TODO
@@ -18,6 +18,7 @@ var A_BOLD = exports.A_BOLD = A_STANDOUT << 5;
 screen_t.prototype.attrset = window_t.prototype.attrset = function(attrs) {
   this.attrs = attrs;
 };
+exports.wattrset = windowify(window_t.prototype.attrset);
 exports.attrset = simplify(screen_t.prototype.attrset);
 
 /**
@@ -41,6 +42,7 @@ screen_t.prototype.attron = window_t.prototype.attron = function(attrs) {
   var new_attrs = other_attrs | color_pair;
   this.attrset(new_attrs);
 };
+exports.wattron = windowify(window_t.prototype.attron);
 exports.attron = simplify(screen_t.prototype.attron);
 
 /**
@@ -68,4 +70,5 @@ screen_t.prototype.attroff = window_t.prototype.attroff = function(attrs) {
   }
   this.attrset(new_attrs);
 };
+exports.wattroff = windowify(window_t.prototype.attroff);
 exports.attroff = simplify(screen_t.prototype.attroff);

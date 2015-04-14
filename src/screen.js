@@ -114,6 +114,10 @@
  * @param {Integer} opts.font.width Width, in pixels, of a character from the
  * loaded font. Only relevant if a BMP font is loaded, and must be supplied if a
  * BMP font is loaded.
+ * @param {Boolean} [opts.font.use_char_cache=true] true iff a cache should be
+ * used to store every drawn character, so that it can be redrawn much faster
+ * next time. This improves performance a lot, but can increase memory usage by
+ * a lot in some cases.
  * @param {Integer} [opts.font.line_spacing=0] Number of pixels between two
  * lines of text.
  * @param {Array[String]} [opts.font.chars=CODEPAGE_437] Each array element
@@ -124,6 +128,9 @@
  * should be used for bold text. `false` indicates that bold text will only be
  * drawn in a brighter color, without actually being bold. Only relevant for TTF
  * fonts.
+ * @param {Integer} [opts.font.channel=CHANNEL_ALPHA] Use this to select the
+ * channel to be used for a BMP font. It should be one of CHANNEL_ALPHA,
+ * CHANNEL_RED, CHANNEL_GREEN, or CHANNEL_BLUE.
  **/
 var initscr = exports.initscr = function(opts) {
   // check arg validity
@@ -135,6 +142,9 @@ var initscr = exports.initscr = function(opts) {
   opts.font.chars = opts.font.chars || CODEPAGE_437;
   if (opts.font.use_bold === undefined) {
     opts.font.use_bold = true;
+  }
+  if (opts.font.use_char_cache === undefined) {
+    opts.font.use_char_cache = true;
   }
   // `container` can either be a DOM element, or an ID for a DOM element
   if (opts.container !== undefined) {
@@ -157,14 +167,13 @@ var initscr = exports.initscr = function(opts) {
   scr.context = scr.canvas[0].getContext('2d');
   // load the specified font
   // TODO: specify sane default values
-  if (opts.font.type === "ttf") {
+  if (/^ttf$/i.test(opts.font.type)) {
     load_ttf_font(scr, opts.font);
   }
   else {
     load_bitmap_font(scr, opts.font);
   }
   // handle default, 'cover the whole container' size
-  // TODO: handle resizing
   if (! opts.height) {
     scr.auto_height = true;
     scr.height = Math.floor(opts.container.height() / scr.font.char_height);
@@ -189,21 +198,24 @@ var initscr = exports.initscr = function(opts) {
   var y, x;
   for (y = 0; y < scr.height; y++) {
     scr.tiles[y] = [];
+    scr.display[y] = [];
     for (x = 0; x < scr.width; x++) {
       scr.tiles[y][x] = new tile_t();
       scr.tiles[y][x].content = '';
+      scr.display[y][x] = new tile_t();
+      scr.display[y][x].content = '';
     }
   }
   // set the created window as the default window for most operations
   // (so you can call functions like addstr(), getch(), etc. directly)
   default_screen = scr;
+  exports.stdscr = scr;
   // draw a background
   scr.clear();
   // add keyboard hooks
   handle_keyboard(scr, opts.container, opts.require_focus);
   // make a blinking cursor
-  // TODO: reimplement blinking
-  // startBlink(scr);
+  start_blink(scr);
   // return the created window
   return scr;
 };
@@ -244,12 +256,15 @@ var check_initscr_args = function(opts) {
   if (typeof opts.font.height !== "number") {
     throw new TypeError("font.height is not a number");
   }
-  if (/^bmp$/i.test(opts.font.name)) {
+  if (/^bmp$/i.test(opts.font.type)) {
     if (typeof opts.font.width !== "number") {
       throw new TypeError("font.width is not a number, for a BMP font");
     }
     if (opts.font.chars && ! (opts.font.chars instanceof Array)) {
       throw new TypeError("font.chars is not an array");
+    }
+    if (typeof opts.font.channel !== "number") {
+      opts.font.channel = CHANNEL_ALPHA;
     }
   }
   if (opts.font.line_spacing) {
@@ -274,41 +289,57 @@ var check_initscr_args = function(opts) {
  *
  * @return {Object} Object describing the bottom right corner of the screen.
  **/
-screen_t.prototype.getmaxyx = function() {
+screen_t.prototype.getmaxyx = window_t.prototype.getmaxyx = function() {
   return {
     y: this.height - 1,
     x: this.width - 1
   };
 };
-exports.getmaxyx = simplify(screen_t.prototype.getmaxyx);
+exports.getmaxyx = windowify(window_t.prototype.getmaxyx);
+// TODO: implement getbegyx(), getyx()
 
 /**
- * Enable a blinking cursor.
- *
- * TODO
+ * Make the cursor blink once every BLINK_DELAY milliseconds, if it is visible.
  **/
 screen_t.prototype.blink = function() {
   if (! this._blink) {
-    startBlink(this);
+    start_blink(this);
   }
   this._blink = true;
 };
 exports.blink = simplify(screen_t.prototype.blink);
 
 /**
- * Disable a blinking cursor.
- *
- * TODO
+ * Make the cursor stop blinking, if it is visible. See blink().
  **/
 screen_t.prototype.noblink = function() {
   if (this._blink) {
-    this.tiles[this.y][this.x].element.addClass('a-reverse');
-    clearTimeout(this._blinkTimeout);
-    this._blinkTimeout = 0;
+    clearTimeout(this._blink_timeout);
+    do_blink(this);
+    clearTimeout(this._blink_timeout);
+    this._blink_timeout = 0;
   }
+  this._blinking = false;
   this._blink = false;
 };
 exports.noblink = simplify(screen_t.prototype.noblink);
+
+/**
+ * Set the visibility of the cursor, as a number from 0 to 2, 2 being the most
+ * visible, and 0 being completely invisible.
+ *
+ * @param {Integer} visibility
+ **/
+screen_t.prototype.curs_set = function(visibility) {
+  this._cursor_visibility = visibility;
+  if (visibility) {
+    draw_cursor(this);
+  }
+  else {
+    undraw_cursor(this);
+  }
+};
+exports.curs_set = simplify(screen_t.prototype.curs_set);
 
 /**
  * Quit js-curses.
