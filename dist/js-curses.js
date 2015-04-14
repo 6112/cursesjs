@@ -5,6 +5,11 @@
 // `exports` object (by default, the global namespace)
 var exports = window;
 
+/**
+ * Standard 'screen' object, used as a default for most operations.
+ */
+exports.stdscr = null;
+
 // milliseconds between cursor blinks
 var BLINK_DELAY = 200;
 
@@ -13,7 +18,8 @@ var EMPTY_CHAR = ' ';
 
 // default window: will be used as a default object for all curses functions,
 // such as print(), addch(), move(), etc., if called directly instead of using
-// scr.print(), scr.addch(), scr.move(), etc.
+// scr.print(), scr.addch(), scr.move(), etc. (same as stdscr, but internal)
+// TODO: replace default_screen with exports.stdscr in code
 var default_screen = null;
 
 // curses window
@@ -131,8 +137,8 @@ var simplify = function(f) {
   };
 };
 
-// similar to simplify, but convert the call so it can be done as in C with
-// ncurses.
+// similar to simplify, but convert the window call so it can be done as in C
+// with ncurses. (waddch(win, 'c') vs. win.addch('c'))
 //
 // for instance, the call:
 //   scr.addstr('hello world');
@@ -141,10 +147,10 @@ var simplify = function(f) {
 //   waddstr(scr, 'hello world');
 //
 // if you define:
-//   waddstr = generalize(f);
+//   waddstr = windowify(f);
 //
 // TODO: *use* this, instead of just declaring it
-var generalize = function(f) {
+var windowify = function(f) {
   return function() {
     return f.apply(arguments[0], [].slice.call(arguments, 1));
   };
@@ -357,6 +363,7 @@ var A_BOLD = exports.A_BOLD = A_STANDOUT << 5;
 screen_t.prototype.attrset = window_t.prototype.attrset = function(attrs) {
   this.attrs = attrs;
 };
+exports.wattrset = windowify(window_t.prototype.attrset);
 exports.attrset = simplify(screen_t.prototype.attrset);
 
 /**
@@ -380,6 +387,7 @@ screen_t.prototype.attron = window_t.prototype.attron = function(attrs) {
   var new_attrs = other_attrs | color_pair;
   this.attrset(new_attrs);
 };
+exports.wattron = windowify(window_t.prototype.attron);
 exports.attron = simplify(screen_t.prototype.attron);
 
 /**
@@ -407,6 +415,7 @@ screen_t.prototype.attroff = window_t.prototype.attroff = function(attrs) {
   }
   this.attrset(new_attrs);
 };
+exports.wattroff = windowify(window_t.prototype.attroff);
 exports.attroff = simplify(screen_t.prototype.attroff);
 
 
@@ -804,6 +813,7 @@ var initscr = exports.initscr = function(opts) {
   // set the created window as the default window for most operations
   // (so you can call functions like addstr(), getch(), etc. directly)
   default_screen = scr;
+  exports.stdscr = scr;
   // draw a background
   scr.clear();
   // add keyboard hooks
@@ -883,13 +893,14 @@ var check_initscr_args = function(opts) {
  *
  * @return {Object} Object describing the bottom right corner of the screen.
  **/
-screen_t.prototype.getmaxyx = function() {
+screen_t.prototype.getmaxyx = window_t.prototype.getmaxyx = function() {
   return {
     y: this.height - 1,
     x: this.width - 1
   };
 };
-exports.getmaxyx = simplify(screen_t.prototype.getmaxyx);
+exports.getmaxyx = windowify(window_t.prototype.getmaxyx);
+// TODO: implement getbegyx(), getyx()
 
 /**
  * Make the cursor blink once every BLINK_DELAY milliseconds, if it is visible.
@@ -1008,6 +1019,7 @@ screen_t.prototype.move = window_t.prototype.move = function(y, x) {
   this.y = y;
   this.x = x;
 };
+exports.wmove = windowify(window_t.prototype.move);
 exports.move = simplify(screen_t.prototype.move);
 
 
@@ -1270,11 +1282,7 @@ var load_bitmap_font = function(scr, font) {
  * this sparingly, as this can cause very bad performance if used too many
  * times per second.
  **/
-screen_t.prototype.clear = function() {
-  // TODO: implement for window_t as well
-  // window height and width
-  var height = this.height * this.font.char_height;
-  var width = this.width * this.font.char_width;
+screen_t.prototype.clear = window_t.prototype.clear = function() {
   // reset all the character tiles
   // TODO: support setting attributes for empty_char
   var y, x;
@@ -1287,11 +1295,13 @@ screen_t.prototype.clear = function() {
     }
   }
 };
+exports.wclear = windowify(window_t.prototype.clear);
 exports.clear = simplify(screen_t.prototype.clear);
 
-screen_t.prototype.clrtoeol = function() {
+screen_t.prototype.clrtoeol = window_t.prototype.clrtoeol = function() {
   hline(this.empty_char, this.width - this.x, A_NORMAL);
 };
+exports.wclrtoeol = windowify(window_t.prototype.clrtoeol);
 exports.clrtoeol = simplify(screen_t.prototype.clrtoeol);
 
 /**
@@ -1345,6 +1355,7 @@ window_t.prototype.refresh = function() {
     }
   }
 };
+exports.wrefresh = windowify(window_t.prototype.refresh);
 
 // TODO: remove expose/unexpose and related behavior
 window_t.prototype.expose =
@@ -1427,6 +1438,7 @@ screen_t.prototype.addch = shortcut_move(screen_t.prototype.addch);
 screen_t.prototype.addch = attributify(screen_t.prototype.addch);
 window_t.prototype.addch = shortcut_move(window_t.prototype.addch);
 window_t.prototype.addch = attributify(window_t.prototype.addch);
+exports.waddch = windowify(window_t.prototype.addch);
 exports.addch = simplify(screen_t.prototype.addch);
 
 /**
@@ -1467,6 +1479,7 @@ screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
 screen_t.prototype.addstr = attributify(screen_t.prototype.addstr);
 window_t.prototype.addstr = shortcut_move(window_t.prototype.addstr);
 window_t.prototype.addstr = attributify(window_t.prototype.addstr);
+exports.waddstr = windowify(window_t.prototype.addstr);
 exports.addstr = simplify(screen_t.prototype.addstr);
 
 /**
@@ -1492,6 +1505,7 @@ screen_t.prototype.vline = window_t.prototype.vline = function(ch, n, attrs) {
 };
 screen_t.prototype.vline = shortcut_move(screen_t.prototype.vline);
 window_t.prototype.vline = shortcut_move(window_t.prototype.vline);
+exports.wvline = windowify(window_t.prototype.vline);
 exports.vline = simplify(screen_t.prototype.vline);
 
 /**
@@ -1517,6 +1531,7 @@ screen_t.prototype.hline = window_t.prototype.hline = function(ch, n, attrs) {
 };
 screen_t.prototype.hline = shortcut_move(screen_t.prototype.hline);
 window_t.prototype.hline = shortcut_move(window_t.prototype.hline);
+exports.whline = windowify(window_t.prototype.hline);
 exports.hline = simplify(screen_t.prototype.hline);
 
 // used for creating an off-screen canvas for pre-rendering characters
@@ -1874,6 +1889,7 @@ exports.newwin = simplify(screen_t.prototype.newwin);
  **/
 window_t.prototype.bkgd = function(c, attrs) {
   // TODO: use attrset() instead of attron()
+  // TODO: implement for screen_t (and test)
   attrs |= 0;
   var y, x;
   for (y = 0; y < this.height; y++) {
@@ -1887,6 +1903,7 @@ window_t.prototype.bkgd = function(c, attrs) {
   this.empty_char = c;
   this.empty_attrs = attrs;
 };
+exports.wbkgd = windowify(window_t.prototype.bkgd);
 
 /**
  * Draw a box around the window, using the border() function, but in a simpler
@@ -1922,6 +1939,7 @@ screen_t.prototype.box =
     this.border(vert.value, vert.attrs, vert.value, vert.attrs,
 		horiz.value, horiz.attrs, horiz.value, horiz.attrs);
   };
+exports.wbox = windowify(window_t.prototype.box);
 exports.box = simplify(screen_t.prototype.box);
 
 /**
@@ -1971,6 +1989,7 @@ screen_t.prototype.border =
     this.hline(this.height - 1, 1, chars[3].value, this.width - 2,
 	       chars[3].attrs);
   };
+exports.wborder = windowify(window_t.prototype.border);
 exports.border = simplify(screen_t.prototype.border);
 
 // helper function for passing arguments to box() and border()

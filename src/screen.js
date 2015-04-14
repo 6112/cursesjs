@@ -209,6 +209,7 @@ var initscr = exports.initscr = function(opts) {
   // set the created window as the default window for most operations
   // (so you can call functions like addstr(), getch(), etc. directly)
   default_screen = scr;
+  exports.stdscr = scr;
   // draw a background
   scr.clear();
   // add keyboard hooks
@@ -288,13 +289,14 @@ var check_initscr_args = function(opts) {
  *
  * @return {Object} Object describing the bottom right corner of the screen.
  **/
-screen_t.prototype.getmaxyx = function() {
+screen_t.prototype.getmaxyx = window_t.prototype.getmaxyx = function() {
   return {
     y: this.height - 1,
     x: this.width - 1
   };
 };
-exports.getmaxyx = simplify(screen_t.prototype.getmaxyx);
+exports.getmaxyx = windowify(window_t.prototype.getmaxyx);
+// TODO: implement getbegyx(), getyx()
 
 /**
  * Make the cursor blink once every BLINK_DELAY milliseconds, if it is visible.

@@ -62,4 +62,5 @@ screen_t.prototype.move = window_t.prototype.move = function(y, x) {
   this.y = y;
   this.x = x;
 };
+exports.wmove = windowify(window_t.prototype.move);
 exports.move = simplify(screen_t.prototype.move);

@@ -18,8 +18,8 @@ var simplify = function(f) {
   };
 };
 
-// similar to simplify, but convert the call so it can be done as in C with
-// ncurses.
+// similar to simplify, but convert the window call so it can be done as in C
+// with ncurses. (waddch(win, 'c') vs. win.addch('c'))
 //
 // for instance, the call:
 //   scr.addstr('hello world');
@@ -28,10 +28,10 @@ var simplify = function(f) {
 //   waddstr(scr, 'hello world');
 //
 // if you define:
-//   waddstr = generalize(f);
+//   waddstr = windowify(f);
 //
 // TODO: *use* this, instead of just declaring it
-var generalize = function(f) {
+var windowify = function(f) {
   return function() {
     return f.apply(arguments[0], [].slice.call(arguments, 1));
   };

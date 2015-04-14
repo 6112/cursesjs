@@ -83,6 +83,7 @@ exports.newwin = simplify(screen_t.prototype.newwin);
  **/
 window_t.prototype.bkgd = function(c, attrs) {
   // TODO: use attrset() instead of attron()
+  // TODO: implement for screen_t (and test)
   attrs |= 0;
   var y, x;
   for (y = 0; y < this.height; y++) {
@@ -96,6 +97,7 @@ window_t.prototype.bkgd = function(c, attrs) {
   this.empty_char = c;
   this.empty_attrs = attrs;
 };
+exports.wbkgd = windowify(window_t.prototype.bkgd);
 
 /**
  * Draw a box around the window, using the border() function, but in a simpler
@@ -131,6 +133,7 @@ screen_t.prototype.box =
     this.border(vert.value, vert.attrs, vert.value, vert.attrs,
 		horiz.value, horiz.attrs, horiz.value, horiz.attrs);
   };
+exports.wbox = windowify(window_t.prototype.box);
 exports.box = simplify(screen_t.prototype.box);
 
 /**
@@ -180,6 +183,7 @@ screen_t.prototype.border =
     this.hline(this.height - 1, 1, chars[3].value, this.width - 2,
 	       chars[3].attrs);
   };
+exports.wborder = windowify(window_t.prototype.border);
 exports.border = simplify(screen_t.prototype.border);
 
 // helper function for passing arguments to box() and border()

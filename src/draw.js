@@ -257,11 +257,7 @@ var load_bitmap_font = function(scr, font) {
  * this sparingly, as this can cause very bad performance if used too many
  * times per second.
  **/
-screen_t.prototype.clear = function() {
-  // TODO: implement for window_t as well
-  // window height and width
-  var height = this.height * this.font.char_height;
-  var width = this.width * this.font.char_width;
+screen_t.prototype.clear = window_t.prototype.clear = function() {
   // reset all the character tiles
   // TODO: support setting attributes for empty_char
   var y, x;
@@ -274,11 +270,13 @@ screen_t.prototype.clear = function() {
     }
   }
 };
+exports.wclear = windowify(window_t.prototype.clear);
 exports.clear = simplify(screen_t.prototype.clear);
 
-screen_t.prototype.clrtoeol = function() {
+screen_t.prototype.clrtoeol = window_t.prototype.clrtoeol = function() {
   hline(this.empty_char, this.width - this.x, A_NORMAL);
 };
+exports.wclrtoeol = windowify(window_t.prototype.clrtoeol);
 exports.clrtoeol = simplify(screen_t.prototype.clrtoeol);
 
 /**
@@ -332,6 +330,7 @@ window_t.prototype.refresh = function() {
     }
   }
 };
+exports.wrefresh = windowify(window_t.prototype.refresh);
 
 // TODO: remove expose/unexpose and related behavior
 window_t.prototype.expose =
@@ -414,6 +413,7 @@ screen_t.prototype.addch = shortcut_move(screen_t.prototype.addch);
 screen_t.prototype.addch = attributify(screen_t.prototype.addch);
 window_t.prototype.addch = shortcut_move(window_t.prototype.addch);
 window_t.prototype.addch = attributify(window_t.prototype.addch);
+exports.waddch = windowify(window_t.prototype.addch);
 exports.addch = simplify(screen_t.prototype.addch);
 
 /**
@@ -454,6 +454,7 @@ screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
 screen_t.prototype.addstr = attributify(screen_t.prototype.addstr);
 window_t.prototype.addstr = shortcut_move(window_t.prototype.addstr);
 window_t.prototype.addstr = attributify(window_t.prototype.addstr);
+exports.waddstr = windowify(window_t.prototype.addstr);
 exports.addstr = simplify(screen_t.prototype.addstr);
 
 /**
@@ -479,6 +480,7 @@ screen_t.prototype.vline = window_t.prototype.vline = function(ch, n, attrs) {
 };
 screen_t.prototype.vline = shortcut_move(screen_t.prototype.vline);
 window_t.prototype.vline = shortcut_move(window_t.prototype.vline);
+exports.wvline = windowify(window_t.prototype.vline);
 exports.vline = simplify(screen_t.prototype.vline);
 
 /**
@@ -504,6 +506,7 @@ screen_t.prototype.hline = window_t.prototype.hline = function(ch, n, attrs) {
 };
 screen_t.prototype.hline = shortcut_move(screen_t.prototype.hline);
 window_t.prototype.hline = shortcut_move(window_t.prototype.hline);
+exports.whline = windowify(window_t.prototype.hline);
 exports.hline = simplify(screen_t.prototype.hline);
 
 // used for creating an off-screen canvas for pre-rendering characters

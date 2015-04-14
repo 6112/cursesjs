@@ -4,6 +4,11 @@
 // `exports` object (by default, the global namespace)
 var exports = window;
 
+/**
+ * Standard 'screen' object, used as a default for most operations.
+ */
+exports.stdscr = null;
+
 // milliseconds between cursor blinks
 var BLINK_DELAY = 200;
 
@@ -12,7 +17,8 @@ var EMPTY_CHAR = ' ';
 
 // default window: will be used as a default object for all curses functions,
 // such as print(), addch(), move(), etc., if called directly instead of using
-// scr.print(), scr.addch(), scr.move(), etc.
+// scr.print(), scr.addch(), scr.move(), etc. (same as stdscr, but internal)
+// TODO: replace default_screen with exports.stdscr in code
 var default_screen = null;
 
 // curses window
