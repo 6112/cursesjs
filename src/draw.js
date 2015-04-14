@@ -312,6 +312,7 @@ exports.refresh = simplify(screen_t.prototype.refresh);
  * screen.refresh(). (as in the original ncurses)
  */
 window_t.prototype.refresh = function() {
+  // TODO: move cursor on wrefresh();
   var scr = this.parent_screen;
   // for each changed character
   var y, x;

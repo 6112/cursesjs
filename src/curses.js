@@ -32,6 +32,8 @@ var window_t = function(parent_screen) {
   // window position
   this.win_y = 0;
   this.win_x = 0;
+  // true iff vertical scrolling is enabled
+  this._scroll_ok = false;
   // width and height, in characters
   this.width = 0;
   this.height = 0;

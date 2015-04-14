@@ -33,6 +33,8 @@ var window_t = function(parent_screen) {
   // window position
   this.win_y = 0;
   this.win_x = 0;
+  // true iff vertical scrolling is enabled
+  this._scroll_ok = false;
   // width and height, in characters
   this.width = 0;
   this.height = 0;
@@ -1337,6 +1339,7 @@ exports.refresh = simplify(screen_t.prototype.refresh);
  * screen.refresh(). (as in the original ncurses)
  */
 window_t.prototype.refresh = function() {
+  // TODO: move cursor on wrefresh();
   var scr = this.parent_screen;
   // for each changed character
   var y, x;
@@ -1939,8 +1942,7 @@ screen_t.prototype.box =
     this.border(vert.value, vert.attrs, vert.value, vert.attrs,
 		horiz.value, horiz.attrs, horiz.value, horiz.attrs);
   };
-exports.wbox = windowify(window_t.prototype.box);
-exports.box = simplify(screen_t.prototype.box);
+exports.box = windowify(window_t.prototype.box);
 
 /**
  * Draw a box around a window, using the specified characters and attributes for
@@ -2023,6 +2025,72 @@ var parse_chtypes = function(arglist, defaults, win) {
   }
   return chars;
 };
+
+/**
+ * Controls what happens when the cursor is moved to the edge of the window, by
+ * typing the last character on the last line (TODO), entering a newline on the
+ * last line (TODO), or using the scroll()/scrl()/wscrl() functions.
+ *
+ * If `bf` is true, the window will scroll up one line every time, or more if
+ * scrl() is called.
+ *
+ * @param {Boolean} bf `true` iff scrolling should be enabled for the window or
+ * screen.
+ */
+screen_t.prototype.scrollok = window_t.prototype.scrollok = function(bf) {
+  this._scroll_ok = bf;
+};
+exports.scrollok = windowify(window_t.prototype.scrollok);
+
+/**
+ * Scroll the window up one line, if scrollok() is enabled.
+ */
+screen_t.prototype.scroll = window_t.prototype.scroll = function() {
+  this.scrl(1);
+};
+exports.scroll = windowify(window_t.prototype.scroll);
+
+/**
+ * Scroll the window up any number of lines, if scrollok() is enabled. Negative
+ * numbers indicate that the window should scroll down.
+ *
+ * @param {Integer} n Number of lines to scroll up.
+ */
+screen_t.prototype.scrl = window_t.prototype.scrl = function(n) {
+  if (! this._scroll_ok) {
+    return;
+  }
+  var i, x, tile;
+  if (n > 0) {
+    // scroll up
+    for (i = 0; i < n; i++) {
+      this.tiles.shift();
+      this.tiles.push([]);
+      for (x = 0; x < this.width; x++) {
+	tile = new tile_t();
+	tile.content = this.empty_char;
+	tile.attrs = A_NORMAL;
+	this.tiles[this.height - 1][x] = tile;
+      }
+    }
+  }
+  else if (n < 0) {
+    n = -n;
+    // scroll down
+    for (i = 0; i < n; i++) {
+      this.tiles.pop();
+      this.tiles.unshift([]);
+      for (x = 0; x < this.width; x++) {
+	tile = new tile_t();
+	tile.content = this.empty_char;
+	tile.attrs = A_NORMAL;
+	this.tiles[0][x] = tile;
+      }
+    }
+  }
+};
+exports.wscrl = windowify(window_t.prototype.scrl);
+exports.scrl = simplify(screen_t.prototype.scrl);
 
 /**
  * Delete a window, and remove it from its parent window. Force a redraw

@@ -45,6 +45,12 @@ $(window).load(function() {
   wbkgd(subwin, '.');
   waddstr(subwin, 2, 2, 'I am a subwindow.');
   wborder(subwin);
+  var subwin2 = newwin(5, 20, 20, 28);
+  wattron(subwin2, COLOR_PAIR(2) | A_REVERSE);
+  wbkgd(subwin2, '_');
+  waddstr(subwin2, 2, 1, "last line");
+  scrollok(subwin2, true);
+  wscrl(subwin2, -2);
   raw();
   var selected = 0;
   var options = [
@@ -105,6 +111,7 @@ $(window).load(function() {
     move(i + 3, 0);
     refresh();
     wrefresh(subwin);
+    wrefresh(subwin2);
   };
   redraw();
   var update = demo.update = function(c) {
