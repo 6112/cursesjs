@@ -5,13 +5,13 @@
     timeout: 0,
     fps_timeout: 0,
     update: function(c) {
-      if (c === KEY_Q) {
+      if (c === 'q') {
         clear();
         demo.redraw();
         ongetch(demo.update);
         ungetch(bm.update);
         clearTimeout(bm.timeout);
-        clearTimeout(bm.fps_timeout)
+        clearTimeout(bm.fps_timeout);
         return;
       }
       bm.redraw();

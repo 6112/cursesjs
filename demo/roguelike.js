@@ -47,27 +47,27 @@
       old_y = state.player.y;
       old_x = state.player.x;
       switch (c) {
-        case KEY_H:
+        case 'h':
         case KEY_LEFT:
           state.player.x--;
           break;
 
-        case KEY_J:
+        case 'j':
         case KEY_DOWN:
           state.player.y++;
           break;
 
-        case KEY_K:
+        case 'k':
         case KEY_UP:
           state.player.y--;
           break;
 
-        case KEY_L:
+        case 'l':
         case KEY_RIGHT:
           state.player.x++;
           break;
 
-        case KEY_Q:
+        case 'q':
           clear();
           demo.redraw();
           ongetch(demo.update);

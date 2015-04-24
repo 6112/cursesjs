@@ -19,14 +19,23 @@ exports.KEY_ENTER = 13;
 exports.KEY_PAGE_UP = 33;
 exports.KEY_PAGE_DOWN = 34;
 
-// helper function for adding KEY_A, KEY_B, KEY_C, etc. to `exports`.
-var construct_key_table = function() {
-  for (k = 'A'.charCodeAt(0); k <= 'Z'.charCodeAt(0); k++) {
-    var c = String.fromCharCode(k);
-    exports['KEY_' + c] = k;
-  }
+var handled_keys = {
+  33: 1,
+  34: 1,
+  35: 1,
+  36: 1,
+  37: 1,
+  38: 1,
+  39: 1,
+  40: 1
 };
-construct_key_table();
+
+// returns `true` iff the event `event` corresponds to a keyboard event that
+// should be properly handled by the `keydown` handler, and not the
+// `keypress` handler.
+var is_handled_keydown = function(event) {
+  return typeof handled_keys[event.which] !== "undefined";
+};
 
 var KEY_RESIZE = exports.KEY_RESIZE = '$RESIZE';
 
@@ -39,21 +48,8 @@ var handle_keyboard = function(scr, container, require_focus) {
     // apply tabindex="0" so this element can actually receive focus
     container.attr('tabindex', 0);
   }
-  keyboard_target.keydown(function(event) {
-    // true iff the event key event should not be sent to the browser
-    var cancel = scr._raw;
-    if (is_key_press(event)) {
-      // trigger the event, and call event handlers as
-      // handler(keycode, event, screen);
-      var returned = scr.trigger('keydown', event.which, event, scr);
-      if (typeof returned === "boolean") {
-	cancel = ! returned;
-      }
-    }
-    // disable most browser shortcuts if the _raw flag is on for the window, and
-    // the handlers did not return true
-    return ! cancel;
-  });
+  grab_keyboard(scr, keyboard_target);
+
   if (scr.auto_height || scr.auto_width) {
     $(window).resize(function(event) {
       // calculate the new width/height of the screen, in characters
@@ -132,6 +128,44 @@ var resize_canvas = function(scr, height, width) {
       scr.display[y][x].content = '';
     }
   }
+};
+
+var grab_keyboard = function(scr, keyboard_target) {
+  var use_keypress = false;
+  keyboard_target.keydown(function(event) {
+    if (! is_handled_keydown(event)) {
+      return true;
+    }
+    // true iff the event key event should not be sent to the browser
+    var cancel = scr._raw;
+    // trigger the event, and call event handlers as
+    // handler(keycode, event, screen);
+    var key = event.which;
+    var returned = scr.trigger('keydown', key, event, scr);
+    if (typeof returned === "boolean") {
+      cancel = ! returned;
+    }
+    // disable most browser shortcuts if the _raw flag is on for the window, and
+    // the handlers did not return true
+    return ! cancel;
+  });
+  keyboard_target.keypress(function(event) {
+    if (! event.which) {
+      return true;
+    }
+    // TODO: handle control-key
+    var cancel = scr._raw;
+    var key = String.fromCharCode(event.which);
+    if (event.which === 13) {
+      key = "\n";
+    }
+    var returned = scr.trigger('keydown', key, event, scr);
+    if (typeof returned === "boolean") {
+      cancel = ! returned;
+    }
+    use_keypress = false;
+    return ! cancel;
+  });
 };
 
 /**

@@ -1,23 +1,6 @@
 // TODO: move everything in this file to more relevant files, and delete this
 // file
 
-// keys that are to be ignored for the purposes of events
-// TODO
-var ignoreKeys = {
-  Control: true,
-  Shift: true,
-  Alt: true,
-  AltGraph: true,
-  Unidentified: true
-};
-
-// return true iff the KeyboardEvent `event' is an actual keypress of a
-// printable character, not just a modifier key (like Ctrl, Shift, or Alt)
-var is_key_press = function(event) {
-  // TODO
-  return ! ignoreKeys[event.key];
-};
-
 // used for making a blinking cursor
 var start_blink = function(scr) {
   scr._blink_timeout = setTimeout(function() {

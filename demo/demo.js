@@ -118,17 +118,17 @@ $(window).load(function() {
   var update = demo.update = function(c) {
     var cancel = true;
     switch(c) {
-      case KEY_J:
+      case 'j':
       case KEY_DOWN:
         selected++;
         break;
 
-      case KEY_K:
+      case 'k':
       case KEY_UP:
         selected--;
         break;
 
-      case 13:
+      case '\n':
         if (selected === 0) {
           ungetch(update);
           clear();
