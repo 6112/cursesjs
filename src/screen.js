@@ -324,6 +324,33 @@ screen_t.prototype.noblink = function() {
 };
 exports.noblink = simplify(screen_t.prototype.noblink);
 
+// used for making a blinking cursor
+var start_blink = function(scr) {
+  scr._blink_timeout = setTimeout(function() {
+    do_blink(scr);
+  }, BLINK_DELAY);
+};
+
+var do_blink = function(scr) {
+  if (scr._cursor_visibility) {
+    draw_cursor(scr);
+  }
+  scr._blinking = true;
+  scr._blink_timeout = setTimeout(function() {
+    do_unblink(scr);
+  }, BLINK_DELAY);
+};
+
+var do_unblink = function(scr) {
+  if (scr._cursor_visibility) {
+    undraw_cursor(scr);
+  }
+  scr._blinking = false;
+  scr._blink_timeout = setTimeout(function() {
+    do_blink(scr);
+  }, BLINK_DELAY);
+};
+
 /**
  * Set the visibility of the cursor, as a number from 0 to 2, 2 being the most
  * visible, and 0 being completely invisible.

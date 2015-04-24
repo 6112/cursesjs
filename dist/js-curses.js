@@ -967,36 +967,6 @@ screen_t.prototype.noblink = function() {
 };
 exports.noblink = simplify(screen_t.prototype.noblink);
 
-/**
- * Set the visibility of the cursor, as a number from 0 to 2, 2 being the most
- * visible, and 0 being completely invisible.
- *
- * @param {Integer} visibility
- **/
-screen_t.prototype.curs_set = function(visibility) {
-  this._cursor_visibility = visibility;
-  if (visibility) {
-    draw_cursor(this);
-  }
-  else {
-    undraw_cursor(this);
-  }
-};
-exports.curs_set = simplify(screen_t.prototype.curs_set);
-
-/**
- * Quit js-curses.
- * 
- * TODO
- **/
-screen_t.prototype.endwin = function() {
-};
-exports.endwin = simplify(screen_t.prototype.endwin);
-
-
-// TODO: move everything in this file to more relevant files, and delete this
-// file
-
 // used for making a blinking cursor
 var start_blink = function(scr) {
   scr._blink_timeout = setTimeout(function() {
@@ -1025,24 +995,30 @@ var do_unblink = function(scr) {
 };
 
 /**
- * Move the cursor to a given position on the screen. If the position is outside
- * of the screen's bound, a RangeError is thrown.
+ * Set the visibility of the cursor, as a number from 0 to 2, 2 being the most
+ * visible, and 0 being completely invisible.
  *
- * All output from addch() and addstr() is done at the position of the cursor.
- *
- * @param {Integer} y y position of the new position.
- * @param {Integer} x x position of the new position.
- * @throws RangeError
+ * @param {Integer} visibility
  **/
-screen_t.prototype.move = window_t.prototype.move = function(y, x) {
-  if (y < 0 || y >= this.height || x < 0 || x >= this.width) {
-    throw new RangeError("coordinates out of range");
+screen_t.prototype.curs_set = function(visibility) {
+  this._cursor_visibility = visibility;
+  if (visibility) {
+    draw_cursor(this);
   }
-  this.y = y;
-  this.x = x;
+  else {
+    undraw_cursor(this);
+  }
 };
-exports.wmove = windowify(window_t.prototype.move);
-exports.move = simplify(screen_t.prototype.move);
+exports.curs_set = simplify(screen_t.prototype.curs_set);
+
+/**
+ * Quit js-curses.
+ * 
+ * TODO
+ **/
+screen_t.prototype.endwin = function() {
+};
+exports.endwin = simplify(screen_t.prototype.endwin);
 
 
 // number of chars saved per off-screen canvas
@@ -1379,6 +1355,26 @@ window_t.prototype.refresh = function() {
   }
 };
 exports.wrefresh = windowify(window_t.prototype.refresh);
+
+/**
+ * Move the cursor to a given position on the screen. If the position is outside
+ * of the screen's bound, a RangeError is thrown.
+ *
+ * All output from addch() and addstr() is done at the position of the cursor.
+ *
+ * @param {Integer} y y position of the new position.
+ * @param {Integer} x x position of the new position.
+ * @throws RangeError
+ **/
+screen_t.prototype.move = window_t.prototype.move = function(y, x) {
+  if (y < 0 || y >= this.height || x < 0 || x >= this.width) {
+    throw new RangeError("coordinates out of range");
+  }
+  this.y = y;
+  this.x = x;
+};
+exports.wmove = windowify(window_t.prototype.move);
+exports.move = simplify(screen_t.prototype.move);
 
 // TODO: remove expose/unexpose and related behavior
 window_t.prototype.expose =
