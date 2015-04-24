@@ -15,12 +15,12 @@ var A_BOLD = exports.A_BOLD = A_STANDOUT << 5;
  *
  * @param {Attrlist} attrs New attributes' values.
  **/
-screen_t.prototype.attrset = window_t.prototype.attrset = function(attrs) {
+defun(screen_t, window_t, 'attrset', function (attrs) {
   this.attrs = attrs | (this.empty_attrs & ~COLOR_MASK);
   if ((attrs & COLOR_MASK) === 0) {
     this.attrs |= this.empty_attrs & COLOR_MASK;
   }
-};
+});
 exports.wattrset = windowify(window_t.prototype.attrset);
 exports.attrset = simplify(screen_t.prototype.attrset);
 
@@ -35,7 +35,7 @@ exports.attrset = simplify(screen_t.prototype.attrset);
  *
  * @param {Attrlist} attrs Attributes to be added.
  **/
-screen_t.prototype.attron = window_t.prototype.attron = function(attrs) {
+defun(screen_t, window_t, 'attron', function (attrs) {
   var color_pair = attrs & COLOR_MASK;
   if (color_pair === 0) {
     color_pair = this.attrs & COLOR_MASK;
@@ -44,7 +44,7 @@ screen_t.prototype.attron = window_t.prototype.attron = function(attrs) {
   other_attrs = other_attrs | ((this.attrs >> 16) << 16);
   var new_attrs = other_attrs | color_pair;
   this.attrset(new_attrs);
-};
+});
 exports.wattron = windowify(window_t.prototype.attron);
 exports.attron = simplify(screen_t.prototype.attron);
 
@@ -64,7 +64,7 @@ exports.attron = simplify(screen_t.prototype.attron);
  *
  * @param {Attrlist} attrs Attributes to be removed.
  **/
-screen_t.prototype.attroff = window_t.prototype.attroff = function(attrs) {
+defun(screen_t, window_t, 'attroff', function (attrs) {
   var color_pair = this.attrs & COLOR_MASK;
   var new_attrs = ((attrs >> 16) << 16);
   new_attrs = ~new_attrs & this.attrs;
@@ -72,6 +72,6 @@ screen_t.prototype.attroff = window_t.prototype.attroff = function(attrs) {
     new_attrs = new_attrs & ~COLOR_MASK;
   }
   this.attrset(new_attrs);
-};
+});
 exports.wattroff = windowify(window_t.prototype.attroff);
 exports.attroff = simplify(screen_t.prototype.attroff);

@@ -16,60 +16,59 @@
  * @param {Integer} width width of the window, in characters.
  * @return {window_t} The created child window.
  **/
-window_t.prototype.newwin = 
-  screen_t.prototype.newwin = function(height, width, y, x) {
-    if (typeof y !== "number") {
-      throw new TypeError("y is not a number");
+defun(screen_t, window_t, 'newwin', function(height, width, y, x) {
+  if (typeof y !== "number") {
+    throw new TypeError("y is not a number");
+  }
+  if (y < 0) {
+    throw new RangeError("y is negative");
+  }
+  if (typeof x !== "number") {
+    throw new TypeError("x is not a number");
+  }
+  if (x < 0) {
+    throw new RangeError("x is negative");
+  }
+  if (typeof height !== "number") {
+    throw new TypeError("height is not a number");
+  }
+  if (height < 0) {
+    throw new RangeError("height is negative");
+  }
+  if (typeof width !== "number") {
+    throw new TypeError("width is not a number");
+  }
+  if (width < 0) {
+    throw new RangeError("width is negative");
+  }
+  // create the window
+  var win = new window_t(this.parent_screen);
+  win.win_y = y;
+  win.win_x = x;
+  win.height = height;
+  win.width = width;
+  win.parent = this;
+  // add to parent's subwindows
+  this.subwindows.push(win);
+  // create the 2D array of tiles
+  for (j = 0; j < height; j++) {
+    win.tiles[j] = [];
+    for (i = 0; i < width; i++) {
+      win.tiles[j][i] = new tile_t();
     }
-    if (y < 0) {
-      throw new RangeError("y is negative");
+  }
+  // draw each tile
+  for (j = 0; j < height; j++) {
+    for (i = 0; i < width; i++) {
+      win.addch(j, i, win.empty_char);
+      win.tiles[j][i].empty = true;
     }
-    if (typeof x !== "number") {
-      throw new TypeError("x is not a number");
-    }
-    if (x < 0) {
-      throw new RangeError("x is negative");
-    }
-    if (typeof height !== "number") {
-      throw new TypeError("height is not a number");
-    }
-    if (height < 0) {
-      throw new RangeError("height is negative");
-    }
-    if (typeof width !== "number") {
-      throw new TypeError("width is not a number");
-    }
-    if (width < 0) {
-      throw new RangeError("width is negative");
-    }
-    // create the window
-    var win = new window_t(this.parent_screen);
-    win.win_y = y;
-    win.win_x = x;
-    win.height = height;
-    win.width = width;
-    win.parent = this;
-    // add to parent's subwindows
-    this.subwindows.push(win);
-    // create the 2D array of tiles
-    for (j = 0; j < height; j++) {
-      win.tiles[j] = [];
-      for (i = 0; i < width; i++) {
-	win.tiles[j][i] = new tile_t();
-      }
-    }
-    // draw each tile
-    for (j = 0; j < height; j++) {
-      for (i = 0; i < width; i++) {
-	win.addch(j, i, win.empty_char);
-	win.tiles[j][i].empty = true;
-      }
-    }
-    // undraw each 'covered' tile in the parent
-    this.unexpose(y, x, height, width);
-    // return the created window
-    return win;
-  };
+  }
+  // undraw each 'covered' tile in the parent
+  this.unexpose(y, x, height, width);
+  // return the created window
+  return win;
+});
 exports.newwin = simplify(screen_t.prototype.newwin);
 
 /**
@@ -81,8 +80,7 @@ exports.newwin = simplify(screen_t.prototype.newwin);
  * @param {Character} c New background character.
  * @param {Attrlist} attrs New attrlist for the background.
  **/
-window_t.prototype.bkgd = function(c, attrs) {
-  // TODO: use attrset() instead of attron()
+defun(window_t, 'bkgd', function (c, attrs) {
   // TODO: implement for screen_t (and test)
   attrs |= 0;
   var saved_attrs = this.attrs;
@@ -99,7 +97,7 @@ window_t.prototype.bkgd = function(c, attrs) {
   this.empty_char = c;
   this.empty_attrs = attrs;
   this.attrset(saved_attrs);
-};
+});
 exports.wbkgd = windowify(window_t.prototype.bkgd);
 
 /**
@@ -127,15 +125,14 @@ exports.wbkgd = windowify(window_t.prototype.bkgd);
  * @param {ChType} [horiz=ACS_HLINE] One, or two arguments, that describe the
  *   character for the left and right borders, and its attributes.
  **/
-screen_t.prototype.box =
-  window_t.prototype.box = function(vert, horiz) {
-    var defaults = [ACS_VLINE, ACS_HLINE];
-    var chars = parse_chtypes(arguments, defaults, this);
-    vert = chars[0];
-    horiz = chars[1];
-    this.border(vert.value, vert.attrs, vert.value, vert.attrs,
-		horiz.value, horiz.attrs, horiz.value, horiz.attrs);
-  };
+defun(screen_t, window_t, 'box', function (vert, horiz) {
+  var defaults = [ACS_VLINE, ACS_HLINE];
+  var chars = parse_chtypes(arguments, defaults, this);
+  vert = chars[0];
+  horiz = chars[1];
+  this.border(vert.value, vert.attrs, vert.value, vert.attrs,
+	      horiz.value, horiz.attrs, horiz.value, horiz.attrs);
+});
 exports.box = windowify(window_t.prototype.box);
 
 /**
@@ -166,25 +163,24 @@ exports.box = windowify(window_t.prototype.box);
  * @param {ChType} [br=ACS_LRCORNER] Character (and attributes) for bottom right
  * corner.
  */
-screen_t.prototype.border =
-  window_t.prototype.border = function(ls, rs, ts, bs, tl, tr, bl, br) {
-    var defaults = [ACS_VLINE, ACS_VLINE,
-		    ACS_HLINE, ACS_HLINE,
-		    ACS_ULCORNER, ACS_URCORNER, ACS_LLCORNER, ACS_LRCORNER];
-    var chars = parse_chtypes(arguments, defaults, this);
-    // draw corners
-    this.addch(0, 0, chars[4].value, chars[4].attrs);
-    this.addch(0, this.width - 1, chars[5].value, chars[5].attrs);
-    this.addch(this.height - 1, 0, chars[6].value, chars[6].attrs);
-    this.addch(this.height - 1, this.width - 1, chars[7].value, chars[7].attrs);
-    // draw borders
-    this.vline(1, 0, chars[0].value, this.height - 2, chars[0].attrs);
-    this.vline(1, this.width - 1, chars[1].value, this.height - 2,
-	       chars[1].attrs);
-    this.hline(0, 1, chars[2].value, this.width - 2, chars[2].attrs);
-    this.hline(this.height - 1, 1, chars[3].value, this.width - 2,
-	       chars[3].attrs);
-  };
+defun(screen_t, window_t, 'border', function(ls, rs, ts, bs, tl, tr, bl, br) {
+  var defaults = [ACS_VLINE, ACS_VLINE,
+		  ACS_HLINE, ACS_HLINE,
+		  ACS_ULCORNER, ACS_URCORNER, ACS_LLCORNER, ACS_LRCORNER];
+  var chars = parse_chtypes(arguments, defaults, this);
+  // draw corners
+  this.addch(0, 0, chars[4].value, chars[4].attrs);
+  this.addch(0, this.width - 1, chars[5].value, chars[5].attrs);
+  this.addch(this.height - 1, 0, chars[6].value, chars[6].attrs);
+  this.addch(this.height - 1, this.width - 1, chars[7].value, chars[7].attrs);
+  // draw borders
+  this.vline(1, 0, chars[0].value, this.height - 2, chars[0].attrs);
+  this.vline(1, this.width - 1, chars[1].value, this.height - 2,
+	     chars[1].attrs);
+  this.hline(0, 1, chars[2].value, this.width - 2, chars[2].attrs);
+  this.hline(this.height - 1, 1, chars[3].value, this.width - 2,
+	     chars[3].attrs);
+});
 exports.wborder = windowify(window_t.prototype.border);
 exports.border = simplify(screen_t.prototype.border);
 
@@ -231,17 +227,17 @@ var parse_chtypes = function(arglist, defaults, win) {
  * @param {Boolean} bf `true` iff scrolling should be enabled for the window or
  * screen.
  */
-screen_t.prototype.scrollok = window_t.prototype.scrollok = function(bf) {
+defun(screen_t, window_t, 'scrollok', function (bf) {
   this._scroll_ok = bf;
-};
+});
 exports.scrollok = windowify(window_t.prototype.scrollok);
 
 /**
  * Scroll the window up one line, if scrollok() is enabled.
  */
-screen_t.prototype.scroll = window_t.prototype.scroll = function() {
+defun(screen_t, window_t, 'scroll', function () {
   this.scrl(1);
-};
+});
 exports.scroll = windowify(window_t.prototype.scroll);
 
 /**
@@ -250,7 +246,7 @@ exports.scroll = windowify(window_t.prototype.scroll);
  *
  * @param {Integer} n Number of lines to scroll up.
  */
-screen_t.prototype.scrl = window_t.prototype.scrl = function(n) {
+defun(screen_t, window_t, 'scrl', function (n) {
   if (! this._scroll_ok) {
     return;
   }
@@ -282,7 +278,7 @@ screen_t.prototype.scrl = window_t.prototype.scrl = function(n) {
       }
     }
   }
-};
+});
 exports.wscrl = windowify(window_t.prototype.scrl);
 exports.scrl = simplify(screen_t.prototype.scrl);
 
@@ -293,7 +289,7 @@ exports.scrl = simplify(screen_t.prototype.scrl);
  * 
  * TODO
  **/
-window_t.prototype.delwin = function() {
+defun(window_t, 'delwin', function () {
   // force a redraw on the parent, in the area corresponding to this window
   this.parent.expose(this.win_y, this.win_x, this.height, this.width);
   // remove from the parent's subwindows
@@ -306,4 +302,4 @@ window_t.prototype.delwin = function() {
   if (i !== this.parent.subwindows.length) {
     this.parent.subwindows.splice(i, 1);
   }
-};
+});

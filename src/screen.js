@@ -289,30 +289,30 @@ var check_initscr_args = function(opts) {
  *
  * @return {Object} Object describing the bottom right corner of the screen.
  **/
-screen_t.prototype.getmaxyx = window_t.prototype.getmaxyx = function() {
+defun(screen_t, window_t, 'getmaxyx', function () {
   return {
     y: this.height - 1,
     x: this.width - 1
   };
-};
+});
 exports.getmaxyx = windowify(window_t.prototype.getmaxyx);
 // TODO: implement getbegyx(), getyx()
 
 /**
  * Make the cursor blink once every BLINK_DELAY milliseconds, if it is visible.
  **/
-screen_t.prototype.blink = function() {
+defun(screen_t, 'blink', function () {
   if (! this._blink) {
     start_blink(this);
   }
   this._blink = true;
-};
+});
 exports.blink = simplify(screen_t.prototype.blink);
 
 /**
  * Make the cursor stop blinking, if it is visible. See blink().
  **/
-screen_t.prototype.noblink = function() {
+defun(screen_t, 'noblink', function () {
   if (this._blink) {
     clearTimeout(this._blink_timeout);
     do_blink(this);
@@ -321,7 +321,7 @@ screen_t.prototype.noblink = function() {
   }
   this._blinking = false;
   this._blink = false;
-};
+});
 exports.noblink = simplify(screen_t.prototype.noblink);
 
 // used for making a blinking cursor
@@ -357,7 +357,7 @@ var do_unblink = function(scr) {
  *
  * @param {Integer} visibility
  **/
-screen_t.prototype.curs_set = function(visibility) {
+defun(screen_t, 'curs_set', function (visibility) {
   this._cursor_visibility = visibility;
   if (visibility) {
     draw_cursor(this);
@@ -365,7 +365,7 @@ screen_t.prototype.curs_set = function(visibility) {
   else {
     undraw_cursor(this);
   }
-};
+});
 exports.curs_set = simplify(screen_t.prototype.curs_set);
 
 /**
@@ -373,6 +373,6 @@ exports.curs_set = simplify(screen_t.prototype.curs_set);
  * 
  * TODO
  **/
-screen_t.prototype.endwin = function() {
-};
+defun(screen_t, 'endwin', function () {
+});
 exports.endwin = simplify(screen_t.prototype.endwin);

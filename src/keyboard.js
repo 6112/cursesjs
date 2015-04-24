@@ -175,36 +175,38 @@ var grab_keyboard = function(scr, keyboard_target) {
  * You may want to use the `require_focus` option in initscr() if you use this
  * function.
  **/
-screen_t.prototype.raw = function() {
+defun(screen_t, 'raw', function () {
   this._raw = true;
-};
+});
 exports.raw = simplify(screen_t.prototype.raw);
 
 /**
  * Enables most browser shortcuts; undoes a previous call to raw(). This is
  * the default behaviour.
  **/
-screen_t.prototype.noraw = function() {
+defun(screen_t, 'noraw', function () {
   this._raw = false;
-};
-exports.noraw = simplify(screen_t.prototype.nowraw);
+});
+exports.noraw = simplify(screen_t.prototype.noraw);
 
 /**
  * All characters typed by the user are printed at the cursor's position.
  *
  * TODO
  **/
-var echo = exports.echo = function() {
+defun(screen_t, 'echo', function () {
   this._echo = true;
-};
+});
+exports.echo = simplify(screen_t.prototype.echo);
 
 /**
  * All characters not typed by the user are printed at the cursor's position.
  * Undoes a previous call to echo(). This is the default behaviour.
  **/
-var noecho = exports.noecho = function() {
+defun(screen_t, 'noecho', function () {
   this._echo = false;
-};
+});
+exports.noecho = simplify(screen_t.prototype.noecho);
 
 /**
  * Enables non-printable characters to also be grabbed as keyboard events
@@ -212,4 +214,6 @@ var noecho = exports.noecho = function() {
  *
  * TODO
  **/
-var keypad = exports.keypad = function() {};
+defun(screen_t, 'keypad', function () {
+});
+exports.keypad = simplify(screen_t.prototype.keypad);

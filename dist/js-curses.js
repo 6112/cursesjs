@@ -119,6 +119,24 @@ var tile_t = function() {
 };
 
 
+// used to quickly add a function to the prototype of classes.
+//
+// used as defun(class1, class2, ..., function_name, function_body);
+//
+// e.g.:
+//   defun(window_t, screen_t, 'move', function (y, x) {
+//     // function body goes here
+//   });
+var defun = function() {
+  var classes = [].slice.call(arguments, 0, -2);
+  var function_name = arguments[arguments.length - 2];
+  var function_body = arguments[arguments.length - 1];
+  var i;
+  for (i = 0; i < classes.length; i++) {
+    classes[i].prototype[function_name] = function_body;
+  }
+};
+
 // when called with a function, return that function, wrapped so that
 // it can be used directly by being applied on `default_screen'.
 //
@@ -362,12 +380,12 @@ var A_BOLD = exports.A_BOLD = A_STANDOUT << 5;
  *
  * @param {Attrlist} attrs New attributes' values.
  **/
-screen_t.prototype.attrset = window_t.prototype.attrset = function(attrs) {
+defun(screen_t, window_t, 'attrset', function (attrs) {
   this.attrs = attrs | (this.empty_attrs & ~COLOR_MASK);
   if ((attrs & COLOR_MASK) === 0) {
     this.attrs |= this.empty_attrs & COLOR_MASK;
   }
-};
+});
 exports.wattrset = windowify(window_t.prototype.attrset);
 exports.attrset = simplify(screen_t.prototype.attrset);
 
@@ -382,7 +400,7 @@ exports.attrset = simplify(screen_t.prototype.attrset);
  *
  * @param {Attrlist} attrs Attributes to be added.
  **/
-screen_t.prototype.attron = window_t.prototype.attron = function(attrs) {
+defun(screen_t, window_t, 'attron', function (attrs) {
   var color_pair = attrs & COLOR_MASK;
   if (color_pair === 0) {
     color_pair = this.attrs & COLOR_MASK;
@@ -391,7 +409,7 @@ screen_t.prototype.attron = window_t.prototype.attron = function(attrs) {
   other_attrs = other_attrs | ((this.attrs >> 16) << 16);
   var new_attrs = other_attrs | color_pair;
   this.attrset(new_attrs);
-};
+});
 exports.wattron = windowify(window_t.prototype.attron);
 exports.attron = simplify(screen_t.prototype.attron);
 
@@ -411,7 +429,7 @@ exports.attron = simplify(screen_t.prototype.attron);
  *
  * @param {Attrlist} attrs Attributes to be removed.
  **/
-screen_t.prototype.attroff = window_t.prototype.attroff = function(attrs) {
+defun(screen_t, window_t, 'attroff', function (attrs) {
   var color_pair = this.attrs & COLOR_MASK;
   var new_attrs = ((attrs >> 16) << 16);
   new_attrs = ~new_attrs & this.attrs;
@@ -419,7 +437,7 @@ screen_t.prototype.attroff = window_t.prototype.attroff = function(attrs) {
     new_attrs = new_attrs & ~COLOR_MASK;
   }
   this.attrset(new_attrs);
-};
+});
 exports.wattroff = windowify(window_t.prototype.attroff);
 exports.attroff = simplify(screen_t.prototype.attroff);
 
@@ -601,36 +619,38 @@ var grab_keyboard = function(scr, keyboard_target) {
  * You may want to use the `require_focus` option in initscr() if you use this
  * function.
  **/
-screen_t.prototype.raw = function() {
+defun(screen_t, 'raw', function () {
   this._raw = true;
-};
+});
 exports.raw = simplify(screen_t.prototype.raw);
 
 /**
  * Enables most browser shortcuts; undoes a previous call to raw(). This is
  * the default behaviour.
  **/
-screen_t.prototype.noraw = function() {
+defun(screen_t, 'noraw', function () {
   this._raw = false;
-};
-exports.noraw = simplify(screen_t.prototype.nowraw);
+});
+exports.noraw = simplify(screen_t.prototype.noraw);
 
 /**
  * All characters typed by the user are printed at the cursor's position.
  *
  * TODO
  **/
-var echo = exports.echo = function() {
+defun(screen_t, 'echo', function () {
   this._echo = true;
-};
+});
+exports.echo = simplify(screen_t.prototype.echo);
 
 /**
  * All characters not typed by the user are printed at the cursor's position.
  * Undoes a previous call to echo(). This is the default behaviour.
  **/
-var noecho = exports.noecho = function() {
+defun(screen_t, 'noecho', function () {
   this._echo = false;
-};
+});
+exports.noecho = simplify(screen_t.prototype.noecho);
 
 /**
  * Enables non-printable characters to also be grabbed as keyboard events
@@ -638,7 +658,9 @@ var noecho = exports.noecho = function() {
  *
  * TODO
  **/
-var keypad = exports.keypad = function() {};
+defun(screen_t, 'keypad', function () {
+});
+exports.keypad = simplify(screen_t.prototype.keypad);
 
 
 /**
@@ -932,30 +954,30 @@ var check_initscr_args = function(opts) {
  *
  * @return {Object} Object describing the bottom right corner of the screen.
  **/
-screen_t.prototype.getmaxyx = window_t.prototype.getmaxyx = function() {
+defun(screen_t, window_t, 'getmaxyx', function () {
   return {
     y: this.height - 1,
     x: this.width - 1
   };
-};
+});
 exports.getmaxyx = windowify(window_t.prototype.getmaxyx);
 // TODO: implement getbegyx(), getyx()
 
 /**
  * Make the cursor blink once every BLINK_DELAY milliseconds, if it is visible.
  **/
-screen_t.prototype.blink = function() {
+defun(screen_t, 'blink', function () {
   if (! this._blink) {
     start_blink(this);
   }
   this._blink = true;
-};
+});
 exports.blink = simplify(screen_t.prototype.blink);
 
 /**
  * Make the cursor stop blinking, if it is visible. See blink().
  **/
-screen_t.prototype.noblink = function() {
+defun(screen_t, 'noblink', function () {
   if (this._blink) {
     clearTimeout(this._blink_timeout);
     do_blink(this);
@@ -964,7 +986,7 @@ screen_t.prototype.noblink = function() {
   }
   this._blinking = false;
   this._blink = false;
-};
+});
 exports.noblink = simplify(screen_t.prototype.noblink);
 
 // used for making a blinking cursor
@@ -1000,7 +1022,7 @@ var do_unblink = function(scr) {
  *
  * @param {Integer} visibility
  **/
-screen_t.prototype.curs_set = function(visibility) {
+defun(screen_t, 'curs_set', function (visibility) {
   this._cursor_visibility = visibility;
   if (visibility) {
     draw_cursor(this);
@@ -1008,7 +1030,7 @@ screen_t.prototype.curs_set = function(visibility) {
   else {
     undraw_cursor(this);
   }
-};
+});
 exports.curs_set = simplify(screen_t.prototype.curs_set);
 
 /**
@@ -1016,8 +1038,8 @@ exports.curs_set = simplify(screen_t.prototype.curs_set);
  * 
  * TODO
  **/
-screen_t.prototype.endwin = function() {
-};
+defun(screen_t, 'endwin', function () {
+});
 exports.endwin = simplify(screen_t.prototype.endwin);
 
 
@@ -1280,7 +1302,7 @@ var load_bitmap_font = function(scr, font) {
  * this sparingly, as this can cause very bad performance if used too many
  * times per second.
  **/
-screen_t.prototype.clear = window_t.prototype.clear = function() {
+defun(screen_t, window_t, 'clear', function () {
   // reset all the character tiles
   // TODO: support setting attributes for empty_char
   var y, x;
@@ -1292,13 +1314,13 @@ screen_t.prototype.clear = window_t.prototype.clear = function() {
       tile.attrs = this.empty_attrs;
     }
   }
-};
+});
 exports.wclear = windowify(window_t.prototype.clear);
 exports.clear = simplify(screen_t.prototype.clear);
 
-screen_t.prototype.clrtoeol = window_t.prototype.clrtoeol = function() {
+defun(screen_t, window_t, 'clrtoeol', function () {
   hline(this.empty_char, this.width - this.x, A_NORMAL);
-};
+});
 exports.wclrtoeol = windowify(window_t.prototype.clrtoeol);
 exports.clrtoeol = simplify(screen_t.prototype.clrtoeol);
 
@@ -1311,7 +1333,7 @@ exports.clrtoeol = simplify(screen_t.prototype.clrtoeol);
  * Note that functions like addstr() and addch() will not do anything until
  * refresh() is called.
  **/
-screen_t.prototype.refresh = function() {
+defun(screen_t, 'refresh', function () {
   window_t.prototype.refresh.call(this);
   // move the on-screen cursor if necessary
   if (this._cursor_visibility && (! this._blink || this._blinking)) {
@@ -1322,7 +1344,7 @@ screen_t.prototype.refresh = function() {
   }
   this.previous_y = this.y;
   this.previous_x = this.x;
-};
+});
 exports.refresh = simplify(screen_t.prototype.refresh);
 
 /**
@@ -1334,7 +1356,7 @@ exports.refresh = simplify(screen_t.prototype.refresh);
  * the same place as `win`, win.refresh() should be called after
  * screen.refresh(). (as in the original ncurses)
  */
-window_t.prototype.refresh = function() {
+defun(window_t, 'refresh', function() {
   // TODO: move cursor on wrefresh();
   var scr = this.parent_screen;
   // for each changed character
@@ -1353,7 +1375,7 @@ window_t.prototype.refresh = function() {
       }
     }
   }
-};
+});
 exports.wrefresh = windowify(window_t.prototype.refresh);
 
 /**
@@ -1366,19 +1388,18 @@ exports.wrefresh = windowify(window_t.prototype.refresh);
  * @param {Integer} x x position of the new position.
  * @throws RangeError
  **/
-screen_t.prototype.move = window_t.prototype.move = function(y, x) {
+defun(screen_t, window_t, 'move', function (y, x) {
   if (y < 0 || y >= this.height || x < 0 || x >= this.width) {
     throw new RangeError("coordinates out of range");
   }
   this.y = y;
   this.x = x;
-};
+});
 exports.wmove = windowify(window_t.prototype.move);
 exports.move = simplify(screen_t.prototype.move);
 
 // TODO: remove expose/unexpose and related behavior
-window_t.prototype.expose =
-  screen_t.prototype.expose = function(y, x, height, width) {
+defun(screen_t, window_t, 'expose', function (y, x, height, width) {
   var j, i;
   for (j = y; j < y + height; j++) {
     for (i = x; i < x + width; i++) {
@@ -1387,17 +1408,16 @@ window_t.prototype.expose =
       this.addch(y, x, tile.content, tile.attrs);
     }
   }
-};
+});
 
-window_t.prototype.unexpose = 
-  screen_t.prototype.unexpose =function(y, x, height, width) {
+defun(screen_t, window_t, 'unexpose', function (y, x, height, width) {
   var j, i;
   for (j = y; j < y + height; j++) {
     for (i = x; i < x + width; i++) {
       this.tiles[j][i].exposed = false;
     }
   }
-};
+});
 
 /**
  * Output a single character to the console, at the current position, as
@@ -1421,7 +1441,7 @@ window_t.prototype.unexpose =
  * @param {Character} c Character to be drawn.
  * @param {Attrlist} [attrs] Temporary attributes to be applied.
  **/
-screen_t.prototype.addch = window_t.prototype.addch = function(c) {
+defun(screen_t, window_t, 'addch', function (c) {
   if (typeof c !== "string") {
     throw new TypeError("c is not a string");
   }
@@ -1451,7 +1471,7 @@ screen_t.prototype.addch = window_t.prototype.addch = function(c) {
     // or continue to next line if the end of the line was reached
     this.move(this.y + 1, 0);
   }
-}; 
+}); 
 // allow calling as addch(y, x, c);
 screen_t.prototype.addch = shortcut_move(screen_t.prototype.addch);
 screen_t.prototype.addch = attributify(screen_t.prototype.addch);
@@ -1484,7 +1504,7 @@ exports.addch = simplify(screen_t.prototype.addch);
  * @param {Character} str Character to be drawn.
  * @param {Attrlist} [attrs] Temporary attributes to be applied.
  **/
-screen_t.prototype.addstr = window_t.prototype.addstr = function(str) {
+defun(screen_t, window_t, 'addstr', function (str) {
   var i;
   for (i = 0; i < str.length && this.x < this.width; i++) {
     this.addch(str[i]);
@@ -1492,7 +1512,7 @@ screen_t.prototype.addstr = window_t.prototype.addstr = function(str) {
   if (i !== str.length) {
     throw new RangeError("not enough room to add the whole string");
   }
-}; 
+}); 
 // allow calling as addstr(y, x, str);
 screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
 screen_t.prototype.addstr = attributify(screen_t.prototype.addstr);
@@ -1513,7 +1533,7 @@ exports.addstr = simplify(screen_t.prototype.addstr);
  * @param {Integer} n Length of the line, in characters.
  * @param {Attrlist} attrs Attributes to apply to `ch`.
  **/
-screen_t.prototype.vline = window_t.prototype.vline = function(ch, n, attrs) {
+defun(screen_t, window_t, 'vline', function (ch, n, attrs) {
   var start_y = this.y;
   var start_x = this.x;
   var y;
@@ -1521,7 +1541,7 @@ screen_t.prototype.vline = window_t.prototype.vline = function(ch, n, attrs) {
     this.addch(y + start_y, start_x, ch, attrs);
   }
   this.move(start_y, start_x);
-};
+});
 screen_t.prototype.vline = shortcut_move(screen_t.prototype.vline);
 window_t.prototype.vline = shortcut_move(window_t.prototype.vline);
 exports.wvline = windowify(window_t.prototype.vline);
@@ -1539,7 +1559,7 @@ exports.vline = simplify(screen_t.prototype.vline);
  * @param {Integer} n Length of the line, in characters.
  * @param {Attrlist} attrs Attributes to apply to `ch`.
  **/
-screen_t.prototype.hline = window_t.prototype.hline = function(ch, n, attrs) {
+defun(screen_t, window_t, 'hline', function (ch, n, attrs) {
   var start_y = this.y;
   var start_x = this.x;
   var x;
@@ -1547,7 +1567,7 @@ screen_t.prototype.hline = window_t.prototype.hline = function(ch, n, attrs) {
     this.addch(start_y, x + start_x, ch, attrs);
   }
   this.move(start_y, start_x);
-};
+});
 screen_t.prototype.hline = shortcut_move(screen_t.prototype.hline);
 window_t.prototype.hline = shortcut_move(window_t.prototype.hline);
 exports.whline = windowify(window_t.prototype.hline);
@@ -1841,60 +1861,59 @@ var undraw_cursor = function(scr, y, x) {
  * @param {Integer} width width of the window, in characters.
  * @return {window_t} The created child window.
  **/
-window_t.prototype.newwin = 
-  screen_t.prototype.newwin = function(height, width, y, x) {
-    if (typeof y !== "number") {
-      throw new TypeError("y is not a number");
+defun(screen_t, window_t, 'newwin', function(height, width, y, x) {
+  if (typeof y !== "number") {
+    throw new TypeError("y is not a number");
+  }
+  if (y < 0) {
+    throw new RangeError("y is negative");
+  }
+  if (typeof x !== "number") {
+    throw new TypeError("x is not a number");
+  }
+  if (x < 0) {
+    throw new RangeError("x is negative");
+  }
+  if (typeof height !== "number") {
+    throw new TypeError("height is not a number");
+  }
+  if (height < 0) {
+    throw new RangeError("height is negative");
+  }
+  if (typeof width !== "number") {
+    throw new TypeError("width is not a number");
+  }
+  if (width < 0) {
+    throw new RangeError("width is negative");
+  }
+  // create the window
+  var win = new window_t(this.parent_screen);
+  win.win_y = y;
+  win.win_x = x;
+  win.height = height;
+  win.width = width;
+  win.parent = this;
+  // add to parent's subwindows
+  this.subwindows.push(win);
+  // create the 2D array of tiles
+  for (j = 0; j < height; j++) {
+    win.tiles[j] = [];
+    for (i = 0; i < width; i++) {
+      win.tiles[j][i] = new tile_t();
     }
-    if (y < 0) {
-      throw new RangeError("y is negative");
+  }
+  // draw each tile
+  for (j = 0; j < height; j++) {
+    for (i = 0; i < width; i++) {
+      win.addch(j, i, win.empty_char);
+      win.tiles[j][i].empty = true;
     }
-    if (typeof x !== "number") {
-      throw new TypeError("x is not a number");
-    }
-    if (x < 0) {
-      throw new RangeError("x is negative");
-    }
-    if (typeof height !== "number") {
-      throw new TypeError("height is not a number");
-    }
-    if (height < 0) {
-      throw new RangeError("height is negative");
-    }
-    if (typeof width !== "number") {
-      throw new TypeError("width is not a number");
-    }
-    if (width < 0) {
-      throw new RangeError("width is negative");
-    }
-    // create the window
-    var win = new window_t(this.parent_screen);
-    win.win_y = y;
-    win.win_x = x;
-    win.height = height;
-    win.width = width;
-    win.parent = this;
-    // add to parent's subwindows
-    this.subwindows.push(win);
-    // create the 2D array of tiles
-    for (j = 0; j < height; j++) {
-      win.tiles[j] = [];
-      for (i = 0; i < width; i++) {
-	win.tiles[j][i] = new tile_t();
-      }
-    }
-    // draw each tile
-    for (j = 0; j < height; j++) {
-      for (i = 0; i < width; i++) {
-	win.addch(j, i, win.empty_char);
-	win.tiles[j][i].empty = true;
-      }
-    }
-    // undraw each 'covered' tile in the parent
-    this.unexpose(y, x, height, width);
-    // return the created window
-    return win;
-  };
+  }
+  // undraw each 'covered' tile in the parent
+  this.unexpose(y, x, height, width);
+  // return the created window
+  return win;
+});
 exports.newwin = simplify(screen_t.prototype.newwin);
 
 /**
@@ -1906,8 +1925,7 @@ exports.newwin = simplify(screen_t.prototype.newwin);
  * @param {Character} c New background character.
  * @param {Attrlist} attrs New attrlist for the background.
  **/
-window_t.prototype.bkgd = function(c, attrs) {
-  // TODO: use attrset() instead of attron()
+defun(window_t, 'bkgd', function (c, attrs) {
   // TODO: implement for screen_t (and test)
   attrs |= 0;
   var saved_attrs = this.attrs;
@@ -1924,7 +1942,7 @@ window_t.prototype.bkgd = function(c, attrs) {
   this.empty_char = c;
   this.empty_attrs = attrs;
   this.attrset(saved_attrs);
-};
+});
 exports.wbkgd = windowify(window_t.prototype.bkgd);
 
 /**
@@ -1952,15 +1970,14 @@ exports.wbkgd = windowify(window_t.prototype.bkgd);
  * @param {ChType} [horiz=ACS_HLINE] One, or two arguments, that describe the
  *   character for the left and right borders, and its attributes.
  **/
-screen_t.prototype.box =
-  window_t.prototype.box = function(vert, horiz) {
-    var defaults = [ACS_VLINE, ACS_HLINE];
-    var chars = parse_chtypes(arguments, defaults, this);
-    vert = chars[0];
-    horiz = chars[1];
-    this.border(vert.value, vert.attrs, vert.value, vert.attrs,
-		horiz.value, horiz.attrs, horiz.value, horiz.attrs);
-  };
+defun(screen_t, window_t, 'box', function (vert, horiz) {
+  var defaults = [ACS_VLINE, ACS_HLINE];
+  var chars = parse_chtypes(arguments, defaults, this);
+  vert = chars[0];
+  horiz = chars[1];
+  this.border(vert.value, vert.attrs, vert.value, vert.attrs,
+	      horiz.value, horiz.attrs, horiz.value, horiz.attrs);
+});
 exports.box = windowify(window_t.prototype.box);
 
 /**
@@ -1991,25 +2008,24 @@ exports.box = windowify(window_t.prototype.box);
  * @param {ChType} [br=ACS_LRCORNER] Character (and attributes) for bottom right
  * corner.
  */
-screen_t.prototype.border =
-  window_t.prototype.border = function(ls, rs, ts, bs, tl, tr, bl, br) {
-    var defaults = [ACS_VLINE, ACS_VLINE,
-		    ACS_HLINE, ACS_HLINE,
-		    ACS_ULCORNER, ACS_URCORNER, ACS_LLCORNER, ACS_LRCORNER];
-    var chars = parse_chtypes(arguments, defaults, this);
-    // draw corners
-    this.addch(0, 0, chars[4].value, chars[4].attrs);
-    this.addch(0, this.width - 1, chars[5].value, chars[5].attrs);
-    this.addch(this.height - 1, 0, chars[6].value, chars[6].attrs);
-    this.addch(this.height - 1, this.width - 1, chars[7].value, chars[7].attrs);
-    // draw borders
-    this.vline(1, 0, chars[0].value, this.height - 2, chars[0].attrs);
-    this.vline(1, this.width - 1, chars[1].value, this.height - 2,
-	       chars[1].attrs);
-    this.hline(0, 1, chars[2].value, this.width - 2, chars[2].attrs);
-    this.hline(this.height - 1, 1, chars[3].value, this.width - 2,
-	       chars[3].attrs);
-  };
+defun(screen_t, window_t, 'border', function(ls, rs, ts, bs, tl, tr, bl, br) {
+  var defaults = [ACS_VLINE, ACS_VLINE,
+		  ACS_HLINE, ACS_HLINE,
+		  ACS_ULCORNER, ACS_URCORNER, ACS_LLCORNER, ACS_LRCORNER];
+  var chars = parse_chtypes(arguments, defaults, this);
+  // draw corners
+  this.addch(0, 0, chars[4].value, chars[4].attrs);
+  this.addch(0, this.width - 1, chars[5].value, chars[5].attrs);
+  this.addch(this.height - 1, 0, chars[6].value, chars[6].attrs);
+  this.addch(this.height - 1, this.width - 1, chars[7].value, chars[7].attrs);
+  // draw borders
+  this.vline(1, 0, chars[0].value, this.height - 2, chars[0].attrs);
+  this.vline(1, this.width - 1, chars[1].value, this.height - 2,
+	     chars[1].attrs);
+  this.hline(0, 1, chars[2].value, this.width - 2, chars[2].attrs);
+  this.hline(this.height - 1, 1, chars[3].value, this.width - 2,
+	     chars[3].attrs);
+});
 exports.wborder = windowify(window_t.prototype.border);
 exports.border = simplify(screen_t.prototype.border);
 
@@ -2056,17 +2072,17 @@ var parse_chtypes = function(arglist, defaults, win) {
  * @param {Boolean} bf `true` iff scrolling should be enabled for the window or
  * screen.
  */
-screen_t.prototype.scrollok = window_t.prototype.scrollok = function(bf) {
+defun(screen_t, window_t, 'scrollok', function (bf) {
   this._scroll_ok = bf;
-};
+});
 exports.scrollok = windowify(window_t.prototype.scrollok);
 
 /**
  * Scroll the window up one line, if scrollok() is enabled.
  */
-screen_t.prototype.scroll = window_t.prototype.scroll = function() {
+defun(screen_t, window_t, 'scroll', function () {
   this.scrl(1);
-};
+});
 exports.scroll = windowify(window_t.prototype.scroll);
 
 /**
@@ -2075,7 +2091,7 @@ exports.scroll = windowify(window_t.prototype.scroll);
  *
  * @param {Integer} n Number of lines to scroll up.
  */
-screen_t.prototype.scrl = window_t.prototype.scrl = function(n) {
+defun(screen_t, window_t, 'scrl', function (n) {
   if (! this._scroll_ok) {
     return;
   }
@@ -2107,7 +2123,7 @@ screen_t.prototype.scrl = window_t.prototype.scrl = function(n) {
       }
     }
   }
-};
+});
 exports.wscrl = windowify(window_t.prototype.scrl);
 exports.scrl = simplify(screen_t.prototype.scrl);
 
@@ -2118,7 +2134,7 @@ exports.scrl = simplify(screen_t.prototype.scrl);
  * 
  * TODO
  **/
-window_t.prototype.delwin = function() {
+defun(window_t, 'delwin', function () {
   // force a redraw on the parent, in the area corresponding to this window
   this.parent.expose(this.win_y, this.win_x, this.height, this.width);
   // remove from the parent's subwindows
@@ -2131,7 +2147,7 @@ window_t.prototype.delwin = function() {
   if (i !== this.parent.subwindows.length) {
     this.parent.subwindows.splice(i, 1);
   }
-};
+});
 
 
 /**

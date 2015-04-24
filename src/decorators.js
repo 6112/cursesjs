@@ -1,3 +1,21 @@
+// used to quickly add a function to the prototype of classes.
+//
+// used as defun(class1, class2, ..., function_name, function_body);
+//
+// e.g.:
+//   defun(window_t, screen_t, 'move', function (y, x) {
+//     // function body goes here
+//   });
+var defun = function() {
+  var classes = [].slice.call(arguments, 0, -2);
+  var function_name = arguments[arguments.length - 2];
+  var function_body = arguments[arguments.length - 1];
+  var i;
+  for (i = 0; i < classes.length; i++) {
+    classes[i].prototype[function_name] = function_body;
+  }
+};
+
 // when called with a function, return that function, wrapped so that
 // it can be used directly by being applied on `default_screen'.
 //

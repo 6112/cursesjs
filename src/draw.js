@@ -257,7 +257,7 @@ var load_bitmap_font = function(scr, font) {
  * this sparingly, as this can cause very bad performance if used too many
  * times per second.
  **/
-screen_t.prototype.clear = window_t.prototype.clear = function() {
+defun(screen_t, window_t, 'clear', function () {
   // reset all the character tiles
   // TODO: support setting attributes for empty_char
   var y, x;
@@ -269,13 +269,13 @@ screen_t.prototype.clear = window_t.prototype.clear = function() {
       tile.attrs = this.empty_attrs;
     }
   }
-};
+});
 exports.wclear = windowify(window_t.prototype.clear);
 exports.clear = simplify(screen_t.prototype.clear);
 
-screen_t.prototype.clrtoeol = window_t.prototype.clrtoeol = function() {
+defun(screen_t, window_t, 'clrtoeol', function () {
   hline(this.empty_char, this.width - this.x, A_NORMAL);
-};
+});
 exports.wclrtoeol = windowify(window_t.prototype.clrtoeol);
 exports.clrtoeol = simplify(screen_t.prototype.clrtoeol);
 
@@ -288,7 +288,7 @@ exports.clrtoeol = simplify(screen_t.prototype.clrtoeol);
  * Note that functions like addstr() and addch() will not do anything until
  * refresh() is called.
  **/
-screen_t.prototype.refresh = function() {
+defun(screen_t, 'refresh', function () {
   window_t.prototype.refresh.call(this);
   // move the on-screen cursor if necessary
   if (this._cursor_visibility && (! this._blink || this._blinking)) {
@@ -299,7 +299,7 @@ screen_t.prototype.refresh = function() {
   }
   this.previous_y = this.y;
   this.previous_x = this.x;
-};
+});
 exports.refresh = simplify(screen_t.prototype.refresh);
 
 /**
@@ -311,7 +311,7 @@ exports.refresh = simplify(screen_t.prototype.refresh);
  * the same place as `win`, win.refresh() should be called after
  * screen.refresh(). (as in the original ncurses)
  */
-window_t.prototype.refresh = function() {
+defun(window_t, 'refresh', function() {
   // TODO: move cursor on wrefresh();
   var scr = this.parent_screen;
   // for each changed character
@@ -330,7 +330,7 @@ window_t.prototype.refresh = function() {
       }
     }
   }
-};
+});
 exports.wrefresh = windowify(window_t.prototype.refresh);
 
 /**
@@ -343,19 +343,18 @@ exports.wrefresh = windowify(window_t.prototype.refresh);
  * @param {Integer} x x position of the new position.
  * @throws RangeError
  **/
-screen_t.prototype.move = window_t.prototype.move = function(y, x) {
+defun(screen_t, window_t, 'move', function (y, x) {
   if (y < 0 || y >= this.height || x < 0 || x >= this.width) {
     throw new RangeError("coordinates out of range");
   }
   this.y = y;
   this.x = x;
-};
+});
 exports.wmove = windowify(window_t.prototype.move);
 exports.move = simplify(screen_t.prototype.move);
 
 // TODO: remove expose/unexpose and related behavior
-window_t.prototype.expose =
-  screen_t.prototype.expose = function(y, x, height, width) {
+defun(screen_t, window_t, 'expose', function (y, x, height, width) {
   var j, i;
   for (j = y; j < y + height; j++) {
     for (i = x; i < x + width; i++) {
@@ -364,17 +363,16 @@ window_t.prototype.expose =
       this.addch(y, x, tile.content, tile.attrs);
     }
   }
-};
+});
 
-window_t.prototype.unexpose = 
-  screen_t.prototype.unexpose =function(y, x, height, width) {
+defun(screen_t, window_t, 'unexpose', function (y, x, height, width) {
   var j, i;
   for (j = y; j < y + height; j++) {
     for (i = x; i < x + width; i++) {
       this.tiles[j][i].exposed = false;
     }
   }
-};
+});
 
 /**
  * Output a single character to the console, at the current position, as
@@ -398,7 +396,7 @@ window_t.prototype.unexpose =
  * @param {Character} c Character to be drawn.
  * @param {Attrlist} [attrs] Temporary attributes to be applied.
  **/
-screen_t.prototype.addch = window_t.prototype.addch = function(c) {
+defun(screen_t, window_t, 'addch', function (c) {
   if (typeof c !== "string") {
     throw new TypeError("c is not a string");
   }
@@ -428,7 +426,7 @@ screen_t.prototype.addch = window_t.prototype.addch = function(c) {
     // or continue to next line if the end of the line was reached
     this.move(this.y + 1, 0);
   }
-}; 
+}); 
 // allow calling as addch(y, x, c);
 screen_t.prototype.addch = shortcut_move(screen_t.prototype.addch);
 screen_t.prototype.addch = attributify(screen_t.prototype.addch);
@@ -461,7 +459,7 @@ exports.addch = simplify(screen_t.prototype.addch);
  * @param {Character} str Character to be drawn.
  * @param {Attrlist} [attrs] Temporary attributes to be applied.
  **/
-screen_t.prototype.addstr = window_t.prototype.addstr = function(str) {
+defun(screen_t, window_t, 'addstr', function (str) {
   var i;
   for (i = 0; i < str.length && this.x < this.width; i++) {
     this.addch(str[i]);
@@ -469,7 +467,7 @@ screen_t.prototype.addstr = window_t.prototype.addstr = function(str) {
   if (i !== str.length) {
     throw new RangeError("not enough room to add the whole string");
   }
-}; 
+}); 
 // allow calling as addstr(y, x, str);
 screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
 screen_t.prototype.addstr = attributify(screen_t.prototype.addstr);
@@ -490,7 +488,7 @@ exports.addstr = simplify(screen_t.prototype.addstr);
  * @param {Integer} n Length of the line, in characters.
  * @param {Attrlist} attrs Attributes to apply to `ch`.
  **/
-screen_t.prototype.vline = window_t.prototype.vline = function(ch, n, attrs) {
+defun(screen_t, window_t, 'vline', function (ch, n, attrs) {
   var start_y = this.y;
   var start_x = this.x;
   var y;
@@ -498,7 +496,7 @@ screen_t.prototype.vline = window_t.prototype.vline = function(ch, n, attrs) {
     this.addch(y + start_y, start_x, ch, attrs);
   }
   this.move(start_y, start_x);
-};
+});
 screen_t.prototype.vline = shortcut_move(screen_t.prototype.vline);
 window_t.prototype.vline = shortcut_move(window_t.prototype.vline);
 exports.wvline = windowify(window_t.prototype.vline);
@@ -516,7 +514,7 @@ exports.vline = simplify(screen_t.prototype.vline);
  * @param {Integer} n Length of the line, in characters.
  * @param {Attrlist} attrs Attributes to apply to `ch`.
  **/
-screen_t.prototype.hline = window_t.prototype.hline = function(ch, n, attrs) {
+defun(screen_t, window_t, 'hline', function (ch, n, attrs) {
   var start_y = this.y;
   var start_x = this.x;
   var x;
@@ -524,7 +522,7 @@ screen_t.prototype.hline = window_t.prototype.hline = function(ch, n, attrs) {
     this.addch(start_y, x + start_x, ch, attrs);
   }
   this.move(start_y, start_x);
-};
+});
 screen_t.prototype.hline = shortcut_move(screen_t.prototype.hline);
 window_t.prototype.hline = shortcut_move(window_t.prototype.hline);
 exports.whline = windowify(window_t.prototype.hline);
