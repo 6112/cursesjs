@@ -105,6 +105,15 @@ var screen_t = function() {
   this.listeners = {
     keydown: []
   };
+  // true iff the mouse is currently held down
+  this._mouse_down = false;
+  // current mouse coordinates, as characters
+  this._mouse_y = 0;
+  this._mouse_x = 0;
+  // queue for mouse events
+  this._mevents = [];
+  // mask for enabled mouse events
+  this._mousemask = 0;
 };
 
 // tile on a window, used for keeping track of each character's state on the
@@ -482,6 +491,10 @@ var is_handled_keydown = function(event) {
 };
 
 var KEY_RESIZE = exports.KEY_RESIZE = '$RESIZE';
+var KEY_MOUSE = exports.KEY_MOUSE = '$MOUSE';
+var BUTTON1_PRESSED = exports.BUTTON1_PRESSED = 1 << 0;
+var BUTTON1_RELEASED = exports.BUTTON1_RELEASED = 1 << 1;
+var BUTTON1_CLICKED = exports.BUTTON1_CLICKED = 1 << 2;
 
 // called by initscr() to add keyboard support
 var handle_keyboard = function(scr, container, require_focus) {
@@ -493,7 +506,6 @@ var handle_keyboard = function(scr, container, require_focus) {
     container.attr('tabindex', 0);
   }
   grab_keyboard(scr, keyboard_target);
-
   if (scr.auto_height || scr.auto_width) {
     $(window).resize(function(event) {
       // calculate the new width/height of the screen, in characters
@@ -610,6 +622,73 @@ var grab_keyboard = function(scr, keyboard_target) {
     use_keypress = false;
     return ! cancel;
   });
+};
+
+/**
+ * With one argument, set the enabled mouse events to those specified by
+ * `newmask` (binary-or'd together, see BUTTON1_PRESSED, BUTTON1_RELEASED, etc.,
+ * and return the previously active mouse mask.
+ *
+ * With no arguments, only return the currently active mouse mask.
+ *
+ * @param {Integer} [newmask] New mouse mask to set.
+ * @return {Integer} Currently active mouse mask.
+ */
+defun(screen_t, 'mousemask', function(newmask) {
+  if (arguments.length === 0) {
+    return this._mousemask;
+  }
+  var oldmask = this._mousemask;
+  this._mousemask = newmask;
+  return oldmask;
+});
+exports.mousemask = simplify(screen_t.prototype.mousemask);
+
+var handle_mouse = function(scr, mouse_target) {
+  mouse_target.mousedown(function(event) {
+    scr._mouse_down = true;
+    if (scr._mousemask & BUTTON1_PRESSED) {
+      var mevent = get_mevent(scr, event);
+      mevent.id = '$BUTTON1_PRESSED';
+      scr._mevents.push(mevent);
+      scr.trigger('keydown', KEY_MOUSE, event);
+    }
+  });
+  mouse_target.mouseup(function(event) {
+    scr._mouse_down = false;
+    if (scr._mousemask & BUTTON1_RELEASED) {
+      var mevent = get_mevent(scr, event);
+      mevent.id = '$BUTTON1_RELEASED';
+      scr._mevents.push(mevent);
+      scr.trigger('keydown', KEY_MOUSE, event);
+    }
+  });
+  mouse_target.mousemove(function(event) {
+    if (scr._mouse_down) {
+      // TODO
+    }
+  });
+};
+
+defun(screen_t, 'getmouse', function() {
+  return this._mevents.pop();
+});
+exports.getmouse = simplify(screen_t.prototype.getmouse);
+
+var calculate_mouse_pos = function(scr, event) {
+  var canvas = scr.canvas;
+  return {
+    y: Math.floor((event.pageY - canvas.offset().top) / scr.font.char_height),
+    x: Math.floor((event.pageX - canvas.offset().left) / scr.font.char_width)
+  };
+};
+
+var get_mevent = function(scr, event) {
+  var mevent = calculate_mouse_pos(scr, event);
+  mevent.z = 0;
+  mevent.bstate = 0;
+  mevent.id = 0;
+  return mevent;
 };
 
 /**
@@ -879,6 +958,8 @@ var initscr = exports.initscr = function(opts) {
   scr.clear();
   // add keyboard hooks
   handle_keyboard(scr, opts.container, opts.require_focus);
+  // add mouse hooks
+  handle_mouse(scr, opts.container);
   // make a blinking cursor
   start_blink(scr);
   // return the created window

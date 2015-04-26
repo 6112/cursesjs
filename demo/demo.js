@@ -32,6 +32,7 @@ $(window).load(function() {
   });
   // */
   curs_set(1);
+  mousemask(BUTTON1_PRESSED);
   blink();
   init_pair(1, COLOR_RED, COLOR_BLACK);
   init_pair(2, COLOR_GREEN, COLOR_BLACK);
@@ -60,6 +61,10 @@ $(window).load(function() {
     'Window demo (TODO ☻)',
     'Benchmark'
   ];
+  var mouse = {
+    y: options.length + 3,
+    x: 0
+  };
   var demo = window.demo = {};
   var redraw = demo.redraw = function() {
     var bounds = getmaxyx(win);
@@ -109,7 +114,8 @@ $(window).load(function() {
       }
     }
     addch(max_y, max_x, 'M');
-    move(i + 3, 0);
+    // move(i + 3, 0);
+    move(mouse.y, mouse.x);
     refresh();
     wrefresh(subwin);
     wrefresh(subwin2);
@@ -118,6 +124,10 @@ $(window).load(function() {
   var update = demo.update = function(c) {
     var cancel = true;
     switch(c) {
+      case KEY_MOUSE:
+        mouse = getmouse();
+        break;
+      
       case 'j':
       case KEY_DOWN:
         selected++;

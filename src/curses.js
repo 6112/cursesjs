@@ -104,6 +104,15 @@ var screen_t = function() {
   this.listeners = {
     keydown: []
   };
+  // true iff the mouse is currently held down
+  this._mouse_down = false;
+  // current mouse coordinates, as characters
+  this._mouse_y = 0;
+  this._mouse_x = 0;
+  // queue for mouse events
+  this._mevents = [];
+  // mask for enabled mouse events
+  this._mousemask = 0;
 };
 
 // tile on a window, used for keeping track of each character's state on the

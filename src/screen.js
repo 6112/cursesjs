@@ -214,6 +214,8 @@ var initscr = exports.initscr = function(opts) {
   scr.clear();
   // add keyboard hooks
   handle_keyboard(scr, opts.container, opts.require_focus);
+  // add mouse hooks
+  handle_mouse(scr, opts.container);
   // make a blinking cursor
   start_blink(scr);
   // return the created window
