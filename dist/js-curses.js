@@ -1899,7 +1899,7 @@ var draw_cursor = function(scr) {
     // line cursor
     y = Math.round((scr.y + 1) * scr.font.char_height - 2);
     x = Math.round(scr.x * scr.font.char_width);
-    tile = scr.tiles[scr.y][scr.x];
+    tile = scr.display[scr.y][scr.x];
     scr.context.fillStyle = attr_colors(tile.attrs)[0];
     scr.context.fillRect(x, y, Math.round(scr.font.char_width - 1), 2);
   }
@@ -1907,7 +1907,7 @@ var draw_cursor = function(scr) {
     // block cursor
     y = scr.y;
     x = scr.x;
-    tile = scr.tiles[y][x];
+    tile = scr.display[y][x];
     draw_char(scr, y, x, tile.content, tile.attrs ^ A_REVERSE);
   }
 };
@@ -1919,7 +1919,7 @@ var undraw_cursor = function(scr, y, x) {
     y = scr.y;
     x = scr.x;
   }
-  var tile = scr.tiles[y][x];
+  var tile = scr.display[y][x];
   draw_char(scr, y, x, tile.content, tile.attrs);
 };
 
