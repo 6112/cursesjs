@@ -47,10 +47,10 @@ $(window).load(function() {
   wborder(subwin);
   var subwin2 = newwin(5, 20, 20, 28);
   wbkgd(subwin2, '_', COLOR_PAIR(2) | A_REVERSE);
-  // scrollok(subwin2, true);
+  scrollok(subwin2, true);
   wmove(subwin2, 0, 0);
   var i;
-  for (i = 0; i < 4; i++) {
+  for (i = 0; i < 8; i++) {
     waddstr(subwin2, i + "\n");
   }
   waddstr(subwin2, "(these should be the last 2 lines)");
