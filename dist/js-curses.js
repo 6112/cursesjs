@@ -8,13 +8,19 @@ var exports = window;
 /**
  * Standard 'screen' object, used as a default for most operations.
  */
-exports.stdscr = null;
+var stdscr = exports.stdscr = null;
 
 // milliseconds between cursor blinks
 var BLINK_DELAY = 200;
 
 // default value for the character on 'empty' space
 var EMPTY_CHAR = ' ';
+
+// many functions will return ERR when they are unable to perform an operation
+var ERR = exports.ERR = -1;
+
+// many functions will return OK when they are able to perform an operation
+var OK = exports.OK = 0;
 
 // default window: will be used as a default object for all curses functions,
 // such as print(), addch(), move(), etc., if called directly instead of using
@@ -1467,11 +1473,11 @@ exports.wrefresh = windowify(window_t.prototype.refresh);
  *
  * @param {Integer} y y position of the new position.
  * @param {Integer} x x position of the new position.
- * @throws RangeError
+ * @return {Integer} ERR or OK, indicating whether the cursor could be moved.
  **/
 defun(screen_t, window_t, 'move', function (y, x) {
   if (y < 0 || y >= this.height || x < 0 || x >= this.width) {
-    throw new RangeError("coordinates out of range");
+    return ERR;
   }
   this.y = y;
   this.x = x;
@@ -1533,27 +1539,54 @@ defun(screen_t, window_t, 'addch', function (c) {
     throw new RangeError("invalid coordinates");
   }
   // treat all whitespace as a single space character
-  if (c === '\t' || c === '\n' || c === '\r') {
+  if (c === '\t' || c === '\r' || c === ' ') {
+    // TODO: handle '\t' and '\r' differently
     c = this.empty_char;
   }
-  var tile = this.tiles[this.y][this.x];
-  // only do this if the content (or attrlist) changed
-  if (c !== tile.content || this.attrs !== tile.attrs) {
-    // update the tile
-    tile.content = c;
-    tile.empty = false;
-    tile.attrs = this.attrs;
+  // treat a newline as a special character
+  if (c === '\n') {
+    if (! this._scroll_ok || this.y !== this.height - 1) {
+      this.move(this.y + 1, 0);
+    }
+    else {
+      this.scroll();
+      this.move(this.y, 0);
+    }
+    return;
   }
-  // move to the right
-  if (this.x < this.width - 1) {
-    this.move(this.y, this.x + 1);
+  // update the tile
+  var tile = this.tiles[this.y][this.x];
+  tile.content = c;
+  tile.empty = false;
+  tile.attrs = this.attrs;
+  if (this._scroll_ok && this.x === this.width - 1 &&
+      this.y === this.height - 1) {
+    // end of screen or window reached, scroll window
+    this.scroll();
+    this.move(this.y, 0);
+  }
+  else if (this.x < this.width - 1) {
+    // move to the right if possible
+    if (this.y !== this.height - 1) {
+      this.move(this.y, this.x + 1);
+    }
+    else if (this._scroll_ok) {
+      this.move(this.y, this.x + 1);
+    }
+    else {
+      this.move(this.y, this.x + 1);
+    }
   }
   else if (this.y < this.height - 1) {
     // or continue to next line if the end of the line was reached
     this.move(this.y + 1, 0);
   }
+  else {
+    // reached end of window, and scrollok() is false: error
+    return ERR;
+  }
+  return OK;
 }); 
-// allow calling as addch(y, x, c);
 screen_t.prototype.addch = shortcut_move(screen_t.prototype.addch);
 screen_t.prototype.addch = attributify(screen_t.prototype.addch);
 window_t.prototype.addch = shortcut_move(window_t.prototype.addch);
@@ -1584,17 +1617,19 @@ exports.addch = simplify(screen_t.prototype.addch);
  * @param {Integer} [x] x position for output.
  * @param {Character} str Character to be drawn.
  * @param {Attrlist} [attrs] Temporary attributes to be applied.
+ * @return {Integer} OK on success, ERR if whole string cannot be printed.
  **/
 defun(screen_t, window_t, 'addstr', function (str) {
   var i;
-  for (i = 0; i < str.length && this.x < this.width; i++) {
-    this.addch(str[i]);
+  for (i = 0; i < str.length; i++) {
+    var status = this.addch(str[i]);
+    if (status === ERR) {
+      // spread the error
+      return ERR;
+    }
   }
-  if (i !== str.length) {
-    throw new RangeError("not enough room to add the whole string");
-  }
+  return OK;
 }); 
-// allow calling as addstr(y, x, str);
 screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
 screen_t.prototype.addstr = attributify(screen_t.prototype.addstr);
 window_t.prototype.addstr = shortcut_move(window_t.prototype.addstr);

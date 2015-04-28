@@ -7,13 +7,19 @@ var exports = window;
 /**
  * Standard 'screen' object, used as a default for most operations.
  */
-exports.stdscr = null;
+var stdscr = exports.stdscr = null;
 
 // milliseconds between cursor blinks
 var BLINK_DELAY = 200;
 
 // default value for the character on 'empty' space
 var EMPTY_CHAR = ' ';
+
+// many functions will return ERR when they are unable to perform an operation
+var ERR = exports.ERR = -1;
+
+// many functions will return OK when they are able to perform an operation
+var OK = exports.OK = 0;
 
 // default window: will be used as a default object for all curses functions,
 // such as print(), addch(), move(), etc., if called directly instead of using

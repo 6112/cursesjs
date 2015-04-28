@@ -47,12 +47,13 @@ $(window).load(function() {
   wborder(subwin);
   var subwin2 = newwin(5, 20, 20, 28);
   wbkgd(subwin2, '_', COLOR_PAIR(2) | A_REVERSE);
-  waddstr(subwin2, 2, 1, "last line");
-  scrollok(subwin2, true);
-  wscrl(subwin2, 2);
-  wscrl(subwin2, -1);
-  scroll(subwin2);
-  wscrl(subwin2, -4);
+  // scrollok(subwin2, true);
+  wmove(subwin2, 0, 0);
+  var i;
+  for (i = 0; i < 4; i++) {
+    waddstr(subwin2, i + "\n");
+  }
+  waddstr(subwin2, "(these should be the last 2 lines)");
   raw();
   var selected = 0;
   var options = [
