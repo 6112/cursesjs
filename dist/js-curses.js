@@ -113,9 +113,9 @@ var screen_t = function() {
   };
   // true iff the mouse is currently held down
   this._mouse_down = false;
-  // current mouse coordinates, as characters
-  this._mouse_y = 0;
-  this._mouse_x = 0;
+  // coordinates of the mouse when the mouse was pressed
+  this._mouse_down_y = 0;
+  this._mouse_down_x = 0;
   // queue for mouse events
   this._mevents = [];
   // mask for enabled mouse events
@@ -652,27 +652,34 @@ exports.mousemask = simplify(screen_t.prototype.mousemask);
 
 var handle_mouse = function(scr, mouse_target) {
   mouse_target.mousedown(function(event) {
+    var pos = calculate_mouse_pos(scr, event);
     scr._mouse_down = true;
+    scr._mouse_down_y = pos.y;
+    scr._mouse_down_x = pos.x;
     if (scr._mousemask & BUTTON1_PRESSED) {
       var mevent = get_mevent(scr, event);
-      mevent.id = '$BUTTON1_PRESSED';
+      mevent.id = BUTTON1_PRESSED;
       scr._mevents.push(mevent);
       scr.trigger('keydown', KEY_MOUSE, event);
     }
   });
   mouse_target.mouseup(function(event) {
-    scr._mouse_down = false;
+    var pos = calculate_mouse_pos(scr, event);
+    var mevent;
     if (scr._mousemask & BUTTON1_RELEASED) {
-      var mevent = get_mevent(scr, event);
-      mevent.id = '$BUTTON1_RELEASED';
+      mevent = get_mevent(scr, event);
+      mevent.id = BUTTON1_RELEASED;
       scr._mevents.push(mevent);
       scr.trigger('keydown', KEY_MOUSE, event);
     }
-  });
-  mouse_target.mousemove(function(event) {
-    if (scr._mouse_down) {
-      // TODO
+    if (scr._mouse_down && scr._mousemask & BUTTON1_CLICKED &&
+        scr._mouse_down_y === pos.y && scr._mouse_down_x === pos.x) {
+      mevent = get_mevent(scr, event);
+      mevent.id = BUTTON1_CLICKED;
+      scr._mevents.push(mevent);
+      scr.trigger('keydown', KEY_MOUSE, event);
     }
+    scr._mouse_down = false;
   });
 };
 
@@ -1546,13 +1553,14 @@ defun(screen_t, window_t, 'addch', function (c) {
   // treat a newline as a special character
   if (c === '\n') {
     if (! this._scroll_ok || this.y !== this.height - 1) {
-      this.move(this.y + 1, 0);
+      var status = this.move(this.y + 1, 0);
+      return status;
     }
     else {
       this.scroll();
       this.move(this.y, 0);
+      return OK;
     }
-    return;
   }
   // update the tile
   var tile = this.tiles[this.y][this.x];

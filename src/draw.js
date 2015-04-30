@@ -414,13 +414,14 @@ defun(screen_t, window_t, 'addch', function (c) {
   // treat a newline as a special character
   if (c === '\n') {
     if (! this._scroll_ok || this.y !== this.height - 1) {
-      this.move(this.y + 1, 0);
+      var status = this.move(this.y + 1, 0);
+      return status;
     }
     else {
       this.scroll();
       this.move(this.y, 0);
+      return OK;
     }
-    return;
   }
   // update the tile
   var tile = this.tiles[this.y][this.x];

@@ -193,27 +193,34 @@ exports.mousemask = simplify(screen_t.prototype.mousemask);
 
 var handle_mouse = function(scr, mouse_target) {
   mouse_target.mousedown(function(event) {
+    var pos = calculate_mouse_pos(scr, event);
     scr._mouse_down = true;
+    scr._mouse_down_y = pos.y;
+    scr._mouse_down_x = pos.x;
     if (scr._mousemask & BUTTON1_PRESSED) {
       var mevent = get_mevent(scr, event);
-      mevent.id = '$BUTTON1_PRESSED';
+      mevent.id = BUTTON1_PRESSED;
       scr._mevents.push(mevent);
       scr.trigger('keydown', KEY_MOUSE, event);
     }
   });
   mouse_target.mouseup(function(event) {
-    scr._mouse_down = false;
+    var pos = calculate_mouse_pos(scr, event);
+    var mevent;
     if (scr._mousemask & BUTTON1_RELEASED) {
-      var mevent = get_mevent(scr, event);
-      mevent.id = '$BUTTON1_RELEASED';
+      mevent = get_mevent(scr, event);
+      mevent.id = BUTTON1_RELEASED;
       scr._mevents.push(mevent);
       scr.trigger('keydown', KEY_MOUSE, event);
     }
-  });
-  mouse_target.mousemove(function(event) {
-    if (scr._mouse_down) {
-      // TODO
+    if (scr._mouse_down && scr._mousemask & BUTTON1_CLICKED &&
+        scr._mouse_down_y === pos.y && scr._mouse_down_x === pos.x) {
+      mevent = get_mevent(scr, event);
+      mevent.id = BUTTON1_CLICKED;
+      scr._mevents.push(mevent);
+      scr.trigger('keydown', KEY_MOUSE, event);
     }
+    scr._mouse_down = false;
   });
 };
 

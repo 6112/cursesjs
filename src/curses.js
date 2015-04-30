@@ -112,9 +112,9 @@ var screen_t = function() {
   };
   // true iff the mouse is currently held down
   this._mouse_down = false;
-  // current mouse coordinates, as characters
-  this._mouse_y = 0;
-  this._mouse_x = 0;
+  // coordinates of the mouse when the mouse was pressed
+  this._mouse_down_y = 0;
+  this._mouse_down_x = 0;
   // queue for mouse events
   this._mevents = [];
   // mask for enabled mouse events
