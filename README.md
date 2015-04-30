@@ -51,10 +51,7 @@ in a web browser.
 
 ## TODO
 
-* Add mouse support
-* Implement scrollok()
 * Implement echo(), noecho()
 * Implement endwin(), delwin()
-* Improve the refresh()/wrefresh() cycle to be more similar to original ncurses
 * Improve bkgd()
 * Improve keyboard events
