@@ -21,7 +21,7 @@ module.exports = function(grunt) {
       options: {
         // wrap the ouptut with (function(){...})(); so that package-local
         // functions/variables are actually local to the package
-        banner: '(function() {\n',
+        banner: '"use strict";\n(function() {\n',
         separator: '\n\n', // for better human-readability
         footer: '\n})();'
       },

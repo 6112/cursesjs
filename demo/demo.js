@@ -151,6 +151,7 @@ $(window).load(function() {
           ungetch(update);
           clear();
           bm.ticks = 0;
+          bm.update();
           bm.redraw();
           bm.fps_timeout = setTimeout(bm.count_fps, 1000);
           ongetch(bm.update);

@@ -162,7 +162,7 @@ var initscr = exports.initscr = function(opts) {
   scr.height = opts.height;
   scr.width = opts.width;
   // create the canvas
-  scr.canvas = $('<canvas></canvas>');
+  scr.canvas = $('<canvas moz-opaque></canvas>');
   scr.container.append(scr.canvas);
   scr.context = scr.canvas[0].getContext('2d');
   // load the specified font

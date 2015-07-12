@@ -1,3 +1,4 @@
+"use strict";
 (function() {
 "use strict()";
 
@@ -211,7 +212,11 @@ var shortcut_move = function(f) {
     var args = arguments;
     if (typeof y === "number" && typeof x === "number") {
       this.move(y, x);
-      args = [].slice.call(arguments, 2);
+      args = new Array(arguments.length - 2);
+      var i = 2;
+      for (; i < arguments.length; i++) {
+        args[i - 2] = arguments[i];
+      }
     }
     return f.apply(this, args);
   };
@@ -238,7 +243,12 @@ var attributify = function(f) {
     if (arguments.length !== 0) {
       attrs = arguments[arguments.length - 1];
       if (typeof attrs === "number") {
-        args = [].slice.call(arguments, 0, arguments.length - 1);
+        args = new Array(arguments.length - 1);
+        var i = 0;
+        var n = arguments.length - 1;
+        for (;  i < n; i++) {
+          args[i] = arguments[i];
+        }
         this.attron(attrs);
       }
     }
@@ -919,7 +929,7 @@ var initscr = exports.initscr = function(opts) {
   scr.height = opts.height;
   scr.width = opts.width;
   // create the canvas
-  scr.canvas = $('<canvas></canvas>');
+  scr.canvas = $('<canvas moz-opaque></canvas>');
   scr.container.append(scr.canvas);
   scr.context = scr.canvas[0].getContext('2d');
   // load the specified font
@@ -1272,7 +1282,8 @@ var init_codepage_437 = function() {
     }
   }
   exports.CODEPAGE_437[0] = '\0☺☻♥♦♣♠•◘○◙♂♀♪♫☼►◄↕‼¶§▬↨↑↓→←∟↔▲▼';
-  exports.CODEPAGE_437[3][31] = '⌂';
+  var tmp = exports.CODEPAGE_437[3];
+  exports.CODEPAGE_437[3] = tmp.substr(0, 31) + '⌂' + tmp.substr(32);
   exports.CODEPAGE_437[4] = 'ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒ';
   exports.CODEPAGE_437[5] = 'áíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐';
   exports.CODEPAGE_437[6] = '└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀';
@@ -1450,11 +1461,12 @@ exports.refresh = simplify(screen_t.prototype.refresh);
  * the same place as `win`, win.refresh() should be called after
  * screen.refresh(). (as in the original ncurses)
  */
+var rx = /([0-9]+),([0-9]+)/;
 defun(window_t, 'refresh', function() {
   // TODO: move cursor on wrefresh();
   var scr = this.parent_screen;
   // for each changed character
-  var y, x;
+  var y, x, _;
   for (y = 0; y < this.height; y++) {
     for (x = 0; x < this.width; x++) {
       var prev = scr.display[y + this.win_y][x + this.win_x];
@@ -1724,6 +1736,7 @@ var draw_char = function(scr, y, x, c, attrs) {
   // apply the drawing onto the visible canvas
   y = Math.round(y * scr.font.char_height);
   x = Math.round(x * scr.font.char_width);
+  var i;
   scr.context.drawImage(offscreen.src,
                         offscreen.sx, offscreen.sy,
                         scr.font.char_width, scr.font.char_height,
@@ -2019,6 +2032,7 @@ defun(screen_t, window_t, 'newwin', function(height, width, y, x) {
   win.parent = this;
   // add to parent's subwindows
   this.subwindows.push(win);
+  var i, j;
   // create the 2D array of tiles
   for (j = 0; j < height; j++) {
     win.tiles[j] = [];

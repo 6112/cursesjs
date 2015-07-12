@@ -50,6 +50,7 @@ defun(screen_t, window_t, 'newwin', function(height, width, y, x) {
   win.parent = this;
   // add to parent's subwindows
   this.subwindows.push(win);
+  var i, j;
   // create the 2D array of tiles
   for (j = 0; j < height; j++) {
     win.tiles[j] = [];

@@ -133,7 +133,8 @@ var init_codepage_437 = function() {
     }
   }
   exports.CODEPAGE_437[0] = '\0☺☻♥♦♣♠•◘○◙♂♀♪♫☼►◄↕‼¶§▬↨↑↓→←∟↔▲▼';
-  exports.CODEPAGE_437[3][31] = '⌂';
+  var tmp = exports.CODEPAGE_437[3];
+  exports.CODEPAGE_437[3] = tmp.substr(0, 31) + '⌂' + tmp.substr(32);
   exports.CODEPAGE_437[4] = 'ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒ';
   exports.CODEPAGE_437[5] = 'áíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐';
   exports.CODEPAGE_437[6] = '└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀';
@@ -311,11 +312,12 @@ exports.refresh = simplify(screen_t.prototype.refresh);
  * the same place as `win`, win.refresh() should be called after
  * screen.refresh(). (as in the original ncurses)
  */
+var rx = /([0-9]+),([0-9]+)/;
 defun(window_t, 'refresh', function() {
   // TODO: move cursor on wrefresh();
   var scr = this.parent_screen;
   // for each changed character
-  var y, x;
+  var y, x, _;
   for (y = 0; y < this.height; y++) {
     for (x = 0; x < this.width; x++) {
       var prev = scr.display[y + this.win_y][x + this.win_x];
@@ -585,6 +587,7 @@ var draw_char = function(scr, y, x, c, attrs) {
   // apply the drawing onto the visible canvas
   y = Math.round(y * scr.font.char_height);
   x = Math.round(x * scr.font.char_width);
+  var i;
   scr.context.drawImage(offscreen.src,
                         offscreen.sx, offscreen.sy,
                         scr.font.char_width, scr.font.char_height,

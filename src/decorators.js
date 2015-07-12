@@ -75,7 +75,11 @@ var shortcut_move = function(f) {
     var args = arguments;
     if (typeof y === "number" && typeof x === "number") {
       this.move(y, x);
-      args = [].slice.call(arguments, 2);
+      args = new Array(arguments.length - 2);
+      var i = 2;
+      for (; i < arguments.length; i++) {
+        args[i - 2] = arguments[i];
+      }
     }
     return f.apply(this, args);
   };
@@ -102,7 +106,12 @@ var attributify = function(f) {
     if (arguments.length !== 0) {
       attrs = arguments[arguments.length - 1];
       if (typeof attrs === "number") {
-        args = [].slice.call(arguments, 0, arguments.length - 1);
+        args = new Array(arguments.length - 1);
+        var i = 0;
+        var n = arguments.length - 1;
+        for (;  i < n; i++) {
+          args[i] = arguments[i];
+        }
         this.attron(attrs);
       }
     }
