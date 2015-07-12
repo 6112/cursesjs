@@ -578,6 +578,7 @@ var make_offscreen_canvas = function(font) {
 // from the canvas cache ̀`char_cache`
 //
 // draw_char() is used by refresh() to redraw characters where necessary
+var is_firefox = /firefox/i.test(navigator.userAgent);
 var draw_char = function(scr, y, x, c, attrs) {
   var offscreen = find_offscreen_char(scr, c, attrs);
   if (! offscreen) {
@@ -587,12 +588,16 @@ var draw_char = function(scr, y, x, c, attrs) {
   // apply the drawing onto the visible canvas
   y = Math.round(y * scr.font.char_height);
   x = Math.round(x * scr.font.char_width);
-  var i;
-  scr.context.drawImage(offscreen.src,
-                        offscreen.sx, offscreen.sy,
-                        scr.font.char_width, scr.font.char_height,
-                        x, y,
-                        scr.font.char_width, scr.font.char_height);
+  // performance workaround: putImageData() is slower than drawImage() in
+  // Firefox
+  if (is_firefox)
+    scr.context.drawImage(offscreen.src,
+                          offscreen.sx, offscreen.sy,
+                          scr.font.char_width, scr.font.char_height,
+                          x, y,
+     scr.font.char_width, scr.font.char_height);
+  else
+    scr.context.putImageData(offscreen.img_data, x, y);
   // return true for success
   return true;
 };
@@ -699,7 +704,7 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   if (! char_cache[c]) {
     char_cache[c] = {};
   }
-  scr.char_cache[c][attrs] = {
+  char_cache[c][attrs] = {
     src: canvas[0],
     sy: sy,
     sx: sx
@@ -731,7 +736,6 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   // for each non-transparent pixel on the small canvas, draw the pixel
   // at the same position onto the 'main' offscreen canvas
   ctx.fillStyle = fg;
-  ctx.save();
   var pixels = small.getImageData(0, 0, width, height).data;
   var y, x;
   for (y = 0; y < height - scr.font.line_spacing; y++) {
@@ -747,13 +751,14 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
       }
     }
   }
-  ctx.restore();
+  ctx.globalAlpha = 255;
   // draw the underline if necessary
   if (attrs & A_UNDERLINE) {
     ctx.fillRect(sx, sy + height - 1, width, 1);
   }
   // increment the canvas pool's counter: move to the next character
   pool.x++;
+  var img_data = char_cache[c][attrs].img_data = ctx.getImageData(sx, sy, 9, 16);
   // return an object telling where to find the offscreen character
   return char_cache[c][attrs];
 };

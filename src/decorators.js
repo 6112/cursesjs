@@ -51,7 +51,12 @@ var simplify = function(f) {
 // TODO: *use* this, instead of just declaring it
 var windowify = function(f) {
   return function() {
-    return f.apply(arguments[0], [].slice.call(arguments, 1));
+    var args = new Array(arguments.length - 1);
+    var i = 1;
+    for (; i < arguments.length; i++) {
+      args[i - 1] = arguments[i];
+    }
+    return f.apply(arguments[0], args);
   };
 };
 
@@ -72,14 +77,14 @@ var windowify = function(f) {
 // TODO: rename this decorator
 var shortcut_move = function(f) {
   return function(y, x) {
-    var args = arguments;
+    var args = new Array(arguments.length);
+    var i = 0;
+    for (; i < arguments.length; i++) {
+      args[i] = arguments[i];
+    }
     if (typeof y === "number" && typeof x === "number") {
       this.move(y, x);
-      args = new Array(arguments.length - 2);
-      var i = 2;
-      for (; i < arguments.length; i++) {
-        args[i - 2] = arguments[i];
-      }
+      args = args.slice(2);
     }
     return f.apply(this, args);
   };
@@ -100,18 +105,17 @@ var shortcut_move = function(f) {
 //   screen_t.prototype.addstr = attributify(screen_t.prototype.addstr);
 var attributify = function(f) {
   return function() {
-    var args = arguments;
+    var args = new Array(arguments.length);
+    var i = 0;
+    for (; i < arguments.length; i++) {
+      args[i] = arguments[i];
+    }
     var attrs = null;
     var prev_attrs = this.attrs;
     if (arguments.length !== 0) {
       attrs = arguments[arguments.length - 1];
       if (typeof attrs === "number") {
-        args = new Array(arguments.length - 1);
-        var i = 0;
-        var n = arguments.length - 1;
-        for (;  i < n; i++) {
-          args[i] = arguments[i];
-        }
+        args.pop();
         this.attron(attrs);
       }
     }
