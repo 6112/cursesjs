@@ -270,14 +270,14 @@ var attributify = function(f) {
  **/
 var colors = {
   // COLOR_NAME: [NORMAL_COLOR, BOLD_COLOR]
-  WHITE: ['#CCCCCC', '#FFFFFF'],
-  RED: ['#CC4444', '#FF8888'],
-  GREEN: ['#44CC44', '#88FF88'],
-  YELLOW: ['#CCCC44', '#FFFF88'],
-  BLUE: ['#4444CC', '#8888FF'],
-  MAGENTA: ['#CC44CC', '#FF88FF'],
-  CYAN: ['#44CCCC', '#88FFFF'],
-  BLACK: ['#000000', '#222222']
+  WHITE: ['#A8A8A8', '#FCFCFC'],
+  RED: ['#A80000', '#FC5454'],
+  GREEN: ['#00A800', '#54FC54'],
+  YELLOW: ['#A8A800', '#FCFC54'],
+  BLUE: ['#0000A8', '#5454FC'],
+  MAGENTA: ['#A800A8', '#FC54FC'],
+  CYAN: ['#00A8A8', '#54FCFC'],
+  BLACK: ['#000000', '#545454']
 };
 
 var construct_color_table = function() {

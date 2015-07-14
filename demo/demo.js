@@ -71,13 +71,13 @@ $(window).load(function() {
     var bounds = getmaxyx(win);
     var max_y = bounds.y;
     var max_x = bounds.x;
-    attron(A_BOLD | A_REVERSE | COLOR_PAIR(1));
+    attron(A_REVERSE | COLOR_PAIR(1));
     addstr(0, 0, '  js-curses demonstration');
     var x = win.x;
     while (x++ <= max_x) {
       addstr(' ');
     }
-    attroff(A_BOLD | A_REVERSE | COLOR_PAIR(1));
+    attroff(A_REVERSE | COLOR_PAIR(1));
     addstr(1, 2, 'use ');
     addstr('jk', A_BOLD | A_UNDERLINE);
     addstr(' or the ');

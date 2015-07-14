@@ -43,11 +43,11 @@
           addstr(y, x, c, attrs);
         }
       }
-      addstr(29, 0, 'press q to quit', A_BOLD | A_REVERSE);
+      addstr(29, 0, 'press q to quit', A_REVERSE);
       if (bm.fps) {
         var msg = bm.fps + ' FPS';
         var n = msg.length;
-        addstr(29, 60 - n, msg, A_BOLD | A_REVERSE);
+        addstr(29, 60 - n, msg, A_REVERSE);
       }
       refresh();
       window.postMessage('message', window.location);
