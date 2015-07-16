@@ -1,5 +1,5 @@
-"use strict";
 (function() {
+"use strict";
 "use strict()";
 
 // functions, variables, etc. that should be exported, will be exported in the

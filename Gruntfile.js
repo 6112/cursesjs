@@ -21,7 +21,7 @@ module.exports = function(grunt) {
       options: {
         // wrap the ouptut with (function(){...})(); so that package-local
         // functions/variables are actually local to the package
-        banner: '"use strict";\n(function() {\n',
+        banner: '(function() {\n"use strict";\n',
         separator: '\n\n', // for better human-readability
         footer: '\n})();'
       },
@@ -45,12 +45,16 @@ module.exports = function(grunt) {
     },
     jshint: {
       // files to check for common programming errors
-      files: ['Gruntfile.js', 'src/**/*.js', 'dist/**/*.js'],
+      files: ['Gruntfile.js', 'src/*.js', 'dist/*.js'],
       options: {
+        // disable the 'lowercase constructor' warning
+        newcap: false,
         // global variables that do not yield warnings for being used without
         // being defined
         globals: {
+          clearTimeout: true,
           '$': true,
+          navigator: true,
           jQuery: true,
           console: true,
           window: true,
