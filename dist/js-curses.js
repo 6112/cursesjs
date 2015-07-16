@@ -1732,7 +1732,7 @@ defun(window_t, 'refresh', function() {
       var prev = scr.display[y + this.win_y][x + this.win_x];
       var next = this.tiles[y][x];
       // if it needs to be redrawn
-      if (true || prev.content !== next.content || prev.attrs !== next.attrs) {
+      if (prev.content !== next.content || prev.attrs !== next.attrs) {
 	// redraw the character on-screen
 	draw_char(scr, y + this.win_y, x + this.win_x,
 		  next.content, next.attrs);
