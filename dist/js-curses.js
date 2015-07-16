@@ -269,30 +269,44 @@ var attributify = function(f) {
 var vert_source = [
 'attribute highp vec2 aPosition;',
 'attribute highp vec2 aTextureCoord;',
+'attribute highp vec3 aBgColor;',
+'attribute highp vec3 aFgColor;',
 '',
 'varying highp vec4 vTextureCoord;',
+'varying highp vec3 vBgColor;',
+'varying highp vec3 vFgColor;', 
 '',
 'uniform highp mat4 uTexMVMatrix;',
-'uniform highp mat4 uTexPMatrix;',  
+'uniform highp mat4 uTexPMatrix;',
 'uniform highp mat4 uMVMatrix;',
 'uniform highp mat4 uPMatrix;',
 '',
 'void main(void) {',
   'gl_Position = uPMatrix * uMVMatrix * vec4(aPosition, 0, 1);',
   'vTextureCoord = uTexPMatrix * uTexMVMatrix * vec4(aTextureCoord, 0, 1);',
+  'vBgColor = aBgColor;',
+  'vFgColor = aFgColor;',
 '}'
 ].join('\n');
 
 // fragment shader source code
 var frag_source = [
 'varying highp vec4 vTextureCoord;',
+'varying highp vec3 vBgColor;',
+'varying highp vec3 vFgColor;',
 '',
 'uniform sampler2D uSampler;',
-'uniform highp mat4 uTexMVMatrix;',  
-'uniform highp mat4 uPMatrix;', 
+'uniform highp mat4 uTexMVMatrix;',
+'uniform highp mat4 uPMatrix;',
 '',
 'void main(void) {',
-  'gl_FragColor = texture2D(uSampler, vec2(vTextureCoord));',
+  'highp vec4 pixel = texture2D(uSampler, vec2(vTextureCoord));',
+  'if (pixel.a > 0.0) {',
+    'gl_FragColor = vec4(vFgColor, 1);',
+  '}',
+  'else {',
+    'gl_FragColor = vec4(vBgColor, 1);',
+  '}',
 '}'
 ].join('\n');
 
@@ -348,10 +362,12 @@ var init_gl = function(scr) {
   // set the location
   var buffer = gl.createBuffer();
   scr.buffer = buffer;
-  scr.pos_loc = gl.getAttribLocation(scr.program, 'aPosition');
+  scr.pos_loc = gl.getAttribLocation(program, 'aPosition');
   scr.tex_pos_loc = gl.getAttribLocation(program, 'aTextureCoord');
-  scr.mv_loc = gl.getUniformLocation(scr.program, 'uMVMatrix');
-  scr.tmv_loc = gl.getUniformLocation(scr.program, 'uTexMVMatrix');
+  scr.bg_loc = gl.getAttribLocation(program, 'aBgColor');
+  scr.fg_loc = gl.getAttribLocation(program, 'aFgColor');
+  scr.mv_loc = gl.getUniformLocation(program, 'uMVMatrix');
+  scr.tmv_loc = gl.getUniformLocation(program, 'uTexMVMatrix');
   return gl;
 };
 
@@ -410,9 +426,9 @@ var tex_projection = new Float32Array([
 ]);
 
 var update_tex_projection = function(scr) {
-  // TODO: handle other widths
-  tex_projection[5] = -1;
-  tex_projection[0] = 1 / 2048 * scr.font.char_width;
+  // TODO: handle other sizes
+  tex_projection[5] = 1 / 512 * scr.font.char_height;
+  tex_projection[0] = 1 / 512 * scr.font.char_width;
   var tprojection_loc = scr.gl.getUniformLocation(scr.program, 'uTexPMatrix');
   scr.gl.uniformMatrix4fv(tprojection_loc, false, tex_projection);
   tex_model_view_pos(scr, 0, 0);
@@ -422,7 +438,7 @@ var update_tex_projection = function(scr) {
 var load_texture = function(gl, canvas, previous_texture) {
   var texture = previous_texture || gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, texture);
-  if (! previous_texture) {
+  if (true || ! previous_texture) {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   }
@@ -447,13 +463,14 @@ var select_texture = function(gl, program, canvas, previous_texture, dirty) {
   var texture = previous_texture;
   if (dirty)
     texture = load_texture(gl, canvas, previous_texture);
-  apply_texture(gl, program, texture);
+  if (dirty)
+    apply_texture(gl, program, texture);
   return texture;
 };
 
 var push_rect = function(array, i, y, x, offsets) {
-  var k;
-  for (k = 0; k < 6; k++) {
+  var k = 0;
+  for (; k < 6; k++) {
     array[i + k * 2] = x + offsets[k * 2];
     array[i + k * 2 + 1] = y + offsets[k * 2 + 1];
   }
@@ -473,23 +490,45 @@ var viewport_push_rect = function(scr, offscreen, y, x) {
 };
 
 var tex_offsets = [
+  1, 1,
+  0, 1,
   1, 0,
-  0, 0,
-  1, 1,
 
-  1, 1,
-  0, 0,
-  0, 1
+  1, 0,
+  0, 1,
+  0, 0
 ];
 var tex_push_rect = function(scr, offscreen, y, x) {
   push_rect(offscreen.tex_vertices, offscreen.vertice_count, y, x, tex_offsets);
 };
 
+var push_color = function(array, i, color) {
+  var r = ((color >> 16) & 0xFF) / 255;
+  var g = ((color >> 8) & 0xFF) / 255;
+  var b = (color & 0xFF) / 255;
+  var k = 0;
+  for (; k < 6; k++) {
+    array[i + k * 3 + 0] = r;
+    array[i + k * 3 + 1] = g;
+    array[i + k * 3 + 2] = b;
+  }
+};
+
+var push_bg = function(scr, offscreen, color) {
+  push_color(offscreen.bg, offscreen.vertice_count * 3 / 2, color);
+};
+
+var push_fg = function(scr, offscreen, color) {
+  push_color(offscreen.fg, offscreen.vertice_count * 3 / 2, color);
+};
+
 // enqueue an image draw for later. if the vertex buffer is full, execute the
 // draw with flush_draw().
-var draw_image = function(scr, offscreen, y, x, sy, sx) {
+var draw_image = function(scr, offscreen, y, x, sy, sx, fg, bg) {
   viewport_push_rect(scr, offscreen, y, x);
   tex_push_rect(scr, offscreen, sy, sx);
+  push_bg(scr, offscreen, bg);
+  push_fg(scr, offscreen, fg);
   offscreen.vertice_count += 12;
   if (offscreen.vertice_count >= 4800 - 12) {
     flush_draw(scr, offscreen);
@@ -503,6 +542,7 @@ var flush_draw = function(scr, offscreen) {
   var canvas = offscreen[0];
   offscreen.texture = select_texture(scr.gl, scr.program, canvas,
                                      offscreen.texture, offscreen.dirty);
+  offscreen.dirty = false;
   var gl = scr.gl;
   var buffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -510,10 +550,20 @@ var flush_draw = function(scr, offscreen) {
   gl.enableVertexAttribArray(scr.pos_loc);
   gl.vertexAttribPointer(scr.pos_loc, 2, gl.FLOAT, false, 0, 0);
   buffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, scr.buffer);
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, offscreen.tex_vertices, gl.DYNAMIC_DRAW);
   gl.enableVertexAttribArray(scr.tex_pos_loc);
   gl.vertexAttribPointer(scr.tex_pos_loc, 2, gl.FLOAT, false, 0, 0);
+  buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, offscreen.bg, gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(scr.bg_loc);
+  gl.vertexAttribPointer(scr.bg_loc, 3, gl.FLOAT, false, 0, 0);
+  buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, offscreen.fg, gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(scr.fg_loc);
+  gl.vertexAttribPointer(scr.fg_loc, 3, gl.FLOAT, false, 0, 0);
   scr.gl.drawArrays(scr.gl.TRIANGLES, 0, Math.floor(offscreen.vertice_count / 2));
   offscreen.vertice_count = 0;
 };
@@ -524,14 +574,14 @@ var flush_draw = function(scr, offscreen) {
  **/
 var colors = {
   // COLOR_NAME: [NORMAL_COLOR, BOLD_COLOR]
-  WHITE: ['#A8A8A8', '#FCFCFC'],
-  RED: ['#A80000', '#FC5454'],
-  GREEN: ['#00A800', '#54FC54'],
-  YELLOW: ['#A8A800', '#FCFC54'],
-  BLUE: ['#0000A8', '#5454FC'],
-  MAGENTA: ['#A800A8', '#FC54FC'],
-  CYAN: ['#00A8A8', '#54FCFC'],
-  BLACK: ['#000000', '#545454']
+  WHITE: [0xA8A8A8, 0xFCFCFC],
+  RED: [0xA80000, 0xFC5454],
+  GREEN: [0x00A800, 0x54FC54],
+  YELLOW: [0xA8A800, 0xFCFC54],
+  BLUE: [0x0000A8, 0x5454FC],
+  MAGENTA: [0xA800A8, 0xFC54FC],
+  CYAN: [0x00A8A8, 0x54FCFC],
+  BLACK: [0x000000, 0x545454]
 };
 
 var construct_color_table = function() {
@@ -1105,7 +1155,7 @@ exports.keypad = simplify(screen_t.prototype.keypad);
  *       },
  *       require_focus: true
  *     });
- * 
+ *
  * @param {Object} opts Options object for the initscr() function.
  * @param {String|HTMLElement|jQuery} [opts.container=$('<pre></pre>')] HTML
  * element or CSS selector for the element that will wrap the <canvas> element
@@ -1656,6 +1706,15 @@ var load_bitmap_font = function(scr, font) {
       canvases: null
     }
   };
+  scr.fake = $('<canvas width=512 height=512></canvas>');
+  scr.fake.ctx = scr.fake[0].getContext('2d');
+  scr.fake.ctx.drawImage(bitmap, 0, 0);
+  scr.fake.vertices = new Float32Array(6 * 2 * 400);
+  scr.fake.tex_vertices = new Float32Array(6 * 2 * 400);
+  scr.fake.bg = new Float32Array(6 * 4 * 400);
+  scr.fake.fg = new Float32Array(6 * 4 * 400);
+  scr.fake.vertice_count = 0;
+  scr.fake.dirty = true;
   var offscreen = make_offscreen_canvas(scr.font);
   scr.canvas_pool.normal.canvases = [offscreen];
   // a very small, very temporary, canvas, for drawing the characters before
@@ -1747,11 +1806,12 @@ defun(window_t, 'refresh', function() {
     }
   }
   // execute the actual on-screen drawing
-  var pool = scr.canvas_pool.normal.canvases;
+  /*var pool = scr.canvas_pool.normal.canvases;
   var i = 0;
   for (; i < pool.length; i++) {
     flush_draw(scr, pool[i]);
-  }
+    }*/
+  flush_draw(scr, scr.fake);
 });
 exports.wrefresh = windowify(window_t.prototype.refresh);
 
@@ -1994,8 +2054,10 @@ var make_offscreen_canvas = function(font) {
   canvas.ctx.textBaseline = 'hanging';
   canvas.texture = null;
   // TODO: handle array size as a an option
-  canvas.vertices = new Float32Array(6 * 800);
-  canvas.tex_vertices = new Float32Array(6 * 800);
+  canvas.vertices = new Float32Array(6 * 2 * 400);
+  canvas.tex_vertices = new Float32Array(6 * 2 * 400);
+  canvas.bg = new Float32Array(6 * 4 * 400);
+  canvas.fg = new Float32Array(6 * 4 * 400);
   canvas.vertice_count =  0;
   canvas.dirty = true;
   return canvas;
@@ -2008,13 +2070,19 @@ var make_offscreen_canvas = function(font) {
 //
 // draw_char() is used by refresh() to redraw characters where necessary
 var draw_char = function(scr, y, x, c, attrs) {
+  var bitmap_y = scr.font.char_map[c][0];
+  var bitmap_x = scr.font.char_map[c][1];
+  var colors = attr_colors(attrs);
+  var fg = colors[0];
+  var bg = colors[1];
+  draw_image(scr, scr.fake, y, x, bitmap_y, bitmap_x, fg, bg);
+  return true;
   var offscreen = find_offscreen_char(scr, c, attrs);
   if (! offscreen) {
     // silently fail, and return false
     return false;
   }
   // TODO: only actually call draw_image once per texture
-  draw_image(scr, offscreen.canvas, y, x, 0, offscreen.index);
   // TODO: Canvas2D fallback
   return true;
 };
@@ -2142,7 +2210,7 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   bitmap_x = Math.round(bitmap_x);
   // draw a background
   ctx.fillStyle = bg;
-  ctx.fillRect(sx, sy, scr.font.char_width, scr.font.char_height);
+  // ctx.fillRect(sx, sy, scr.font.char_width, scr.font.char_height);
   // draw the character on a separate, very small, offscreen canvas
   var small = scr.small_offscreen.getContext('2d');
   var height = scr.font.char_height;

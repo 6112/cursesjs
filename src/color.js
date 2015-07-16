@@ -3,14 +3,14 @@
  **/
 var colors = {
   // COLOR_NAME: [NORMAL_COLOR, BOLD_COLOR]
-  WHITE: ['#A8A8A8', '#FCFCFC'],
-  RED: ['#A80000', '#FC5454'],
-  GREEN: ['#00A800', '#54FC54'],
-  YELLOW: ['#A8A800', '#FCFC54'],
-  BLUE: ['#0000A8', '#5454FC'],
-  MAGENTA: ['#A800A8', '#FC54FC'],
-  CYAN: ['#00A8A8', '#54FCFC'],
-  BLACK: ['#000000', '#545454']
+  WHITE: [0xA8A8A8, 0xFCFCFC],
+  RED: [0xA80000, 0xFC5454],
+  GREEN: [0x00A800, 0x54FC54],
+  YELLOW: [0xA8A800, 0xFCFC54],
+  BLUE: [0x0000A8, 0x5454FC],
+  MAGENTA: [0xA800A8, 0xFC54FC],
+  CYAN: [0x00A8A8, 0x54FCFC],
+  BLACK: [0x000000, 0x545454]
 };
 
 var construct_color_table = function() {

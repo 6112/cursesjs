@@ -2,30 +2,44 @@
 var vert_source = [
 'attribute highp vec2 aPosition;',
 'attribute highp vec2 aTextureCoord;',
+'attribute highp vec3 aBgColor;',
+'attribute highp vec3 aFgColor;',
 '',
 'varying highp vec4 vTextureCoord;',
+'varying highp vec3 vBgColor;',
+'varying highp vec3 vFgColor;', 
 '',
 'uniform highp mat4 uTexMVMatrix;',
-'uniform highp mat4 uTexPMatrix;',  
+'uniform highp mat4 uTexPMatrix;',
 'uniform highp mat4 uMVMatrix;',
 'uniform highp mat4 uPMatrix;',
 '',
 'void main(void) {',
   'gl_Position = uPMatrix * uMVMatrix * vec4(aPosition, 0, 1);',
   'vTextureCoord = uTexPMatrix * uTexMVMatrix * vec4(aTextureCoord, 0, 1);',
+  'vBgColor = aBgColor;',
+  'vFgColor = aFgColor;',
 '}'
 ].join('\n');
 
 // fragment shader source code
 var frag_source = [
 'varying highp vec4 vTextureCoord;',
+'varying highp vec3 vBgColor;',
+'varying highp vec3 vFgColor;',
 '',
 'uniform sampler2D uSampler;',
-'uniform highp mat4 uTexMVMatrix;',  
-'uniform highp mat4 uPMatrix;', 
+'uniform highp mat4 uTexMVMatrix;',
+'uniform highp mat4 uPMatrix;',
 '',
 'void main(void) {',
-  'gl_FragColor = texture2D(uSampler, vec2(vTextureCoord));',
+  'highp vec4 pixel = texture2D(uSampler, vec2(vTextureCoord));',
+  'if (pixel.a > 0.0) {',
+    'gl_FragColor = vec4(vFgColor, 1);',
+  '}',
+  'else {',
+    'gl_FragColor = vec4(vBgColor, 1);',
+  '}',
 '}'
 ].join('\n');
 
@@ -81,10 +95,12 @@ var init_gl = function(scr) {
   // set the location
   var buffer = gl.createBuffer();
   scr.buffer = buffer;
-  scr.pos_loc = gl.getAttribLocation(scr.program, 'aPosition');
+  scr.pos_loc = gl.getAttribLocation(program, 'aPosition');
   scr.tex_pos_loc = gl.getAttribLocation(program, 'aTextureCoord');
-  scr.mv_loc = gl.getUniformLocation(scr.program, 'uMVMatrix');
-  scr.tmv_loc = gl.getUniformLocation(scr.program, 'uTexMVMatrix');
+  scr.bg_loc = gl.getAttribLocation(program, 'aBgColor');
+  scr.fg_loc = gl.getAttribLocation(program, 'aFgColor');
+  scr.mv_loc = gl.getUniformLocation(program, 'uMVMatrix');
+  scr.tmv_loc = gl.getUniformLocation(program, 'uTexMVMatrix');
   return gl;
 };
 
@@ -143,9 +159,9 @@ var tex_projection = new Float32Array([
 ]);
 
 var update_tex_projection = function(scr) {
-  // TODO: handle other widths
-  tex_projection[5] = -1;
-  tex_projection[0] = 1 / 2048 * scr.font.char_width;
+  // TODO: handle other sizes
+  tex_projection[5] = 1 / 512 * scr.font.char_height;
+  tex_projection[0] = 1 / 512 * scr.font.char_width;
   var tprojection_loc = scr.gl.getUniformLocation(scr.program, 'uTexPMatrix');
   scr.gl.uniformMatrix4fv(tprojection_loc, false, tex_projection);
   tex_model_view_pos(scr, 0, 0);
@@ -155,7 +171,7 @@ var update_tex_projection = function(scr) {
 var load_texture = function(gl, canvas, previous_texture) {
   var texture = previous_texture || gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, texture);
-  if (! previous_texture) {
+  if (true || ! previous_texture) {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   }
@@ -180,13 +196,14 @@ var select_texture = function(gl, program, canvas, previous_texture, dirty) {
   var texture = previous_texture;
   if (dirty)
     texture = load_texture(gl, canvas, previous_texture);
-  apply_texture(gl, program, texture);
+  if (dirty)
+    apply_texture(gl, program, texture);
   return texture;
 };
 
 var push_rect = function(array, i, y, x, offsets) {
-  var k;
-  for (k = 0; k < 6; k++) {
+  var k = 0;
+  for (; k < 6; k++) {
     array[i + k * 2] = x + offsets[k * 2];
     array[i + k * 2 + 1] = y + offsets[k * 2 + 1];
   }
@@ -206,23 +223,45 @@ var viewport_push_rect = function(scr, offscreen, y, x) {
 };
 
 var tex_offsets = [
+  1, 1,
+  0, 1,
   1, 0,
-  0, 0,
-  1, 1,
 
-  1, 1,
-  0, 0,
-  0, 1
+  1, 0,
+  0, 1,
+  0, 0
 ];
 var tex_push_rect = function(scr, offscreen, y, x) {
   push_rect(offscreen.tex_vertices, offscreen.vertice_count, y, x, tex_offsets);
 };
 
+var push_color = function(array, i, color) {
+  var r = ((color >> 16) & 0xFF) / 255;
+  var g = ((color >> 8) & 0xFF) / 255;
+  var b = (color & 0xFF) / 255;
+  var k = 0;
+  for (; k < 6; k++) {
+    array[i + k * 3 + 0] = r;
+    array[i + k * 3 + 1] = g;
+    array[i + k * 3 + 2] = b;
+  }
+};
+
+var push_bg = function(scr, offscreen, color) {
+  push_color(offscreen.bg, offscreen.vertice_count * 3 / 2, color);
+};
+
+var push_fg = function(scr, offscreen, color) {
+  push_color(offscreen.fg, offscreen.vertice_count * 3 / 2, color);
+};
+
 // enqueue an image draw for later. if the vertex buffer is full, execute the
 // draw with flush_draw().
-var draw_image = function(scr, offscreen, y, x, sy, sx) {
+var draw_image = function(scr, offscreen, y, x, sy, sx, fg, bg) {
   viewport_push_rect(scr, offscreen, y, x);
   tex_push_rect(scr, offscreen, sy, sx);
+  push_bg(scr, offscreen, bg);
+  push_fg(scr, offscreen, fg);
   offscreen.vertice_count += 12;
   if (offscreen.vertice_count >= 4800 - 12) {
     flush_draw(scr, offscreen);
@@ -236,6 +275,7 @@ var flush_draw = function(scr, offscreen) {
   var canvas = offscreen[0];
   offscreen.texture = select_texture(scr.gl, scr.program, canvas,
                                      offscreen.texture, offscreen.dirty);
+  offscreen.dirty = false;
   var gl = scr.gl;
   var buffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -243,10 +283,20 @@ var flush_draw = function(scr, offscreen) {
   gl.enableVertexAttribArray(scr.pos_loc);
   gl.vertexAttribPointer(scr.pos_loc, 2, gl.FLOAT, false, 0, 0);
   buffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, scr.buffer);
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, offscreen.tex_vertices, gl.DYNAMIC_DRAW);
   gl.enableVertexAttribArray(scr.tex_pos_loc);
   gl.vertexAttribPointer(scr.tex_pos_loc, 2, gl.FLOAT, false, 0, 0);
+  buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, offscreen.bg, gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(scr.bg_loc);
+  gl.vertexAttribPointer(scr.bg_loc, 3, gl.FLOAT, false, 0, 0);
+  buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, offscreen.fg, gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(scr.fg_loc);
+  gl.vertexAttribPointer(scr.fg_loc, 3, gl.FLOAT, false, 0, 0);
   scr.gl.drawArrays(scr.gl.TRIANGLES, 0, Math.floor(offscreen.vertice_count / 2));
   offscreen.vertice_count = 0;
 };

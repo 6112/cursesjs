@@ -241,6 +241,15 @@ var load_bitmap_font = function(scr, font) {
       canvases: null
     }
   };
+  scr.fake = $('<canvas width=512 height=512></canvas>');
+  scr.fake.ctx = scr.fake[0].getContext('2d');
+  scr.fake.ctx.drawImage(bitmap, 0, 0);
+  scr.fake.vertices = new Float32Array(6 * 2 * 400);
+  scr.fake.tex_vertices = new Float32Array(6 * 2 * 400);
+  scr.fake.bg = new Float32Array(6 * 4 * 400);
+  scr.fake.fg = new Float32Array(6 * 4 * 400);
+  scr.fake.vertice_count = 0;
+  scr.fake.dirty = true;
   var offscreen = make_offscreen_canvas(scr.font);
   scr.canvas_pool.normal.canvases = [offscreen];
   // a very small, very temporary, canvas, for drawing the characters before
@@ -332,11 +341,12 @@ defun(window_t, 'refresh', function() {
     }
   }
   // execute the actual on-screen drawing
-  var pool = scr.canvas_pool.normal.canvases;
+  /*var pool = scr.canvas_pool.normal.canvases;
   var i = 0;
   for (; i < pool.length; i++) {
     flush_draw(scr, pool[i]);
-  }
+    }*/
+  flush_draw(scr, scr.fake);
 });
 exports.wrefresh = windowify(window_t.prototype.refresh);
 
@@ -579,8 +589,10 @@ var make_offscreen_canvas = function(font) {
   canvas.ctx.textBaseline = 'hanging';
   canvas.texture = null;
   // TODO: handle array size as a an option
-  canvas.vertices = new Float32Array(6 * 800);
-  canvas.tex_vertices = new Float32Array(6 * 800);
+  canvas.vertices = new Float32Array(6 * 2 * 400);
+  canvas.tex_vertices = new Float32Array(6 * 2 * 400);
+  canvas.bg = new Float32Array(6 * 4 * 400);
+  canvas.fg = new Float32Array(6 * 4 * 400);
   canvas.vertice_count =  0;
   canvas.dirty = true;
   return canvas;
@@ -593,13 +605,19 @@ var make_offscreen_canvas = function(font) {
 //
 // draw_char() is used by refresh() to redraw characters where necessary
 var draw_char = function(scr, y, x, c, attrs) {
+  var bitmap_y = scr.font.char_map[c][0];
+  var bitmap_x = scr.font.char_map[c][1];
+  var colors = attr_colors(attrs);
+  var fg = colors[0];
+  var bg = colors[1];
+  draw_image(scr, scr.fake, y, x, bitmap_y, bitmap_x, fg, bg);
+  return true;
   var offscreen = find_offscreen_char(scr, c, attrs);
   if (! offscreen) {
     // silently fail, and return false
     return false;
   }
   // TODO: only actually call draw_image once per texture
-  draw_image(scr, offscreen.canvas, y, x, 0, offscreen.index);
   // TODO: Canvas2D fallback
   return true;
 };
@@ -727,7 +745,7 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   bitmap_x = Math.round(bitmap_x);
   // draw a background
   ctx.fillStyle = bg;
-  ctx.fillRect(sx, sy, scr.font.char_width, scr.font.char_height);
+  // ctx.fillRect(sx, sy, scr.font.char_width, scr.font.char_height);
   // draw the character on a separate, very small, offscreen canvas
   var small = scr.small_offscreen.getContext('2d');
   var height = scr.font.char_height;

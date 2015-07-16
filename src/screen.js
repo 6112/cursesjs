@@ -80,7 +80,7 @@
  *       },
  *       require_focus: true
  *     });
- * 
+ *
  * @param {Object} opts Options object for the initscr() function.
  * @param {String|HTMLElement|jQuery} [opts.container=$('<pre></pre>')] HTML
  * element or CSS selector for the element that will wrap the <canvas> element
