@@ -55,6 +55,7 @@
     },
     count_fps: function() {
       bm.fps = bm.ticks;
+      console.log(bm.fps);
       bm.ticks = 0;
       clearTimeout(bm.fps_timeout);
       bm.fps_timeout = setTimeout(bm.count_fps, 1000);

@@ -1,5 +1,5 @@
 // number of chars saved per off-screen canvas
-var CHARS_PER_CANVAS = 256;
+var CHARS_PER_CANVAS = 512;
 
 /**
  * Used for selecting which channels to use to render a BMP font. Will default
@@ -312,7 +312,6 @@ exports.refresh = simplify(screen_t.prototype.refresh);
  * the same place as `win`, win.refresh() should be called after
  * screen.refresh(). (as in the original ncurses)
  */
-var rx = /([0-9]+),([0-9]+)/;
 defun(window_t, 'refresh', function() {
   // TODO: move cursor on wrefresh();
   var scr = this.parent_screen;
@@ -323,7 +322,7 @@ defun(window_t, 'refresh', function() {
       var prev = scr.display[y + this.win_y][x + this.win_x];
       var next = this.tiles[y][x];
       // if it needs to be redrawn
-      if (prev.content !== next.content || prev.attrs !== next.attrs) {
+      if (true || prev.content !== next.content || prev.attrs !== next.attrs) {
 	// redraw the character on-screen
 	draw_char(scr, y + this.win_y, x + this.win_x,
 		  next.content, next.attrs);
@@ -565,7 +564,8 @@ var make_offscreen_canvas = function(font) {
   var canvas = $('<canvas></canvas>');
   canvas.attr({
     height: font.char_height,
-    width: CHARS_PER_CANVAS * font.char_width
+    // TODO: handle other, power-of-two values
+    width: 2048 // CHARS_PER_CANVAS * font.char_width
   });
   canvas.ctx = canvas[0].getContext('2d');
   canvas.ctx.textBaseline = 'hanging';
@@ -585,20 +585,11 @@ var draw_char = function(scr, y, x, c, attrs) {
     // silently fail, and return false
     return false;
   }
-  // apply the drawing onto the visible canvas
-  y = Math.round(y * scr.font.char_height);
-  x = Math.round(x * scr.font.char_width);
-  // performance workaround: putImageData() is slower than drawImage() in
-  // Firefox
-  if (is_firefox)
-    scr.context.drawImage(offscreen.src,
-                          offscreen.sx, offscreen.sy,
-                          scr.font.char_width, scr.font.char_height,
-                          x, y,
-     scr.font.char_width, scr.font.char_height);
-  else
-    scr.context.putImageData(offscreen.img_data, x, y);
-  // return true for success
+  // TODO: only actually call draw_image once per texture
+  draw_image(scr, offscreen.src, y, x, 0, offscreen.index, offscreen.fresh,
+             offscreen.img_data);
+  offscreen.fresh = false;
+  // TODO: Canvas2D fallback
   return true;
 };
 
@@ -707,7 +698,9 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   char_cache[c][attrs] = {
     src: canvas[0],
     sy: sy,
-    sx: sx
+    sx: sx,
+    index: pool.x,
+    fresh: true
   };
   if (! scr.font.char_map[c]) {
     // silently fail if we don't know where to find the character on
@@ -806,6 +799,9 @@ var draw_offscreen_char_ttf = function(scr, c, attrs) {
 
 // draw the cursor at the current location
 var draw_cursor = function(scr) {
+  // TODO: rewrite for WebGL
+  if (scr.gl)
+    return;
   var y, x, tile;
   if (scr._cursor_visibility === 1) {
     // line cursor

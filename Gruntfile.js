@@ -32,6 +32,7 @@ module.exports = function(grunt) {
         src: [
           'src/curses.js',
           'src/decorators.js',
+          'src/webgl.js',
           'src/color.js',
           'src/attrs.js',
           'src/keyboard.js',

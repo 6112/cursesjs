@@ -162,9 +162,10 @@ var initscr = exports.initscr = function(opts) {
   scr.height = opts.height;
   scr.width = opts.width;
   // create the canvas
-  scr.canvas = $('<canvas moz-opaque></canvas>');
+  scr.canvas = $('<canvas></canvas>');
   scr.container.append(scr.canvas);
-  scr.context = scr.canvas[0].getContext('2d');
+  // TODO: use Canvas2D as fallback
+  scr.gl = init_gl(scr);
   // load the specified font
   // TODO: specify sane default values
   if (/^ttf$/i.test(opts.font.type)) {
@@ -190,10 +191,17 @@ var initscr = exports.initscr = function(opts) {
       scr.min_width = opts.min_width;
     }
   }
+  // resize the canvas
   scr.canvas.attr({
     height: scr.height * scr.font.char_height,
     width: scr.width * scr.font.char_width
   });
+  // resize the gl viewport
+  if (scr.gl)
+    scr.gl.viewport(0, 0, scr.width * scr.font.char_width,
+                    scr.height * scr.font.char_height);
+  update_projection(scr);
+  update_tex_projection(scr);
   // initialize the character tiles to default values
   var y, x;
   for (y = 0; y < scr.height; y++) {
