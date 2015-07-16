@@ -323,7 +323,7 @@ defun(window_t, 'refresh', function() {
       var next = this.tiles[y][x];
       // if it needs to be redrawn
       if (prev.content !== next.content || prev.attrs !== next.attrs) {
-	// redraw the character on-screen
+	// redraw the character
 	draw_char(scr, y + this.win_y, x + this.win_x,
 		  next.content, next.attrs);
 	prev.content = next.content;
@@ -331,7 +331,12 @@ defun(window_t, 'refresh', function() {
       }
     }
   }
-  flush_draw(scr, scr.canvas_pool.normal.canvases[0][0]);
+  // execute the actual on-screen drawing
+  var pool = scr.canvas_pool.normal.canvases;
+  var i = 0;
+  for (; i < pool.length; i++) {
+    flush_draw(scr, pool[i]);
+  }
 });
 exports.wrefresh = windowify(window_t.prototype.refresh);
 
@@ -572,6 +577,12 @@ var make_offscreen_canvas = function(font) {
   CHARS_PER_CANVAS = Math.floor(2048 / font.char_width);
   canvas.ctx = canvas[0].getContext('2d');
   canvas.ctx.textBaseline = 'hanging';
+  canvas.texture = null;
+  // TODO: handle array size as a an option
+  canvas.vertices = new Float32Array(6 * 800);
+  canvas.tex_vertices = new Float32Array(6 * 800);
+  canvas.vertice_count =  0;
+  canvas.dirty = true;
   return canvas;
 };
 
@@ -581,7 +592,6 @@ var make_offscreen_canvas = function(font) {
 // from the canvas cache ̀`char_cache`
 //
 // draw_char() is used by refresh() to redraw characters where necessary
-var is_firefox = /firefox/i.test(navigator.userAgent);
 var draw_char = function(scr, y, x, c, attrs) {
   var offscreen = find_offscreen_char(scr, c, attrs);
   if (! offscreen) {
@@ -589,9 +599,7 @@ var draw_char = function(scr, y, x, c, attrs) {
     return false;
   }
   // TODO: only actually call draw_image once per texture
-  draw_image(scr, offscreen.src, y, x, 0, offscreen.index, offscreen.fresh,
-             offscreen.img_data);
-  offscreen.fresh = false;
+  draw_image(scr, offscreen.canvas, y, x, 0, offscreen.index);
   // TODO: Canvas2D fallback
   return true;
 };
@@ -691,6 +699,7 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   // calculate where to draw the character
   var pool = scr.canvas_pool.normal;
   var canvas = pool.canvases[pool.canvases.length - 1];
+  canvas.dirty = true;
   var ctx = canvas.ctx;
   var sy = 0;
   var sx = Math.round(pool.x * scr.font.char_width);
@@ -700,10 +709,10 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   }
   char_cache[c][attrs] = {
     src: canvas[0],
+    canvas: canvas,
     sy: sy,
     sx: sx,
     index: pool.x,
-    fresh: true
   };
   if (! scr.font.char_map[c]) {
     // silently fail if we don't know where to find the character on

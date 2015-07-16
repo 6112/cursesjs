@@ -176,79 +176,77 @@ var apply_texture = function(gl, program, texture) {
 
 // load and apply the texture to the given GL context.
 // return the texture.
-var select_texture = function(gl, program, canvas, previous_texture) {
-  var texture = load_texture(gl, canvas, previous_texture);
+var select_texture = function(gl, program, canvas, previous_texture, dirty) {
+  var texture = previous_texture;
+  if (dirty)
+    texture = load_texture(gl, canvas, previous_texture);
   apply_texture(gl, program, texture);
   return texture;
 };
 
-var i = 0;
-
-var sq = new Float32Array(6 * 800);
-
-var vp_pos = function(scr, y, x) {
-  var k = i * 12;
-  sq[k + 0] = x + 1;
-  sq[k + 1] = y + 1;
-  sq[k + 2] = x;
-  sq[k + 3] = y + 1;
-  sq[k + 4] = x + 1;
-  sq[k + 5] = y;
-  sq[k + 6] = x + 1;
-  sq[k + 7] = y;
-  sq[k + 8] = x;
-  sq[k + 9] = y + 1;
-  sq[k + 10] = x;
-  sq[k + 11] = y;
-};
-
-var tex_sq = new Float32Array(6 * 800);
-
-var tex_pos = function(scr, y, x) {
-  var k = i * 12;
-  tex_sq[k + 0] = x + 1;
-  tex_sq[k + 1] = y;
-  tex_sq[k + 2] = x;
-  tex_sq[k + 3] = y;
-  tex_sq[k + 4] = x + 1;
-  tex_sq[k + 5] = y + 1;
-  tex_sq[k + 6] = x + 1;
-  tex_sq[k + 7] = y + 1;
-  tex_sq[k + 8] = x;
-  tex_sq[k + 9] = y;
-  tex_sq[k + 10] = x;
-  tex_sq[k + 11] = y + 1;
-};
-
-var draw_image = function(scr, canvas, y, x, sy, sx, is_fresh) {
-  /*if (! scr.texture || (is_fresh)) {
-    if (! scr.texture) {
-      model_view_pos(scr, 0, 0);
-      tex_model_view_pos(scr, 0, 0);
-    }
-    scr.texture = select_texture(scr.gl, scr.program, canvas, scr.texture);
-    }*/
-  vp_pos(scr, y, x);
-  tex_pos(scr, sy, sx);
-  i++;
-  if (i % 400 === 0) {
-    flush_draw(scr, canvas);
+var push_rect = function(array, i, y, x, offsets) {
+  var k;
+  for (k = 0; k < 6; k++) {
+    array[i + k * 2] = x + offsets[k * 2];
+    array[i + k * 2 + 1] = y + offsets[k * 2 + 1];
   }
 };
 
-var flush_draw = function(scr, canvas) {
-  scr.texture = select_texture(scr.gl, scr.program, canvas, scr.texture);
+var viewport_offsets = [
+  1, 1,
+  0, 1,
+  1, 0,
+
+  1, 0,
+  0, 1,
+  0, 0
+];
+var viewport_push_rect = function(scr, offscreen, y, x) {
+  push_rect(offscreen.vertices, offscreen.vertice_count, y, x, viewport_offsets);
+};
+
+var tex_offsets = [
+  1, 0,
+  0, 0,
+  1, 1,
+
+  1, 1,
+  0, 0,
+  0, 1
+];
+var tex_push_rect = function(scr, offscreen, y, x) {
+  push_rect(offscreen.tex_vertices, offscreen.vertice_count, y, x, tex_offsets);
+};
+
+// enqueue an image draw for later. if the vertex buffer is full, execute the
+// draw with flush_draw().
+var draw_image = function(scr, offscreen, y, x, sy, sx) {
+  viewport_push_rect(scr, offscreen, y, x);
+  tex_push_rect(scr, offscreen, sy, sx);
+  offscreen.vertice_count += 12;
+  if (offscreen.vertice_count >= 4800 - 12) {
+    flush_draw(scr, offscreen);
+  }
+};
+
+// flush the vertex buffer and draw the enqueued characters on-screen.
+var flush_draw = function(scr, offscreen) {
+  if (offscreen.vertice_count === 0)
+    return;
+  var canvas = offscreen[0];
+  offscreen.texture = select_texture(scr.gl, scr.program, canvas,
+                                     offscreen.texture, offscreen.dirty);
   var gl = scr.gl;
   var buffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  gl.bufferData(gl.ARRAY_BUFFER, sq, gl.DYNAMIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, offscreen.vertices, gl.DYNAMIC_DRAW);
   gl.enableVertexAttribArray(scr.pos_loc);
   gl.vertexAttribPointer(scr.pos_loc, 2, gl.FLOAT, false, 0, 0);
   buffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, scr.buffer);
-  gl.bufferData(gl.ARRAY_BUFFER, tex_sq, gl.DYNAMIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, offscreen.tex_vertices, gl.DYNAMIC_DRAW);
   gl.enableVertexAttribArray(scr.tex_pos_loc);
   gl.vertexAttribPointer(scr.tex_pos_loc, 2, gl.FLOAT, false, 0, 0);
-  scr.gl.drawArrays(scr.gl.TRIANGLES, 0, 6 * i);
-  i = 0;
+  scr.gl.drawArrays(scr.gl.TRIANGLES, 0, Math.floor(offscreen.vertice_count / 2));
+  offscreen.vertice_count = 0;
 };
