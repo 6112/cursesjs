@@ -399,6 +399,7 @@ var update_projection = function(scr) {
   projection[0] = 2 / scr.width;
   var projection_loc = scr.gl.getUniformLocation(scr.program, 'uPMatrix');
   scr.gl.uniformMatrix4fv(projection_loc, false, projection);
+  model_view_pos(scr, 0, 0);
 };
 
 var tex_projection = new Float32Array([
@@ -414,6 +415,7 @@ var update_tex_projection = function(scr) {
   tex_projection[0] = 1 / 2048 * scr.font.char_width;
   var tprojection_loc = scr.gl.getUniformLocation(scr.program, 'uTexPMatrix');
   scr.gl.uniformMatrix4fv(tprojection_loc, false, tex_projection);
+  tex_model_view_pos(scr, 0, 0);
 };
 
 // load a texture from a <canvas> element, and return it
@@ -449,7 +451,7 @@ var select_texture = function(gl, program, canvas, previous_texture) {
 
 var i = 0;
 
-var sq = new Float32Array(5 * 960);
+var sq = new Float32Array(6 * 800);
 
 var vp_pos = function(scr, y, x) {
   var k = i * 12;
@@ -467,7 +469,7 @@ var vp_pos = function(scr, y, x) {
   sq[k + 11] = y;
 };
 
-var tex_sq = new Float32Array(5 * 960);
+var tex_sq = new Float32Array(6 * 800);
 
 var tex_pos = function(scr, y, x) {
   var k = i * 12;
@@ -486,31 +488,36 @@ var tex_pos = function(scr, y, x) {
 };
 
 var draw_image = function(scr, canvas, y, x, sy, sx, is_fresh) {
-  if (! scr.texture || (is_fresh)) {
+  /*if (! scr.texture || (is_fresh)) {
     if (! scr.texture) {
       model_view_pos(scr, 0, 0);
       tex_model_view_pos(scr, 0, 0);
     }
     scr.texture = select_texture(scr.gl, scr.program, canvas, scr.texture);
-  }
+    }*/
   vp_pos(scr, y, x);
   tex_pos(scr, sy, sx);
   i++;
   if (i % 400 === 0) {
-    var gl = scr.gl;
-    var buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, sq, gl.DYNAMIC_DRAW);
-    gl.enableVertexAttribArray(scr.pos_loc);
-    gl.vertexAttribPointer(scr.pos_loc, 2, gl.FLOAT, false, 0, 0);
-    buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, scr.buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, tex_sq, gl.DYNAMIC_DRAW);
-    gl.enableVertexAttribArray(scr.tex_pos_loc);
-    gl.vertexAttribPointer(scr.tex_pos_loc, 2, gl.FLOAT, false, 0, 0);
-    scr.gl.drawArrays(scr.gl.TRIANGLES, 0, 6 * i);
-    i = 0;
+    flush_draw(scr, canvas);
   }
+};
+
+var flush_draw = function(scr, canvas) {
+  scr.texture = select_texture(scr.gl, scr.program, canvas, scr.texture);
+  var gl = scr.gl;
+  var buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, sq, gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(scr.pos_loc);
+  gl.vertexAttribPointer(scr.pos_loc, 2, gl.FLOAT, false, 0, 0);
+  buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, scr.buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, tex_sq, gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(scr.tex_pos_loc);
+  gl.vertexAttribPointer(scr.tex_pos_loc, 2, gl.FLOAT, false, 0, 0);
+  scr.gl.drawArrays(scr.gl.TRIANGLES, 0, 6 * i);
+  i = 0;
 };
 
 
@@ -1741,6 +1748,7 @@ defun(window_t, 'refresh', function() {
       }
     }
   }
+  flush_draw(scr, scr.canvas_pool.normal.canvases[0][0]);
 });
 exports.wrefresh = windowify(window_t.prototype.refresh);
 
@@ -1977,6 +1985,8 @@ var make_offscreen_canvas = function(font) {
     // TODO: handle other, power-of-two values
     width: 2048 // CHARS_PER_CANVAS * font.char_width
   });
+  // TODO: handle this on a per-screen basis
+  CHARS_PER_CANVAS = Math.floor(2048 / font.char_width);
   canvas.ctx = canvas[0].getContext('2d');
   canvas.ctx.textBaseline = 'hanging';
   return canvas;

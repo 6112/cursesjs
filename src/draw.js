@@ -331,6 +331,7 @@ defun(window_t, 'refresh', function() {
       }
     }
   }
+  flush_draw(scr, scr.canvas_pool.normal.canvases[0][0]);
 });
 exports.wrefresh = windowify(window_t.prototype.refresh);
 
@@ -567,6 +568,8 @@ var make_offscreen_canvas = function(font) {
     // TODO: handle other, power-of-two values
     width: 2048 // CHARS_PER_CANVAS * font.char_width
   });
+  // TODO: handle this on a per-screen basis
+  CHARS_PER_CANVAS = Math.floor(2048 / font.char_width);
   canvas.ctx = canvas[0].getContext('2d');
   canvas.ctx.textBaseline = 'hanging';
   return canvas;
