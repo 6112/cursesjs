@@ -269,8 +269,8 @@ var attributify = function(f) {
 var vert_source = [
 'attribute highp vec2 aPosition;',
 'attribute highp vec2 aTextureCoord;',
-'attribute highp vec3 aBgColor;',
-'attribute highp vec3 aFgColor;',
+'attribute highp float aBgColor;',
+'attribute highp float aFgColor;',
 '',
 'varying highp vec4 vTextureCoord;',
 'varying highp vec3 vBgColor;',
@@ -284,8 +284,12 @@ var vert_source = [
 'void main(void) {',
   'gl_Position = uPMatrix * uMVMatrix * vec4(aPosition, 0, 1);',
   'vTextureCoord = uTexPMatrix * uTexMVMatrix * vec4(aTextureCoord, 0, 1);',
-  'vBgColor = aBgColor;',
-  'vFgColor = aFgColor;',
+  'vBgColor = vec3(floor(aBgColor / 65536.0) / 256.0,',
+                  'floor(mod(aBgColor / 256.0, 256.0)) / 256.0,',
+                  'mod(aBgColor, 256.0) / 256.0);',
+  'vFgColor = vec3(floor(aFgColor / 65536.0) / 256.0,',
+                  'floor(mod(aFgColor / 256.0, 256.0)) / 256.0,',
+                  'mod(aFgColor, 256.0) / 256.0);',
 '}'
 ].join('\n');
 
@@ -503,23 +507,18 @@ var tex_push_rect = function(scr, offscreen, y, x) {
 };
 
 var push_color = function(array, i, color) {
-  var r = ((color >> 16) & 0xFF) / 255;
-  var g = ((color >> 8) & 0xFF) / 255;
-  var b = (color & 0xFF) / 255;
   var k = 0;
   for (; k < 6; k++) {
-    array[i + k * 3 + 0] = r;
-    array[i + k * 3 + 1] = g;
-    array[i + k * 3 + 2] = b;
+    array[i + k] = color;
   }
 };
 
 var push_bg = function(scr, offscreen, color) {
-  push_color(offscreen.bg, offscreen.vertice_count * 3 / 2, color);
+  push_color(offscreen.bg, offscreen.vertice_count / 2, color);
 };
 
 var push_fg = function(scr, offscreen, color) {
-  push_color(offscreen.fg, offscreen.vertice_count * 3 / 2, color);
+  push_color(offscreen.fg, offscreen.vertice_count / 2, color);
 };
 
 // enqueue an image draw for later. if the vertex buffer is full, execute the
@@ -558,12 +557,12 @@ var flush_draw = function(scr, offscreen) {
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, offscreen.bg, gl.DYNAMIC_DRAW);
   gl.enableVertexAttribArray(scr.bg_loc);
-  gl.vertexAttribPointer(scr.bg_loc, 3, gl.FLOAT, false, 0, 0);
+  gl.vertexAttribPointer(scr.bg_loc, 1, gl.FLOAT, false, 0, 0);
   buffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, offscreen.fg, gl.DYNAMIC_DRAW);
   gl.enableVertexAttribArray(scr.fg_loc);
-  gl.vertexAttribPointer(scr.fg_loc, 3, gl.FLOAT, false, 0, 0);
+  gl.vertexAttribPointer(scr.fg_loc, 1, gl.FLOAT, false, 0, 0);
   scr.gl.drawArrays(scr.gl.TRIANGLES, 0, Math.floor(offscreen.vertice_count / 2));
   offscreen.vertice_count = 0;
 };
@@ -1711,8 +1710,8 @@ var load_bitmap_font = function(scr, font) {
   scr.fake.ctx.drawImage(bitmap, 0, 0);
   scr.fake.vertices = new Float32Array(6 * 2 * 400);
   scr.fake.tex_vertices = new Float32Array(6 * 2 * 400);
-  scr.fake.bg = new Float32Array(6 * 4 * 400);
-  scr.fake.fg = new Float32Array(6 * 4 * 400);
+  scr.fake.bg = new Float32Array(6 * 1 * 400);
+  scr.fake.fg = new Float32Array(6 * 1 * 400);
   scr.fake.vertice_count = 0;
   scr.fake.dirty = true;
   var offscreen = make_offscreen_canvas(scr.font);
@@ -2072,9 +2071,8 @@ var make_offscreen_canvas = function(font) {
 var draw_char = function(scr, y, x, c, attrs) {
   var bitmap_y = scr.font.char_map[c][0];
   var bitmap_x = scr.font.char_map[c][1];
-  var colors = attr_colors(attrs);
-  var fg = colors[0];
-  var bg = colors[1];
+  var fg = attr_fg(attrs);
+  var bg = attr_bg(attrs);
   draw_image(scr, scr.fake, y, x, bitmap_y, bitmap_x, fg, bg);
   return true;
   var offscreen = find_offscreen_char(scr, c, attrs);
@@ -2148,27 +2146,28 @@ var grow_canvas_pool = function(scr) {
   }
 };
 
-// return an array [fg, bg] describing the foreground and background colors for
-// the given attrlist.
-var attr_colors = function(attrs) {
+// return the fg color for the given attrlist
+var attr_fg = function(attrs) {
+  var color_pair = pair_number(attrs);
+  var fg = color_pairs[color_pair].fg;
+  if (attrs & A_REVERSE)
+    fg = color_pairs[color_pair].bg;
+  if (fg instanceof Array) {
+    if (attrs & A_BOLD)
+      return fg[1];
+    return fg[0];
+  }
+  return fg;
+};
+
+var attr_bg = function(attrs) {
   var color_pair = pair_number(attrs);
   var bg = color_pairs[color_pair].bg;
-  var fg = color_pairs[color_pair].fg;
-  if (attrs & A_REVERSE) {
-    // swap background and foreground
-    var tmp = bg;
-    bg = fg;
-    fg = tmp;
-  }
-  // always use the first color as background color
-  if (bg instanceof Array) {
-    bg = bg[0];
-  }
-  // use a bright foreground if bold
-  if (fg instanceof Array) {
-    fg = (attrs & A_BOLD) ? fg[1] : fg[0];
-  }
-  return [fg, bg];
+  if (attrs & A_REVERSE)
+    bg = color_pairs[color_pair].fg;
+  if (bg instanceof Array)
+    return bg[0];
+  return bg;
 };
 
 var draw_offscreen_char_bmp = function(scr, c, attrs) {
@@ -2176,9 +2175,8 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   // (for better performacne)
   var char_cache = scr.char_cache;
   // calculate the colours for everything
-  var colors = attr_colors(attrs);
-  var fg = colors[0];
-  var bg = colors[1];
+  var fg = attr_fg(attrs);
+  var bg = attr_bg(attrs);
   // calculate where to draw the character
   var pool = scr.canvas_pool.normal;
   var canvas = pool.canvases[pool.canvases.length - 1];
@@ -2256,9 +2254,8 @@ var draw_offscreen_char_ttf = function(scr, c, attrs) {
   // (for better performance)
   var char_cache = scr.char_cache;
   // calculate the colours for everything
-  var colors = attr_colors(attrs);
-  var fg = colors[0];
-  var bg = colors[1];
+  var fg = attr_fg(attrs);
+  var bg = attr_bg(attrs);
   // calculate where to draw the character
   var pool = ((attrs & A_BOLD) && scr.font.use_bold) ?
 	scr.canvas_pool.bold :
@@ -2303,7 +2300,7 @@ var draw_cursor = function(scr) {
     y = Math.round((scr.y + 1) * scr.font.char_height - 2);
     x = Math.round(scr.x * scr.font.char_width);
     tile = scr.display[scr.y][scr.x];
-    scr.context.fillStyle = attr_colors(tile.attrs)[0];
+    scr.context.fillStyle = attr_fg(tile.attrs);
     scr.context.fillRect(x, y, Math.round(scr.font.char_width - 1), 2);
   }
   else {

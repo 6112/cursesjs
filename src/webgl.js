@@ -2,8 +2,8 @@
 var vert_source = [
 'attribute highp vec2 aPosition;',
 'attribute highp vec2 aTextureCoord;',
-'attribute highp vec3 aBgColor;',
-'attribute highp vec3 aFgColor;',
+'attribute highp float aBgColor;',
+'attribute highp float aFgColor;',
 '',
 'varying highp vec4 vTextureCoord;',
 'varying highp vec3 vBgColor;',
@@ -17,8 +17,12 @@ var vert_source = [
 'void main(void) {',
   'gl_Position = uPMatrix * uMVMatrix * vec4(aPosition, 0, 1);',
   'vTextureCoord = uTexPMatrix * uTexMVMatrix * vec4(aTextureCoord, 0, 1);',
-  'vBgColor = aBgColor;',
-  'vFgColor = aFgColor;',
+  'vBgColor = vec3(floor(aBgColor / 65536.0) / 256.0,',
+                  'floor(mod(aBgColor / 256.0, 256.0)) / 256.0,',
+                  'mod(aBgColor, 256.0) / 256.0);',
+  'vFgColor = vec3(floor(aFgColor / 65536.0) / 256.0,',
+                  'floor(mod(aFgColor / 256.0, 256.0)) / 256.0,',
+                  'mod(aFgColor, 256.0) / 256.0);',
 '}'
 ].join('\n');
 
@@ -236,23 +240,18 @@ var tex_push_rect = function(scr, offscreen, y, x) {
 };
 
 var push_color = function(array, i, color) {
-  var r = ((color >> 16) & 0xFF) / 255;
-  var g = ((color >> 8) & 0xFF) / 255;
-  var b = (color & 0xFF) / 255;
   var k = 0;
   for (; k < 6; k++) {
-    array[i + k * 3 + 0] = r;
-    array[i + k * 3 + 1] = g;
-    array[i + k * 3 + 2] = b;
+    array[i + k] = color;
   }
 };
 
 var push_bg = function(scr, offscreen, color) {
-  push_color(offscreen.bg, offscreen.vertice_count * 3 / 2, color);
+  push_color(offscreen.bg, offscreen.vertice_count / 2, color);
 };
 
 var push_fg = function(scr, offscreen, color) {
-  push_color(offscreen.fg, offscreen.vertice_count * 3 / 2, color);
+  push_color(offscreen.fg, offscreen.vertice_count / 2, color);
 };
 
 // enqueue an image draw for later. if the vertex buffer is full, execute the
@@ -291,12 +290,12 @@ var flush_draw = function(scr, offscreen) {
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, offscreen.bg, gl.DYNAMIC_DRAW);
   gl.enableVertexAttribArray(scr.bg_loc);
-  gl.vertexAttribPointer(scr.bg_loc, 3, gl.FLOAT, false, 0, 0);
+  gl.vertexAttribPointer(scr.bg_loc, 1, gl.FLOAT, false, 0, 0);
   buffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, offscreen.fg, gl.DYNAMIC_DRAW);
   gl.enableVertexAttribArray(scr.fg_loc);
-  gl.vertexAttribPointer(scr.fg_loc, 3, gl.FLOAT, false, 0, 0);
+  gl.vertexAttribPointer(scr.fg_loc, 1, gl.FLOAT, false, 0, 0);
   scr.gl.drawArrays(scr.gl.TRIANGLES, 0, Math.floor(offscreen.vertice_count / 2));
   offscreen.vertice_count = 0;
 };
