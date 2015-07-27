@@ -241,15 +241,19 @@ var load_bitmap_font = function(scr, font) {
       canvases: null
     }
   };
-  scr.fake = $('<canvas width=512 height=512></canvas>');
-  scr.fake.ctx = scr.fake[0].getContext('2d');
-  scr.fake.ctx.drawImage(bitmap, 0, 0);
-  scr.fake.vertices = new Float32Array(6 * 2 * 400);
-  scr.fake.tex_vertices = new Float32Array(6 * 2 * 400);
-  scr.fake.bg = new Float32Array(6 * 1 * 400);
-  scr.fake.fg = new Float32Array(6 * 1 * 400);
-  scr.fake.vertice_count = 0;
-  scr.fake.dirty = true;
+  // XXX
+  var pot_img_height = power_of_two(bitmap.height);
+  var pot_img_width = power_of_two(bitmap.width);
+  scr.pot_img = $('<canvas height=' + pot_img_height +
+                  ' width=' + pot_img_width + '></canvas>');
+  scr.pot_img.ctx = scr.pot_img[0].getContext('2d');
+  scr.pot_img.ctx.drawImage(bitmap, 0, 0);
+  scr.pot_img.vertices = new Float32Array(6 * 2 * 400);
+  scr.pot_img.tex_vertices = new Float32Array(6 * 2 * 400);
+  scr.pot_img.bg = new Float32Array(6 * 1 * 400);
+  scr.pot_img.fg = new Float32Array(6 * 1 * 400);
+  scr.pot_img.vertice_count = 0;
+  scr.pot_img.dirty = true;
   var offscreen = make_offscreen_canvas(scr.font);
   scr.canvas_pool.normal.canvases = [offscreen];
   // a very small, very temporary, canvas, for drawing the characters before
@@ -346,7 +350,7 @@ defun(window_t, 'refresh', function() {
   for (; i < pool.length; i++) {
     flush_draw(scr, pool[i]);
     }*/
-  flush_draw(scr, scr.fake);
+  flush_draw(scr, scr.pot_img);
 });
 exports.wrefresh = windowify(window_t.prototype.refresh);
 
@@ -589,10 +593,10 @@ var make_offscreen_canvas = function(font) {
   canvas.ctx.textBaseline = 'hanging';
   canvas.texture = null;
   // TODO: handle array size as a an option
-  canvas.vertices = new Float32Array(6 * 2 * 400);
-  canvas.tex_vertices = new Float32Array(6 * 2 * 400);
-  canvas.bg = new Float32Array(6 * 4 * 400);
-  canvas.fg = new Float32Array(6 * 4 * 400);
+  canvas.vertices = new Float32Array(6 * 2 * WEBGL_BUFFER_SIZE);
+  canvas.tex_vertices = new Float32Array(6 * 2 * WEBGL_BUFFER_SIZE);
+  canvas.bg = new Float32Array(6 * 4 * WEBGL_BUFFER_SIZE);
+  canvas.fg = new Float32Array(6 * 4 * WEBGL_BUFFER_SIZE);
   canvas.vertice_count =  0;
   canvas.dirty = true;
   return canvas;
@@ -605,19 +609,20 @@ var make_offscreen_canvas = function(font) {
 //
 // draw_char() is used by refresh() to redraw characters where necessary
 var draw_char = function(scr, y, x, c, attrs) {
-  var bitmap_y = scr.font.char_map[c][0];
-  var bitmap_x = scr.font.char_map[c][1];
-  var fg = attr_fg(attrs);
-  var bg = attr_bg(attrs);
-  draw_image(scr, scr.fake, y, x, bitmap_y, bitmap_x, fg, bg);
-  return true;
+  if (scr.gl) {
+    var bitmap_y = scr.font.char_map[c][0];
+    var bitmap_x = scr.font.char_map[c][1];
+    var fg = attr_fg(attrs);
+    var bg = attr_bg(attrs);
+    draw_image(scr, scr.pot_img, y, x, bitmap_y, bitmap_x, fg, bg);
+    return;
+  }
+  // TODO: Canvas2D fallback
   var offscreen = find_offscreen_char(scr, c, attrs);
   if (! offscreen) {
     // silently fail, and return false
     return false;
   }
-  // TODO: only actually call draw_image once per texture
-  // TODO: Canvas2D fallback
   return true;
 };
 

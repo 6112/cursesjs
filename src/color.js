@@ -46,8 +46,9 @@ var pair_number = function(n) {
 };
 
 // table of color pairs used for the application
+// TODO: have a separate one for each screen_t instance
 var color_pairs = {
-  0: {
+  0: { // default color pair
     fg: exports.COLOR_WHITE,
     bg: exports.COLOR_BLACK
   }
@@ -90,23 +91,23 @@ var init_pair = exports.init_pair = function(pair_index,
  * Example:
  *     initscr(...);
  *     // COLOR_BLUE now means red (not bold) or pink (bold)
- *     define_color(COLOR_BLUE, '#FF0000', '#FF8888');
+ *     define_color(COLOR_BLUE, 0xFF0000, 0xFF8888);
  *     init_pair(1, COLOR_BLUE, COLOR_BLACK);
  *     // write something in pink
  *     addstr(10, 10, "hello pink!", COLOR_PAIR(1) | A_BOLD);
  *     // define a new color, and call it COLOR_OCHRE
- *     var COLOR_OCHRE = define_color(null, '#CC7722');
+ *     var COLOR_OCHRE = define_color(null, 0xCC7722);
  *     init_pair(2, COLOR_OCHRE, COLOR_BLACK);
  *     // write something in ochre
  *     addstr(11, 10, "hello ochre!", COLOR_PAIR(2));
  *
- * @param {Color|Array[String]} [color_name=[]] Color to be modified. This can be a
+ * @param {Color|Array[Integer]} [color_name=[]] Color to be modified. This can be a
  * built-in color (COLOR_RED, COLOR_BLUE, etc.) or any array, that will be
  * modified in-place to be a pair that describes the color. If unspecified, a
  * new array will be created to represent the pair.
- * @param {String} normal_color CSS color for the color that non-bold text
+ * @param {Integer} normal_color Hex color for the color that non-bold text
  * should have if affected by this color.
- * @param {String} [bold_color=normal_color] CSS color for the color that bold
+ * @param {Integer} [bold_color=normal_color] Hex color for the color that bold
  * text should have if affected by this color.
  * @return {Array} An array describing the normal color, and the bold color, for
  * the defined color.
