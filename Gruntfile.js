@@ -1,11 +1,11 @@
 /*
  * Use for automating compilation tasks. You need to install the package
- * `grunt-cli` using npm in order to use this Gruntfile.
+ * `grunt-cli` using `npm` in order to use this Gruntfile.
  *
  *     # npm install -g grunt-cli
+ *     $ npm install
  *
- * You can then recompile and run JSHint (a tool for checking for common
- * programming mistakes) on the code by simply running:
+ * You can then recompile and run JSHint on the code by simply running:
  *
  *     $ grunt
  *

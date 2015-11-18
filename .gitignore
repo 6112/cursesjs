@@ -3,3 +3,5 @@
 
 # emacs swap files
 *~
+
+node_modules

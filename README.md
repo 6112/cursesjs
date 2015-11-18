@@ -5,7 +5,7 @@
 "visual" settings: color, text alignment on screen, more interactive user input,
 etc. Examples of applications that use `ncurses` are Emacs and Vim.
 
-So far, only Firefox and Google Chrome are supported.
+For now, only Firefox and Google Chrome are supported.
 
 ```
 This project is still under development. As such, the API is still subject to change.
@@ -27,6 +27,7 @@ root, you can run:
 
 ```bash
 npm install -g grunt-cli
+npm install
 ```
 
 The source files are distributed in the `src/` directory, and the compiled,
@@ -52,9 +53,9 @@ in a web browser.
 ## TODO
 
 * Add mouse support
-* Implement scrollok()
 * Implement echo(), noecho()
 * Implement endwin(), delwin()
-* Improve the refresh()/wrefresh() cycle to be more similar to original ncurses
 * Improve bkgd()
 * Improve keyboard events
+* Port rendering from Canvas2D to WebGL
+* Add elements to the demo page
