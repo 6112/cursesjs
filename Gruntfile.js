@@ -21,27 +21,27 @@ module.exports = function(grunt) {
       options: {
         // wrap the ouptut with (function(){...})(); so that package-local
         // functions/variables are actually local to the package
-	banner: '(function() {\n',
-	separator: '\n\n', // for better human-readability
-	footer: '\n})();'
+        banner: '(function() {\n',
+        separator: '\n\n', // for better human-readability
+        footer: '\n})();'
       },
       dist: {
         // files to compile into a single JavaScript file located in dist/.
         // order is important, because some functions are defined in a file,
         // but used in another
-	src: [
-	  'src/curses.js',
-	  'src/decorators.js',
-	  'src/color.js',
-	  'src/attrs.js',
+        src: [
+          'src/curses.js',
+          'src/decorators.js',
+          'src/color.js',
+          'src/attrs.js',
           'src/keyboard.js',
-	  'src/screen.js',
-	  'src/functions.js',
-	  'src/draw.js',
+          'src/screen.js',
+          'src/functions.js',
+          'src/draw.js',
           'src/window.js',
-	  'src/event.js'
-	],
-	dest: 'dist/js-curses.js'
+          'src/event.js'
+        ],
+        dest: 'dist/js-curses.js'
       }
     },
     jshint: {
@@ -50,13 +50,13 @@ module.exports = function(grunt) {
       options: {
         // global variables that do not yield warnings for being used without
         // being defined
-	globals: {
-	  '$': true,
+        globals: {
+          '$': true,
           jQuery: true,
-	  console: true,
-	  window: true,
-	  document: true
-	}
+          console: true,
+          window: true,
+          document: true
+        }
       }
     },
     watch: {

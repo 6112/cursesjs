@@ -86,7 +86,7 @@ $(window).load(function() {
     addstr("Nicolas Ouellet-Payeur", COLOR_PAIR(2));
     addch(')');
     addstr(15, 8, "http://github.com/6112/js-curses",
-	   COLOR_PAIR(6) | A_UNDERLINE);
+           COLOR_PAIR(6) | A_UNDERLINE);
     var i;
     for (i = 0; i < options.length; i++) {
       if (i === selected) {

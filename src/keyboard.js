@@ -47,7 +47,7 @@ var handle_keyboard = function(scr, container, require_focus) {
       // handler(keycode, event, screen);
       var returned = scr.trigger('keydown', event.which, event, scr);
       if (typeof returned === "boolean") {
-	cancel = ! returned;
+        cancel = ! returned;
       }
     }
     // disable most browser shortcuts if the _raw flag is on for the window, and
@@ -60,20 +60,20 @@ var handle_keyboard = function(scr, container, require_focus) {
       var height = scr.height;
       var width = scr.width;
       if (scr.auto_height) {
-	height = Math.floor(container.height() / scr.font.char_height);
-	if (scr.min_height) {
-	  height = Math.max(height, scr.min_height);
-	}
+        height = Math.floor(container.height() / scr.font.char_height);
+        if (scr.min_height) {
+          height = Math.max(height, scr.min_height);
+        }
       }
       if (scr.auto_width) {
-	width = Math.floor(container.width() / scr.font.char_width);
-	if (scr.min_width) {
-	  width = Math.max(width, scr.min_width);
-	}
+        width = Math.floor(container.width() / scr.font.char_width);
+        if (scr.min_width) {
+          width = Math.max(width, scr.min_width);
+        }
       }
       if (height === scr.height && width === scr.width) {
-	// exit if unchanged
-	return;
+        // exit if unchanged
+        return;
       }
       // resize the canvas
       resize_canvas(scr, height, width);
@@ -106,8 +106,8 @@ var resize_canvas = function(scr, height, width) {
   w = Math.min(prev_w, w);
   // copy the old canvas onto the new one
   ctx.drawImage(scr.canvas[0],
-		0, 0, w, h,
-		0, 0, w, h);
+                0, 0, w, h,
+                0, 0, w, h);
   // replace the old canvas with the new one
   scr.canvas.replaceWith(new_canvas);
   scr.canvas = new_canvas;
@@ -136,7 +136,7 @@ var resize_canvas = function(scr, height, width) {
 
 /**
  * Disable most browser shortcuts, allowing your application to use things like
- * Ctrl+C and Ctrl+T as keybindings within the application. 
+ * Ctrl+C and Ctrl+T as keybindings within the application.
  *
  * You may want to use the `require_focus` option in initscr() if you use this
  * function.

@@ -65,7 +65,7 @@ var shortcut_move = function(f) {
 
 // similar to simplify, but allows the caller to specify text attributes
 // (as per attron() and attroff()) as the last argument to the call.
-// 
+//
 // for instance, the function call:
 //   scr.addstr('hello world', A_BOLD | COLOR_PAIR(3));
 //

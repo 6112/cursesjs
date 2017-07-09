@@ -112,7 +112,7 @@ var init_pair = exports.init_pair = function(pair_index,
  * the defined color.
  **/
 var define_color = exports.define_color = function(color, normal_color,
-						   bold_color) {
+                                                   bold_color) {
   if (! color) {
     color = [];
   }

@@ -14,7 +14,7 @@ screen_t.prototype.trigger = function(event_name) {
     for (i = 0; i < this.listeners[event_name].length; i++) {
       var returned = this.listeners[event_name][i].apply(this, args);
       if (returned !== undefined) {
-	last_return = returned;
+        last_return = returned;
       }
     }
   }

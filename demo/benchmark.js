@@ -21,7 +21,7 @@
       var y, x;
       for (y = 0; y < 29; y++) {
         for (x = 0; x < 60; x++) {
-          var k = Math.round(Math.random() 
+          var k = Math.round(Math.random()
                              * ('Z'.charCodeAt(0) - 'A'.charCodeAt(0)));
           k += 'A'.charCodeAt(0);
           var c = String.fromCharCode(k);
@@ -32,9 +32,9 @@
           if (Math.round(Math.random())) {
             attrs |= A_REVERSE;
           }
-	  if (Math.round(Math.random())) {
-	    attrs |= A_UNDERLINE;
-	  }
+          if (Math.round(Math.random())) {
+            attrs |= A_UNDERLINE;
+          }
           attrs |= COLOR_PAIR(Math.round(Math.random() * 6));
           addstr(y, x, c, attrs);
         }

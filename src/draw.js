@@ -157,7 +157,7 @@ var load_ttf_font = function(scr, font) {
   var height = Math.round(font.height + font.line_spacing);
   var width = Math.round(metrics.width);
   // check that it's (probably) a monospace font
-  var testChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" + 
+  var testChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" +
     "_-+*@ ()[]{}/\\|~`,.0123456789";
   var i;
   for (i = 0; i < testChars.length; i++) {
@@ -203,7 +203,7 @@ var load_ttf_font = function(scr, font) {
 
 // Load a BMP font from an image. The image should already be preloaded before
 // calling this function. This function is called automatically by initscr().
-// 
+//
 // @param {Object} font Font description, as passed to initscr().
 var load_bitmap_font = function(scr, font) {
   var bitmap = font.name;
@@ -218,7 +218,7 @@ var load_bitmap_font = function(scr, font) {
   for (y = 0; y < font.chars.length; y++) {
     for (x = 0; x < font.chars[y].length; x++) {
       if (! char_map[font.chars[y][x]]) {
-	char_map[font.chars[y][x]] = [y, x];
+        char_map[font.chars[y][x]] = [y, x];
       }
     }
   }
@@ -321,11 +321,11 @@ window_t.prototype.refresh = function() {
       var next = this.tiles[y][x];
       // if it needs to be redrawn
       if (prev.content !== next.content || prev.attrs !== next.attrs) {
-	// redraw the character on-screen
-	draw_char(scr, y + this.win_y, x + this.win_x,
-		  next.content, next.attrs);
-	prev.content = next.content;
-	prev.attrs = next.attrs;
+        // redraw the character on-screen
+        draw_char(scr, y + this.win_y, x + this.win_x,
+                  next.content, next.attrs);
+        prev.content = next.content;
+        prev.attrs = next.attrs;
       }
     }
   }
@@ -345,7 +345,7 @@ window_t.prototype.expose =
   }
 };
 
-window_t.prototype.unexpose = 
+window_t.prototype.unexpose =
   screen_t.prototype.unexpose =function(y, x, height, width) {
   var j, i;
   for (j = y; j < y + height; j++) {
@@ -407,7 +407,7 @@ screen_t.prototype.addch = window_t.prototype.addch = function(c) {
     // or continue to next line if the end of the line was reached
     this.move(this.y + 1, 0);
   }
-}; 
+};
 // allow calling as addch(y, x, c);
 screen_t.prototype.addch = shortcut_move(screen_t.prototype.addch);
 screen_t.prototype.addch = attributify(screen_t.prototype.addch);
@@ -448,7 +448,7 @@ screen_t.prototype.addstr = window_t.prototype.addstr = function(str) {
   if (i !== str.length) {
     throw new RangeError("not enough room to add the whole string");
   }
-}; 
+};
 // allow calling as addstr(y, x, str);
 screen_t.prototype.addstr = shortcut_move(screen_t.prototype.addstr);
 screen_t.prototype.addstr = attributify(screen_t.prototype.addstr);
@@ -461,7 +461,7 @@ exports.addstr = simplify(screen_t.prototype.addstr);
  * Draw a vertical line using `ch` at the current position. The cursor does not
  * move. The maximum length of the line is `n` characters. If the end of the
  * screen or window is reached, the line stops.
- * 
+ *
  * If called with two integers as the first arguments, move to those coordinates
  * first (as per move()), and stay there after the line is drawn.
  *
@@ -659,7 +659,7 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   }
   // calculate coordinates from the source image
   var bitmap_y = scr.font.char_map[c][0] *
-	(scr.font.char_height - scr.font.line_spacing);
+        (scr.font.char_height - scr.font.line_spacing);
   bitmap_y = Math.round(bitmap_y);
   var bitmap_x = scr.font.char_map[c][1] * scr.font.char_width;
   bitmap_x = Math.round(bitmap_x);
@@ -672,10 +672,10 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
   var width = scr.font.char_width;
   small.clearRect(0, 0, width, height);
   small.drawImage(scr.font.bitmap,
-		  bitmap_x, bitmap_y,
-		  width, height,
-		  0, 0,
-		  width, height);
+                  bitmap_x, bitmap_y,
+                  width, height,
+                  0, 0,
+                  width, height);
   // for each non-transparent pixel on the small canvas, draw the pixel
   // at the same position onto the 'main' offscreen canvas
   ctx.fillStyle = fg;
@@ -686,12 +686,12 @@ var draw_offscreen_char_bmp = function(scr, c, attrs) {
     for (x = 0; x < width; x++) {
       var value = pixels[(y * width + x) * 4 + scr.font.channel];
       if (value !== 0) {
-	// TODO: use putImageData() to improve performance in some
-	// browsers
-	var dst_x = Math.round(sx + x);
-	var dst_y = Math.round(sy + y + scr.font.line_spacing / 2);
-	ctx.globalAlpha = value / 255;
-	ctx.fillRect(dst_x, dst_y, 1, 1);
+        // TODO: use putImageData() to improve performance in some
+        // browsers
+        var dst_x = Math.round(sx + x);
+        var dst_y = Math.round(sy + y + scr.font.line_spacing / 2);
+        ctx.globalAlpha = value / 255;
+        ctx.fillRect(dst_x, dst_y, 1, 1);
       }
     }
   }
@@ -716,8 +716,8 @@ var draw_offscreen_char_ttf = function(scr, c, attrs) {
   var bg = colors[1];
   // calculate where to draw the character
   var pool = ((attrs & A_BOLD) && scr.font.use_bold) ?
-	scr.canvas_pool.bold :
-	scr.canvas_pool.normal;
+        scr.canvas_pool.bold :
+        scr.canvas_pool.normal;
   var canvas = pool.canvases[pool.canvases.length - 1];
   var ctx = canvas.ctx;
   var sy = 0;

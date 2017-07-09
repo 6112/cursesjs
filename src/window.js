@@ -1,7 +1,7 @@
 /**
  * Create a new window at position (y,x), with height `height` and width
  * `width`. The parent window is the object newwin() is applied on (or the
- * default screen, it applicable). The child window is returned by this 
+ * default screen, it applicable). The child window is returned by this
  * function.
  *
  * The child window is always drawn over the content of the parent window,
@@ -16,7 +16,7 @@
  * @param {Integer} width width of the window, in characters.
  * @return {window_t} The created child window.
  **/
-window_t.prototype.newwin = 
+window_t.prototype.newwin =
   screen_t.prototype.newwin = function(height, width, y, x) {
     if (typeof y !== "number") {
       throw new TypeError("y is not a number");
@@ -55,14 +55,14 @@ window_t.prototype.newwin =
     for (j = 0; j < height; j++) {
       win.tiles[j] = [];
       for (i = 0; i < width; i++) {
-	win.tiles[j][i] = new tile_t();
+        win.tiles[j][i] = new tile_t();
       }
     }
     // draw each tile
     for (j = 0; j < height; j++) {
       for (i = 0; i < width; i++) {
-	win.addch(j, i, win.empty_char);
-	win.tiles[j][i].empty = true;
+        win.addch(j, i, win.empty_char);
+        win.tiles[j][i].empty = true;
       }
     }
     // undraw each 'covered' tile in the parent
@@ -131,7 +131,7 @@ screen_t.prototype.box =
     vert = chars[0];
     horiz = chars[1];
     this.border(vert.value, vert.attrs, vert.value, vert.attrs,
-		horiz.value, horiz.attrs, horiz.value, horiz.attrs);
+                horiz.value, horiz.attrs, horiz.value, horiz.attrs);
   };
 exports.wbox = windowify(window_t.prototype.box);
 exports.box = simplify(screen_t.prototype.box);
@@ -167,8 +167,8 @@ exports.box = simplify(screen_t.prototype.box);
 screen_t.prototype.border =
   window_t.prototype.border = function(ls, rs, ts, bs, tl, tr, bl, br) {
     var defaults = [ACS_VLINE, ACS_VLINE,
-		    ACS_HLINE, ACS_HLINE,
-		    ACS_ULCORNER, ACS_URCORNER, ACS_LLCORNER, ACS_LRCORNER];
+                    ACS_HLINE, ACS_HLINE,
+                    ACS_ULCORNER, ACS_URCORNER, ACS_LLCORNER, ACS_LRCORNER];
     var chars = parse_chtypes(arguments, defaults, this);
     // draw corners
     this.addch(0, 0, chars[4].value, chars[4].attrs);
@@ -178,10 +178,10 @@ screen_t.prototype.border =
     // draw borders
     this.vline(1, 0, chars[0].value, this.height - 2, chars[0].attrs);
     this.vline(1, this.width - 1, chars[1].value, this.height - 2,
-	       chars[1].attrs);
+               chars[1].attrs);
     this.hline(0, 1, chars[2].value, this.width - 2, chars[2].attrs);
     this.hline(this.height - 1, 1, chars[3].value, this.width - 2,
-	       chars[3].attrs);
+               chars[3].attrs);
   };
 exports.wborder = windowify(window_t.prototype.border);
 exports.border = simplify(screen_t.prototype.border);
@@ -222,7 +222,7 @@ var parse_chtypes = function(arglist, defaults, win) {
  * Delete a window, and remove it from its parent window. Force a redraw
  * on the part of the parent window that was being covered by this window.
  * The redraw only happens when refresh() is next called.
- * 
+ *
  * TODO
  **/
 window_t.prototype.delwin = function() {
