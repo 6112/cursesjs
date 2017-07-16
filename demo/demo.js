@@ -1,4 +1,4 @@
-window.addEventListener("load", function() {
+window.addEventListener("load", async () => {
   // Polute the global namespace, because programming is fun.
   for (const k in curses) {
     window[k] = curses[k];
@@ -57,7 +57,7 @@ window.addEventListener("load", function() {
     "Performance benchmark"
   ];
   const demo = window.demo = {};
-  const redraw = demo.redraw = function() {
+  function redraw() {
     const {y: max_y, x: max_x} = getmaxyx(scr);
     attron(A_REVERSE | COLOR_PAIR(1));
     addstr(0, 0, "  curses.js demonstration");
@@ -106,8 +106,8 @@ window.addEventListener("load", function() {
     wrefresh(subwin);
   };
   redraw();
-  const update = demo.update = function(c) {
-    let cancel = true;
+  while (1) {
+    const c = await getch();
     switch(c) {
       case KEY_J:
       case KEY_DOWN:
@@ -121,30 +121,20 @@ window.addEventListener("load", function() {
 
       case 13:
         if (selected === 0) {
-          ungetch(update);
           clear();
-          rl.redraw();
-          ongetch(rl.update);
-          return false;
+          await rl.run();
         }
         if (selected === 1) {
-          ungetch(update);
           clear();
           bm.ticks = 0;
-          bm.redraw();
-          bm.fps_timeout = setTimeout(bm.count_fps, 1000);
-          ongetch(bm.update);
-          return false;
+          await bm.run();
         }
         break;
 
       default:
-        cancel = false;
         break;
     }
     selected = Math.min(options.length - 1, Math.max(0, selected));
     redraw();
-    return !cancel;
-  };
-  ongetch(update);
+  }
 });
