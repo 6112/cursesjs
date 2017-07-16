@@ -26,15 +26,15 @@
           addch(y, x, tile);
         }
       }
-      addch(state.player.y, state.player.x, '@', A_BOLD | COLOR_PAIR(2));
-      addstr(state.map.length + 1, 0, 'use ');
-      addstr('hjkl', A_BOLD | A_UNDERLINE);
-      addstr(' or ');
-      addstr('arrow keys', A_BOLD | A_UNDERLINE);
-      addstr(' to move around');
-      addstr(state.map.length + 2, 0, 'press ');
-      addstr('q', A_BOLD | A_UNDERLINE);
-      addstr(' to quit');
+      addch(state.player.y, state.player.x, "@", A_BOLD | COLOR_PAIR(2));
+      addstr(state.map.length + 1, 0, "use ");
+      addstr("hjkl", A_BOLD);
+      addstr(" or ");
+      addstr("arrow keys", A_BOLD);
+      addstr(" to move around");
+      addstr(state.map.length + 2, 0, "press ");
+      addstr("q", A_BOLD);
+      addstr(" to quit");
       move(state.player.y, state.player.x);
       refresh();
     },
@@ -72,7 +72,7 @@
 
         default: break;
       }
-      if (state.map[state.player.y][state.player.x] === '#') {
+      if (state.map[state.player.y][state.player.x] === "#") {
         state.player.y = old_y;
         state.player.x = old_x;
       }

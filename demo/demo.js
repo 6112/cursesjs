@@ -1,18 +1,18 @@
-$(window).load(function() {
+window.addEventListener("load", function() {
   // Polute the global namespace, because programming is fun.
   for (const k in curses) {
     window[k] = curses[k];
   }
-  $('#preload').remove();
+  document.getElementById('preload').remove();
   /*
   // * /
   const scr = initscr({
-    container: '#stage',
+    container: "#stage",
     min_height: 30,
     min_width: 60,
     font: {
-      type: 'ttf',
-      name: 'Source Code Pro',
+      type: "ttf",
+      name: "Source Code Pro",
       height: 14,
       line_spacing: 1
     },
@@ -22,14 +22,14 @@ $(window).load(function() {
   /*
   */
   const scr = initscr({
-    container: document.getElementById('stage'),
+    container: document.getElementById("stage"),
     min_height: 30,
     min_width: 60,
     font: {
-      type: 'bmp',
-      name: 'vgafont.png',
-      height: 16,
-      width: 9,
+      type: "bmp",
+      name: "egafont.png",
+      height: 12,
+      width: 8,
       line_spacing: 0,
       use_char_cache: true,
     },
@@ -47,34 +47,34 @@ $(window).load(function() {
   init_pair(7, COLOR_BLACK, COLOR_BLACK);
   const subwin = newwin(5, 22, 20, 5);
   wattron(subwin, COLOR_PAIR(1) | A_REVERSE);
-  wbkgd(subwin, '.');
-  waddstr(subwin, 2, 2, 'I am a subwindow.');
+  wbkgd(subwin, ".");
+  waddstr(subwin, 2, 2, "I am a subwindow.");
   wborder(subwin);
   raw();
   let selected = 0;
   const options = [
-    'Roguelike-like player movement',
-    'Text editor (TODO ☺)',
-    'Window demo (TODO ☻)',
-    'Benchmark'
+    "Roguelike-like player movement",
+    "Text editor (TODO ☺)",
+    "Window demo (TODO ☻)",
+    "Benchmark"
   ];
   const demo = window.demo = {};
   const redraw = demo.redraw = function() {
     const {y: max_y, x: max_x} = getmaxyx(scr);
     attron(A_REVERSE | COLOR_PAIR(1));
-    addstr(0, 0, '  js-curses demonstration');
+    addstr(0, 0, "  js-curses demonstration");
     for (let x = scr.x; x <= max_x; x++) {
-      addstr(' ');
+      addstr(" ");
     }
     attroff(A_BOLD | A_REVERSE | COLOR_PAIR(1));
-    addstr(1, 2, 'use ');
-    addstr('jk', A_BOLD | A_UNDERLINE);
-    addstr(' or the ');
-    addstr('arrow keys', A_BOLD | A_UNDERLINE);
-    addstr(' to select a demo');
-    addstr(2, 2, 'press ');
-    addstr('enter', A_BOLD | A_UNDERLINE);
-    addstr(' to run that demo');
+    addstr(1, 2, "use ");
+    addstr("jk", A_BOLD);
+    addstr(" or the ");
+    addstr("arrow keys", A_BOLD);
+    addstr(" to select a demo");
+    addstr(2, 2, "press ");
+    addstr("enter", A_BOLD);
+    addstr(" to run that demo");
 
     addstr(9, 4, "ncurses", A_BOLD);
     addstr(" is a C library for console programs.");
@@ -86,7 +86,7 @@ $(window).load(function() {
 
     addstr(14, 8, "(made by ");
     addstr("Nicolas Ouellet-Payeur", COLOR_PAIR(2));
-    addch(')');
+    addch(")");
     addstr(15, 8, "http://github.com/6112/js-curses",
            COLOR_PAIR(6) | A_UNDERLINE);
     let i;
@@ -96,13 +96,13 @@ $(window).load(function() {
       }
       addstr(i + 3, 0, options[i]);
       for (let x = scr.x; x <= max_x; x++) {
-        addstr(' ');
+        addstr(" ");
       }
       if (i === selected) {
         attroff(A_REVERSE);
       }
     }
-    addch(max_y, max_x, 'M');
+    addch(max_y, max_x, "M");
     move(i + 3, 0);
     refresh();
     wrefresh(subwin);
