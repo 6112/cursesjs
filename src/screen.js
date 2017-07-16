@@ -15,7 +15,7 @@ import { start_blink } from "./functions";
  * and a specified, fixed, font and font size.
  *
  * The created screen is set as the "default screen". This allows calling
- * all js-curses in a C-style way, without explicitly specifying the screen
+ * all curses.js in a C-style way, without explicitly specifying the screen
  * most method calls apply to, assuming initscr() is called only once for the
  * webpage. For instance, the following are legal:
  *
@@ -372,7 +372,7 @@ export function curs_set(visibility) {
 }
 
 /**
- * Quit js-curses.
+ * Quit curses.js.
  *
  * TODO
  **/

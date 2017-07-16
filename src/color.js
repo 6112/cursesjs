@@ -57,7 +57,7 @@ export function init_pair(pair_index, fg, bg) {
 
 /**
  * Define a color for use with init_pair(). Use this function at the beginning
- * of your program to replace the default colors in js-curses, or define new
+ * of your program to replace the default colors in curses.js, or define new
  * colors.
  *
  * Example:

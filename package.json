@@ -1,14 +1,14 @@
 {
-  "name": "js-curses",
+  "name": "cursesjs",
   "version": "0.0.1",
   "description": "ncurses for the web browser",
-  "main": "js-curses.js",
+  "main": "curses.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/6112/js-curses.git"
+    "url": "https://github.com/6112/cursesjs.git"
   },
   "keywords": [
     "jquery",
@@ -18,7 +18,7 @@
   "author": "Nicolas Ouellet-Payeur",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/6112/js-curses/issues"
+    "url": "https://github.com/6112/cursesjs/issues"
   },
   "devDependencies": {
     "babel": "^6.23.0",

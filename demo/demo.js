@@ -60,7 +60,7 @@ window.addEventListener("load", function() {
   const redraw = demo.redraw = function() {
     const {y: max_y, x: max_x} = getmaxyx(scr);
     attron(A_REVERSE | COLOR_PAIR(1));
-    addstr(0, 0, "  js-curses demonstration");
+    addstr(0, 0, "  curses.js demonstration");
     for (let x = scr.x; x <= max_x; x++) {
       addstr(" ");
     }
@@ -77,7 +77,7 @@ window.addEventListener("load", function() {
     addstr(9, 4, "ncurses", A_BOLD);
     addstr(" is a C library for console programs.");
     addstr(10, 4, "It handles colors, bold, windows, etc.");
-    addstr(11, 4, "js-curses", A_BOLD);
+    addstr(11, 4, "curses.js", A_BOLD);
     addstr(" is a port of ");
     addstr("ncurses ", A_BOLD);
     addstr("for the web.");
@@ -85,7 +85,7 @@ window.addEventListener("load", function() {
     addstr(14, 8, "(made by ");
     addstr("Nicolas Ouellet-Payeur", COLOR_PAIR(2));
     addch(")");
-    addstr(15, 8, "http://github.com/6112/js-curses",
+    addstr(15, 8, "https://github.com/6112/cursesjs",
            COLOR_PAIR(6) | A_UNDERLINE);
     let i;
     for (i = 0; i < options.length; i++) {

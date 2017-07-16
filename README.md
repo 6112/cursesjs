@@ -1,6 +1,6 @@
-# js-curses
+# curses.js
 
-`js-curses` is an attempt at porting the `ncurses` library to the web browser.
+`curses.js` is an attempt at porting the `ncurses` library to the web browser.
 `ncurses` is a library that allows a terminal application to make use of some
 "visual" settings: color, text alignment on screen, more interactive user input,
 etc. Examples of applications that use `ncurses` are Emacs and Vim.
