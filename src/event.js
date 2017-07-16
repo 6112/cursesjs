@@ -1,3 +1,6 @@
+import { screen_t } from "./types";
+import { stdscr } from "./stdscr";
+
 /**
  * Trigger an event on the window, with name `event_name`.
  *
@@ -7,12 +10,11 @@
  * @param {String} event_name Name of the event to be fired.
  **/
 screen_t.prototype.trigger = function(event_name) {
-  var last_return;
+  let last_return;
   if (this.listeners[event_name]) {
-    var args = [].slice.call(arguments, 1);
-    var i;
-    for (i = 0; i < this.listeners[event_name].length; i++) {
-      var returned = this.listeners[event_name][i].apply(this, args);
+    const args = [].slice.call(arguments, 1);
+    for (const listener of this.listeners[event_name]) {
+      const returned = listener.apply(this, args);
       if (returned !== undefined) {
         last_return = returned;
       }
@@ -26,7 +28,7 @@ screen_t.prototype.trigger = function(event_name) {
  *
  * @param {String} event_name Name of the event to listen to.
  * @param {Function} callback Function that will be called when the event is
- *   fired.
+ *     fired.
  **/
 screen_t.prototype.on = function(event_name, callback) {
   if (! this.listeners[event_name]) {
@@ -46,14 +48,15 @@ screen_t.prototype.off = function(event_name, callback) {
   if (! this.listeners[event_name]) {
     this.listeners[event_name] = [];
   }
-  var i;
-  for (i = 0; i < this.listeners[event_name].length; i++) {
-    if (this.listeners[event_name][i] == callback) {
+  const listeners = this.listeners[event_name];
+  let i = 0;
+  for (i = 0; i < listeners.length; i++) {
+    if (listeners[i] == callback) {
       break;
     }
   }
-  if (i !== this.listeners[event_name].length) {
-    this.listeners[event_name].splice(i, 1);
+  if (i !== listeners.length) {
+    listeners.splice(i, 1);
   }
 };
 
@@ -63,18 +66,20 @@ screen_t.prototype.off = function(event_name, callback) {
  *
  * @param {String} event_name Name of the event to listen to.
  * @param {Function} callback Function that will be called when the event is
- *   fired.
+ *     fired.
  **/
 screen_t.prototype.one = function(event_name, callback) {
-  var scr = this;
-  var f = function() {
+  const scr = this;
+  this.on(event_name, function() {
     callback.apply(this, arguments);
-    scr.off(event_name, f);
-  };
-  this.on(event_name, f);
+    scr.off();
+  });
 };
 
 /**
+ * Return a promise that resolves when a key is entered by the user (if the
+ * screen has focus).
+ *
  * Call function `callback` only once, when a key is entered by the user (if
  * the screen has focus). `callback` will receive an event object as its first
  * argument.
@@ -82,11 +87,18 @@ screen_t.prototype.one = function(event_name, callback) {
  * The description of the event object is still subject to change.
  *
  * @param {Function} callback Function to be called when a key is pressed.
+ * @return {Promise<Object>} Promise that resolves when the user hits a key.
  **/
-screen_t.prototype.getch = function(callback) {
-  this.one('keydown', callback);
+screen_t.prototype.getch = function() {
+  return new Promise(resolve => {
+    this.one("keydown", event => {
+      resolve(event);
+    });
+  });
 };
-exports.getch = simplify(screen_t.prototype.getch);
+export function getch() {
+  return stdscr.getch();
+}
 
 /**
  * Call function `callback` when a key is entered by the user (if the screen
@@ -97,9 +109,11 @@ exports.getch = simplify(screen_t.prototype.getch);
  * @param {Function} callback Function to be called when a key is pressed.
  **/
 screen_t.prototype.ongetch = function(callback) {
-  this.on('keydown', callback);
+  this.on("keydown", callback);
 };
-exports.ongetch = simplify(screen_t.prototype.ongetch);
+export function ongetch(callback) {
+  return stdscr.ongetch(callback);
+}
 
 /**
  * Stop listening to keyboard events; undoes a previous call to getch() or
@@ -107,9 +121,11 @@ exports.ongetch = simplify(screen_t.prototype.ongetch);
  * getch() or ongetch().
  *
  * @param {Function} callback Function that should not be called anymore when a
- *   key is pressed.
+ *     key is pressed.
  **/
 screen_t.prototype.ungetch = function(callback) {
-  this.off('keydown', callback);
+  this.off("keydown", callback);
 };
-exports.ungetch = simplify(screen_t.prototype.ungetch);
+export function ungetch(callback) {
+  return stdscr.ungetch(callback);
+}

@@ -1,3 +1,12 @@
+import { stdscr, set_stdscr } from "./stdscr";
+import { CODEPAGE_437 } from "./constants";
+import { screen_t, tile_t, window_t } from "./types";
+import { handle_keyboard } from "./keyboard";
+import {
+  CHANNEL_ALPHA, do_blink, draw_cursor, load_bitmap_font, load_ttf_font,
+  undraw_cursor } from "./draw";
+import { start_blink } from "./functions";
+
 /**
  * Create a new screen, set is at the default screen, and return it.
  *
@@ -12,12 +21,12 @@
  *
  *     // creating the screen
  *     var screen = initscr({
- *       container: '#container',
+ *       container: "#container",
  *       height: 30,
  *       width: 30,
  *       font: {
- *         type: 'ttf',
- *         name: 'Oxygen Mono',
+ *         type: "ttf",
+ *         name: "Oxygen Mono",
  *         height: 14
  *       },
  *       require_focus: true
@@ -52,29 +61,29 @@
  * Examples:
  *     // ttf font:
  *     initscr({
- *       container: '#container',
+ *       container: "#container",
  *       height: 60,
  *       width: 80,
  *       font: {
- *         type: 'ttf',
- *         name: 'Source Code Pro',
+ *         type: "ttf",
+ *         name: "Source Code Pro",
  *         height: 12
  *       },
  *       require_focus: true
  *     });
  *     // bitmap font:
  *     var char_table = [
- *       'abcdefghijklmnopqrstuvwxyz', // each line corresponds to a line inside
- *       'ABCDEFGHIJKLMNOPQRSTUVWXYZ', // the image to be loaded
- *       ' ,.!@#$%?&*()[]{}'
+ *       "abcdefghijklmnopqrstuvwxyz", // each line corresponds to a line inside
+ *       "ABCDEFGHIJKLMNOPQRSTUVWXYZ", // the image to be loaded
+ *       " ,.!@#$%?&*()[]{}"
  *     ];
  *     initscr({
- *       container: '#canvas',
+ *       container: "#canvas",
  *       height: 30,
  *       width: 40,
  *       font: {
- *         type: 'bmp',
- *         name: 'my_image.png',
+ *         type: "bmp",
+ *         name: "my_image.png",
  *         height: 16,
  *         width: 8
  *       },
@@ -82,134 +91,129 @@
  *     });
  *
  * @param {Object} opts Options object for the initscr() function.
- * @param {String|HTMLElement|jQuery} [opts.container=$('<pre></pre>')] HTML
- * element or CSS selector for the element that will wrap the <canvas> element
- * used for drawing.
+ * @param {String|HTMLElement|jQuery}
+ *     [opts.container=document.createElement("pre")] HTML element or CSS
+ *     selector for the element that will wrap the <canvas> element used for
+ *     drawing.
  * @param {Integer} [opts.height=(auto)] Height of the screen, in characters. If
- * unspecified or 0, will be just enough characters to fill the `container`
- * element, rounded down.
+ *     unspecified or 0, will be just enough characters to fill the `container`
+ *     element, rounded down.
  * @param {Integer} [opts.min_height=0] Minimum height of the screen, in
- * characters, for when `height` is unspecified.
+ *     characters, for when `height` is unspecified.
  * @param {Integer} [opts.width=(auto)] Width of the screen, in chracters. If
- * unspecified or 0, will be just enough characters to fill the `container`
- * element, rounded down.
+ *     unspecified or 0, will be just enough characters to fill the `container`
+ *     element, rounded down.
  * @param {Integer} [opts.min_width=0] Minimum width of the screen, in
- * characters, for when `width` is unspecified.
+ *     characters, for when `width` is unspecified.
  * @param {Boolean} [opts.require_focus=false] Whether focus is required for
- * keyboard events to be registered; if `true`, forces `opts.container` to be
- * able to receive keyboard focus, by setting its `tabindex` HTML attribute.
+ *     keyboard events to be registered; if `true`, forces `opts.container` to
+ *     be able to receive keyboard focus, by setting its `tabindex` HTML
+ *     attribute.
  * @param {Object} opts.font Object describing the font to use.
  * @param {String} [opts.font.type="ttf"] Either "ttf" or "bmp"; says which type
- * of font should be loaded. "ttf" indicates that it is a font name, and "bmp"
- * indicates that the font should be loaded from an image.
+ *     of font should be loaded. "ttf" indicates that it is a font name, and
+ *     "bmp" indicates that the font should be loaded from an image.
  * @param {String} opts.font.name For a TTF, indicates the name of the font. The
- * filetype should not be added to the end for TTF fonts. For a BMP font,
- * indicates the path for downloading the .png image for the font. The image
- * should be composed of characters with set height and width, in a grid
- * disposition, and starting from pixel (0,0) in the image. In any case, the
- * font that you want to load should already have been preloaded by the browser
- * before `initscr()` is called.
+ *     filetype should not be added to the end for TTF fonts. For a BMP font,
+ *     indicates the path for downloading the .png image for the font. The image
+ *     should be composed of characters with set height and width, in a grid
+ *     disposition, and starting from pixel (0,0) in the image. In any case, the
+ *     font that you want to load should already have been preloaded by the
+ *     browser before `initscr()` is called.
  * @param {Integer} opts.font.height Height, in pixels, of a character from the
- * loaded font.
+ *     loaded font.
  * @param {Integer} opts.font.width Width, in pixels, of a character from the
- * loaded font. Only relevant if a BMP font is loaded, and must be supplied if a
- * BMP font is loaded.
+ *     loaded font. Only relevant if a BMP font is loaded, and must be supplied
+ *     if a BMP font is loaded.
  * @param {Boolean} [opts.font.use_char_cache=true] true iff a cache should be
- * used to store every drawn character, so that it can be redrawn much faster
- * next time. This improves performance a lot, but can increase memory usage by
- * a lot in some cases.
+ *     used to store every drawn character, so that it can be redrawn much
+ *     faster next time. This improves performance a lot, but can increase
+ *     memory usage by a lot in some cases.
  * @param {Integer} [opts.font.line_spacing=0] Number of pixels between two
- * lines of text.
+ *     lines of text.
  * @param {Array[String]} [opts.font.chars=CODEPAGE_437] Each array element
- * describes a line in the image for the BMP font being loaded. Each element
- * should be a string that describes the contiguous characters on that line. See
- * the example code.
+ *     describes a line in the image for the BMP font being loaded. Each element
+ *     should be a string that describes the contiguous characters on that
+ *     line. See the example code.
  * @param {Boolean} [opts.font.use_bold=true] `true` iff the bold font variant
- * should be used for bold text. `false` indicates that bold text will only be
- * drawn in a brighter color, without actually being bold. Only relevant for TTF
- * fonts.
+ *     should be used for bold text. `false` indicates that bold text will only
+ *     be drawn in a brighter color, without actually being bold. Only relevant
+ *     for TTF fonts.
  * @param {Integer} [opts.font.channel=CHANNEL_ALPHA] Use this to select the
- * channel to be used for a BMP font. It should be one of CHANNEL_ALPHA,
- * CHANNEL_RED, CHANNEL_GREEN, or CHANNEL_BLUE.
+ *     channel to be used for a BMP font. It should be one of CHANNEL_ALPHA,
+ *     CHANNEL_RED, CHANNEL_GREEN, or CHANNEL_BLUE.
  **/
-var initscr = exports.initscr = function(opts) {
+export function initscr(opts) {
   // check arg validity
   check_initscr_args.apply(this, arguments);
   // set some default values for arguments
-  opts.require_focus |= false;
-  opts.font.type = /^bmp$/i.test(opts.font.type) ? "bmp" : "ttf";
-  opts.font.line_spacing |= 0;
+  opts.require_focus = opts.require_focus || false;
+  opts.font.type = isBmp(opts.font.type) ? "bmp" : "ttf";
+  opts.font.line_spacing = opts.font.line_spacing || 0;
   opts.font.chars = opts.font.chars || CODEPAGE_437;
-  if (opts.font.use_bold === undefined) {
+  if (defined(opts.font.use_bold)) {
     opts.font.use_bold = true;
   }
-  if (opts.font.use_char_cache === undefined) {
+  if (defined(opts.font.use_char_cache)) {
     opts.font.use_char_cache = true;
   }
-  // `container` can either be a DOM element, or an ID for a DOM element
-  if (opts.container !== undefined) {
-    opts.container = $(opts.container);
-  }
-  else {
-    opts.container = $('<pre></pre>');
+  // `container` should be a DOM element
+  if (!defined(opts.container)) {
+    opts.container = document.createElement("pre");
   }
   // clear the container
-  opts.container.html('');
+  opts.container.innerHTML = "";
   // create a new screen_t object
-  var scr = new screen_t();
+  const scr = new screen_t();
   scr.container = opts.container;
   // set the height, in characters
   scr.height = opts.height;
   scr.width = opts.width;
   // create the canvas
-  scr.canvas = $('<canvas></canvas>');
-  scr.container.append(scr.canvas);
-  scr.context = scr.canvas[0].getContext('2d');
+  scr.canvas = document.createElement("canvas");
+  scr.container.appendChild(scr.canvas);
+  scr.context = scr.canvas.getContext("2d");
   // load the specified font
   // TODO: specify sane default values
-  if (/^ttf$/i.test(opts.font.type)) {
+  if (isTtf(opts.font.type)) {
     load_ttf_font(scr, opts.font);
   }
   else {
     load_bitmap_font(scr, opts.font);
   }
   // handle default, 'cover the whole container' size
-  if (! opts.height) {
+  if (!defined(opts.height)) {
     scr.auto_height = true;
-    scr.height = Math.floor(opts.container.height() / scr.font.char_height);
-    if (opts.min_height) {
+    scr.height = Math.floor(opts.container.offsetHeight / scr.font.char_height);
+    if (defined(opts.min_height)) {
       scr.height = Math.max(scr.height, opts.min_height);
       scr.min_height = opts.min_height;
     }
   }
-  if (! opts.width) {
+  if (!defined(opts.width)) {
     scr.auto_width = true;
-    scr.width = Math.floor(opts.container.width() / scr.font.char_width);
-    if (opts.min_width) {
+    scr.width = Math.floor(opts.container.offsetWidth / scr.font.char_width);
+    if (defined(opts.min_width)) {
       scr.width = Math.max(scr.width, opts.min_width);
       scr.min_width = opts.min_width;
     }
   }
-  scr.canvas.attr({
-    height: scr.height * scr.font.char_height,
-    width: scr.width * scr.font.char_width
-  });
+  scr.canvas.setAttribute("height", scr.height * scr.font.char_height);
+  scr.canvas.setAttribute("width", scr.width * scr.font.char_width);
   // initialize the character tiles to default values
-  var y, x;
-  for (y = 0; y < scr.height; y++) {
+  for (let y = 0; y < scr.height; y++) {
     scr.tiles[y] = [];
     scr.display[y] = [];
-    for (x = 0; x < scr.width; x++) {
+    for (let x = 0; x < scr.width; x++) {
       scr.tiles[y][x] = new tile_t();
-      scr.tiles[y][x].content = '';
+      scr.tiles[y][x].content = "";
       scr.display[y][x] = new tile_t();
-      scr.display[y][x].content = '';
+      scr.display[y][x].content = "";
     }
   }
   // set the created window as the default window for most operations
   // (so you can call functions like addstr(), getch(), etc. directly)
-  default_screen = scr;
-  exports.stdscr = scr;
+  set_stdscr(scr);
   // draw a background
   scr.clear();
   // add keyboard hooks
@@ -218,64 +222,82 @@ var initscr = exports.initscr = function(opts) {
   start_blink(scr);
   // return the created window
   return scr;
-};
+}
+
+function assert(expr, errorMessage) {
+  if (!expr) {
+    throw new TypeError(errorMessage);
+  }
+}
+
+function defined(x) {
+  return x !== undefined;
+}
+
+function isObject(o) {
+  return typeof o === "object";
+}
+
+function isString(s) {
+  return typeof s === "string";
+}
+
+function isNumber(n) {
+  return typeof n === "number";
+}
+
+function isPositiveNumber(n) {
+  return isNumber(n) && n >= 0;
+}
+
+function isBmp(type) {
+  return /^bmp$/i.test(type);
+}
+
+function isTtf(type) {
+  return /^ttf$/i.test(type);
+}
 
 // helper function for checking the type & validity of arguments to initscr()
-var check_initscr_args = function(opts) {
-  if (typeof opts !== "object") {
-    throw new TypeError("opts is not an object");
+function check_initscr_args(opts) {
+  assert(isObject(opts), "opts is not an object");
+  assert(isObject(opts.font), "font is not an object");
+  assert(isString(opts.font.name), "font.name is not a string");
+  assert(isNumber(opts.font.height), "font.height is not a number");
+  if (!defined(opts.font.type)) {
+    opts.font.type = "ttf";
   }
-  if (opts.height) {
-    if (typeof opts.height !== "number" ) {
-      throw new TypeError("height is not a number");
+  assert(isBmp(opts.font.type) || isTtf(opts.font.type),
+         "font.type is invalid. should be 'bmp' or 'ttf'");
+  if(isBmp(opts.font.type)) {
+    assert(isPositiveNumber(opts.font.width),
+           "font.width is not a positive number");
+    if (defined(opts.font.chars)) {
+      assert(opts.font.chars instanceof Array, "font.chars is not an array");
     }
-    if (opts.height < 0) {
-      throw new RangeError("height is negative");
-    }
-  }
-  if (opts.min_height && typeof opts.min_height !== "number") {
-    throw new TypeError("min_height is not a number");
-  }
-  if (opts.width) {
-    if (typeof opts.width !== "number") {
-      throw new TypeError("width is not a number");
-    }
-    if (opts.width < 0) {
-      throw new RangeError("width is negative");
-    }
-  }
-  if (opts.min_width && typeof opts.min_width !== "number") {
-    throw new TypeError("min_width is not a number");
-  }
-  if (typeof opts.font !== "object") {
-    throw new TypeError("font is not an object");
-  }
-  if (typeof opts.font.name !== "string" ) {
-    throw new TypeError("font.name is not a string");
-  }
-  if (typeof opts.font.height !== "number") {
-    throw new TypeError("font.height is not a number");
-  }
-  if (/^bmp$/i.test(opts.font.type)) {
-    if (typeof opts.font.width !== "number") {
-      throw new TypeError("font.width is not a number, for a BMP font");
-    }
-    if (opts.font.chars && ! (opts.font.chars instanceof Array)) {
-      throw new TypeError("font.chars is not an array");
-    }
-    if (typeof opts.font.channel !== "number") {
+    if (!isPositiveNumber(opts.font.channel)) {
       opts.font.channel = CHANNEL_ALPHA;
     }
   }
-  if (opts.font.line_spacing) {
-    if (typeof opts.font.line_spacing !== "number") {
-      throw new TypeError("font.line_spacing is not a number");
-    }
-    if (opts.font.line_spacing < 0) {
-      throw new TypeError("font.line_spacing is negative");
-    }
+  if (defined(opts.font.line_spacing)) {
+    assert(isPositiveNumber(opts.font.line_spacing),
+           "font.line_spacing is not a positive number");
   }
-};
+  if (defined(opts.height)) {
+    assert(isPositiveNumber(opts.height), "height is not a positive number");
+  }
+  if (defined(opts.min_height)) {
+    assert(isNumber(opts.min_height),
+           "min_height is not a positive number");
+  }
+  if (defined(opts.width)) {
+    assert(isPositiveNumber(opts.width), "width is not a positive number");
+  }
+  if (defined(opts.min_width)) {
+    assert(isPositiveNumber(opts.min_width),
+           "min_width is not a positive number");
+  }
+}
 
 /**
  * Return the maximum possible position the cursor can have in the window. This
@@ -289,14 +311,15 @@ var check_initscr_args = function(opts) {
  *
  * @return {Object} Object describing the bottom right corner of the screen.
  **/
-screen_t.prototype.getmaxyx = window_t.prototype.getmaxyx = function() {
+window_t.prototype.getmaxyx = function() {
   return {
     y: this.height - 1,
     x: this.width - 1
   };
 };
-exports.getmaxyx = windowify(window_t.prototype.getmaxyx);
-// TODO: implement getbegyx(), getyx()
+export function getmaxyx(window) {
+  return window.getmaxyx();
+}
 
 /**
  * Make the cursor blink once every BLINK_DELAY milliseconds, if it is visible.
@@ -307,7 +330,9 @@ screen_t.prototype.blink = function() {
   }
   this._blink = true;
 };
-exports.blink = simplify(screen_t.prototype.blink);
+export function blink() {
+  return stdscr.blink();
+}
 
 /**
  * Make the cursor stop blinking, if it is visible. See blink().
@@ -322,7 +347,10 @@ screen_t.prototype.noblink = function() {
   this._blinking = false;
   this._blink = false;
 };
-exports.noblink = simplify(screen_t.prototype.noblink);
+export function noblink() {
+  return stdscr.noblink();
+}
+
 
 /**
  * Set the visibility of the cursor, as a number from 0 to 2, 2 being the most
@@ -339,7 +367,9 @@ screen_t.prototype.curs_set = function(visibility) {
     undraw_cursor(this);
   }
 };
-exports.curs_set = simplify(screen_t.prototype.curs_set);
+export function curs_set(visibility) {
+  return stdscr.curs_set(visibility);
+}
 
 /**
  * Quit js-curses.
@@ -348,4 +378,6 @@ exports.curs_set = simplify(screen_t.prototype.curs_set);
  **/
 screen_t.prototype.endwin = function() {
 };
-exports.endwin = simplify(screen_t.prototype.endwin);
+export function endwin() {
+  return stdscr.endwin();
+}

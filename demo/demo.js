@@ -1,4 +1,8 @@
 $(window).load(function() {
+  // happy fun times
+  for (const k in curses) {
+    window[k] = curses[k];
+  }
   $('#preload').remove();
   /*
   // * /
@@ -16,9 +20,9 @@ $(window).load(function() {
   });
   // */
   /*
-  // */
-  var win = initscr({
-    container: '#stage',
+  */
+  const scr = initscr({
+    container: document.getElementById('stage'),
     min_height: 30,
     min_width: 60,
     font: {
@@ -26,9 +30,10 @@ $(window).load(function() {
       name: 'vgafont.png',
       height: 16,
       width: 9,
-      line_spacing: 0
+      line_spacing: 0,
+      use_char_cache: true,
     },
-    require_focus: false
+    require_focus: false,
   });
   // */
   curs_set(1);
@@ -55,12 +60,13 @@ $(window).load(function() {
   ];
   var demo = window.demo = {};
   var redraw = demo.redraw = function() {
-    var bounds = getmaxyx(win);
-    var max_y = bounds.y;
-    var max_x = bounds.x;
-    attron(A_BOLD | A_REVERSE | COLOR_PAIR(1));
+    const {y: max_y, x: max_x} = getmaxyx(scr);
+    var bounds = getmaxyx(scr);
+    // var max_y = bounds.y;
+    // var max_x = bounds.x;
+    attron(A_REVERSE | COLOR_PAIR(1));
     addstr(0, 0, '  js-curses demonstration');
-    var x = win.x;
+    var x = scr.x;
     while (x++ <= max_x) {
       addstr(' ');
     }
@@ -93,7 +99,7 @@ $(window).load(function() {
         attron(A_REVERSE);
       }
       addstr(i + 3, 0, options[i]);
-      var x = win.x;
+      var x = scr.x;
       while (x++ <= max_x) {
         addstr(' ');
       }

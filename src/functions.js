@@ -1,9 +1,14 @@
+import { window_t } from "./types";
+import { stdscr } from "./stdscr";
+import { BLINK_DELAY } from "./constants";
+import { draw_cursor, undraw_cursor } from "./draw";
+
 // TODO: move everything in this file to more relevant files, and delete this
 // file
 
 // keys that are to be ignored for the purposes of events
 // TODO
-var ignoreKeys = {
+const ignoreKeys = {
   Control: true,
   Shift: true,
   Alt: true,
@@ -13,19 +18,19 @@ var ignoreKeys = {
 
 // return true iff the KeyboardEvent `event' is an actual keypress of a
 // printable character, not just a modifier key (like Ctrl, Shift, or Alt)
-var is_key_press = function(event) {
+export function is_key_press(event) {
   // TODO
   return ! ignoreKeys[event.key];
-};
+}
 
 // used for making a blinking cursor
-var start_blink = function(scr) {
+export function start_blink(scr) {
   scr._blink_timeout = setTimeout(function() {
     do_blink(scr);
   }, BLINK_DELAY);
-};
+}
 
-var do_blink = function(scr) {
+export function do_blink(scr) {
   if (scr._cursor_visibility) {
     draw_cursor(scr);
   }
@@ -33,9 +38,9 @@ var do_blink = function(scr) {
   scr._blink_timeout = setTimeout(function() {
     do_unblink(scr);
   }, BLINK_DELAY);
-};
+}
 
-var do_unblink = function(scr) {
+function do_unblink(scr) {
   if (scr._cursor_visibility) {
     undraw_cursor(scr);
   }
@@ -43,7 +48,7 @@ var do_unblink = function(scr) {
   scr._blink_timeout = setTimeout(function() {
     do_blink(scr);
   }, BLINK_DELAY);
-};
+}
 
 /**
  * Move the cursor to a given position on the screen. If the position is outside
@@ -55,12 +60,16 @@ var do_unblink = function(scr) {
  * @param {Integer} x x position of the new position.
  * @throws RangeError
  **/
-screen_t.prototype.move = window_t.prototype.move = function(y, x) {
+window_t.prototype.move = function(y, x) {
   if (y < 0 || y >= this.height || x < 0 || x >= this.width) {
     throw new RangeError("coordinates out of range");
   }
   this.y = y;
   this.x = x;
 };
-exports.wmove = windowify(window_t.prototype.move);
-exports.move = simplify(screen_t.prototype.move);
+export function wmove(window, y, x) {
+  return window.move(y, x);
+}
+export function move(y, x) {
+  return stdscr.move(y, x);
+}
