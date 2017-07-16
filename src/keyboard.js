@@ -135,19 +135,18 @@ export function resize_canvas(scr, height, width) {
   scr.canvas = new_canvas;
   scr.context = ctx;
   // add the necessary tiles to the tile-grid
-  var y, x;
-  for (y = 0; y < scr.height; y++) {
-    for (x = scr.width; x < width; x++) {
+  for (let y = 0; y < scr.height; y++) {
+    for (let x = scr.width; x < width; x++) {
       scr.tiles[y][x] = new tile_t();
       scr.tiles[y][x].content = " ";
       scr.display[y][x] = new tile_t();
       scr.display[y][x].content = "";
     }
   }
-  for (y = scr.height; y < height; y++) {
+  for (let y = scr.height; y < height; y++) {
     scr.tiles[y] = [];
     scr.display[y] = [];
-    for (x = 0; x < width; x++) {
+    for (let x = 0; x < width; x++) {
       scr.tiles[y][x] = new tile_t();
       scr.tiles[y][x].content = " ";
       scr.display[y][x] = new tile_t();

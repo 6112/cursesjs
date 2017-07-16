@@ -1,5 +1,5 @@
 (function() {
-  var state = {
+  const state = {
     player: {
       x: 4,
       y: 4
@@ -17,13 +17,12 @@
       "##########"
     ]
   };
-  var rl = window.rl = {
+  const rl = window.rl = {
     redraw: function() {
       clear();
-      var y, x;
-      for (y = 0; y < state.map.length; y++) {
-        for (x = 0; x < state.map[y].length; x++) {
-          var tile = state.map[y][x];
+      for (let y = 0; y < state.map.length; y++) {
+        for (let x = 0; x < state.map[y].length; x++) {
+          const tile = state.map[y][x];
           addch(y, x, tile);
         }
       }
@@ -40,9 +39,8 @@
       refresh();
     },
     update: function(c) {
-      var old_y, old_x;
-      old_y = state.player.y;
-      old_x = state.player.x;
+      const old_y = state.player.y;
+      const old_x = state.player.x;
       switch (c) {
         case KEY_H:
         case KEY_LEFT:

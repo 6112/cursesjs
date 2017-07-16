@@ -1,12 +1,12 @@
 $(window).load(function() {
-  // happy fun times
+  // Polute the global namespace, because programming is fun.
   for (const k in curses) {
     window[k] = curses[k];
   }
   $('#preload').remove();
   /*
   // * /
-  var win = initscr({
+  const scr = initscr({
     container: '#stage',
     min_height: 30,
     min_width: 60,
@@ -45,29 +45,25 @@ $(window).load(function() {
   init_pair(5, COLOR_MAGENTA, COLOR_BLACK);
   init_pair(6, COLOR_CYAN, COLOR_BLACK);
   init_pair(7, COLOR_BLACK, COLOR_BLACK);
-  var subwin = newwin(5, 22, 20, 5);
+  const subwin = newwin(5, 22, 20, 5);
   wattron(subwin, COLOR_PAIR(1) | A_REVERSE);
   wbkgd(subwin, '.');
   waddstr(subwin, 2, 2, 'I am a subwindow.');
   wborder(subwin);
   raw();
-  var selected = 0;
-  var options = [
+  let selected = 0;
+  const options = [
     'Roguelike-like player movement',
     'Text editor (TODO ☺)',
     'Window demo (TODO ☻)',
     'Benchmark'
   ];
-  var demo = window.demo = {};
-  var redraw = demo.redraw = function() {
+  const demo = window.demo = {};
+  const redraw = demo.redraw = function() {
     const {y: max_y, x: max_x} = getmaxyx(scr);
-    var bounds = getmaxyx(scr);
-    // var max_y = bounds.y;
-    // var max_x = bounds.x;
     attron(A_REVERSE | COLOR_PAIR(1));
     addstr(0, 0, '  js-curses demonstration');
-    var x = scr.x;
-    while (x++ <= max_x) {
+    for (let x = scr.x; x <= max_x; x++) {
       addstr(' ');
     }
     attroff(A_BOLD | A_REVERSE | COLOR_PAIR(1));
@@ -93,14 +89,13 @@ $(window).load(function() {
     addch(')');
     addstr(15, 8, "http://github.com/6112/js-curses",
            COLOR_PAIR(6) | A_UNDERLINE);
-    var i;
+    let i;
     for (i = 0; i < options.length; i++) {
       if (i === selected) {
         attron(A_REVERSE);
       }
       addstr(i + 3, 0, options[i]);
-      var x = scr.x;
-      while (x++ <= max_x) {
+      for (let x = scr.x; x <= max_x; x++) {
         addstr(' ');
       }
       if (i === selected) {
@@ -113,8 +108,8 @@ $(window).load(function() {
     wrefresh(subwin);
   };
   redraw();
-  var update = demo.update = function(c) {
-    var cancel = true;
+  const update = demo.update = function(c) {
+    let cancel = true;
     switch(c) {
       case KEY_J:
       case KEY_DOWN:
@@ -151,7 +146,7 @@ $(window).load(function() {
     }
     selected = Math.min(options.length - 1, Math.max(0, selected));
     redraw();
-    return ! cancel;
+    return !cancel;
   };
   ongetch(update);
 });

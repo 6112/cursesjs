@@ -12,6 +12,8 @@ module.exports = {
     "camelcase": "off",
     "no-unused-vars": "warn",
     "no-console": "off",
+    "no-var": "error",
+    "prefer-const": "warn",
     "indent": [
       "warn",
       2, {

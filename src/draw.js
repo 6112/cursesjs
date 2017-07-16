@@ -25,14 +25,14 @@ export const CHANNEL_ALPHA = 3;
 export function load_ttf_font(scr, font) {
   scr.context.font = "Bold " + font.height + "px " + font.name;
   scr.context.textAlign = "left";
-  let c = "m";
+  const c = "m";
   // calculate the probable font metrics
   const metrics = scr.context.measureText(c);
   const height = Math.round(font.height + font.line_spacing);
   const width = Math.round(metrics.width);
   // check that it's (probably) a monospace font
-  var testChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-    "_-+*@ ()[]{}/\\|~`,.0123456789";
+  const testChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+        "_-+*@ ()[]{}/\\|~`,.0123456789";
   for (const c of testChars) {
     const metrics = scr.context.measureText(c);
     if (Math.round(metrics.width) !== width) {
@@ -63,7 +63,7 @@ export function load_ttf_font(scr, font) {
       canvases: null
     };
   }
-  var offscreen = make_offscreen_canvas(scr.font);
+  let offscreen = make_offscreen_canvas(scr.font);
   offscreen.ctx.font = font.height + "px " + font.name;
   scr.canvas_pool.normal.canvases = [offscreen];
   if (font.use_bold) {
@@ -78,19 +78,18 @@ export function load_ttf_font(scr, font) {
 //
 // @param {Object} font Font description, as passed to initscr().
 export function load_bitmap_font(scr, font) {
-  var bitmap = font.name;
-  var char_height = font.height;
-  var char_width = font.width;
+  let bitmap = font.name;
+  let char_height = font.height;
+  const char_width = font.width;
   if (typeof bitmap === "string") {
     const src = bitmap;
     bitmap = document.createElement("img");
     bitmap.setAttribute("src", src);
   }
   char_height += font.line_spacing;
-  var char_map = {};
-  var y, x;
-  for (y = 0; y < font.chars.length; y++) {
-    for (x = 0; x < font.chars[y].length; x++) {
+  const char_map = {};
+  for (let y = 0; y < font.chars.length; y++) {
+    for (let x = 0; x < font.chars[y].length; x++) {
       if (! char_map[font.chars[y][x]]) {
         char_map[font.chars[y][x]] = [y, x];
       }
@@ -114,7 +113,7 @@ export function load_bitmap_font(scr, font) {
       canvases: null
     }
   };
-  var offscreen = make_offscreen_canvas(scr.font);
+  const offscreen = make_offscreen_canvas(scr.font);
   scr.canvas_pool.normal.canvases = [offscreen];
   // a very small, very temporary, canvas, for drawing the characters before
   // changing their color
@@ -131,10 +130,9 @@ export function load_bitmap_font(scr, font) {
 window_t.prototype.clear = function() {
   // reset all the character tiles
   // TODO: support setting attributes for empty_char
-  var y, x;
-  for (y = 0; y < this.height; y++) {
-    for (x = 0; x < this.width; x++) {
-      var tile = this.tiles[y][x];
+  for (let y = 0; y < this.height; y++) {
+    for (let x = 0; x < this.width; x++) {
+      const tile = this.tiles[y][x];
       tile.empty = true;
       tile.content = this.empty_char;
       tile.attrs = A_NORMAL;
@@ -272,7 +270,7 @@ window_t.prototype.addch = function(y, x, c, attrs) {
   if (c === "\t" || c === "\n" || c === "\r") {
     c = this.empty_char;
   }
-  var tile = this.tiles[this.y][this.x];
+  const tile = this.tiles[this.y][this.x];
   const old_attrs = this.attrs;
   if (typeof attrs === "number") {
     this.attron(attrs);
@@ -525,10 +523,7 @@ function attr_colors(attrs) {
   let bg = color_pairs[color_pair].bg;
   let fg = color_pairs[color_pair].fg;
   if (attrs & A_REVERSE) {
-    // swap background and foreground
-    var tmp = bg;
-    bg = fg;
-    fg = tmp;
+    [bg, fg] = [fg, bg];
   }
   // always use the first color as background color
   if (bg instanceof Array) {

@@ -1,5 +1,5 @@
 (function() {
-  var bm = window.bm = {
+  const bm = window.bm = {
     ticks: 0,
     fps: 0,
     timeout: 0,
@@ -18,14 +18,13 @@
     },
     redraw: function() {
       clear();
-      var y, x;
-      for (y = 0; y < 29; y++) {
-        for (x = 0; x < 60; x++) {
-          var k = Math.round(Math.random()
+      for (let y = 0; y < 29; y++) {
+        for (let x = 0; x < 60; x++) {
+          let k = Math.round(Math.random()
                              * ('Z'.charCodeAt(0) - 'A'.charCodeAt(0)));
           k += 'A'.charCodeAt(0);
-          var c = String.fromCharCode(k);
-          var attrs = 0;
+          const c = String.fromCharCode(k);
+          let attrs = 0;
           if (Math.round(Math.random())) {
             attrs |= A_BOLD;
           }
@@ -41,8 +40,8 @@
       }
       addstr(29, 0, 'press q to quit', A_BOLD | A_REVERSE);
       if (bm.fps) {
-        var msg = bm.fps + ' FPS';
-        var n = msg.length;
+        const msg = bm.fps + ' FPS';
+        const n = msg.length;
         addstr(29, 60 - n, msg, A_BOLD | A_REVERSE);
       }
       refresh();

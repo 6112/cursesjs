@@ -136,8 +136,8 @@ export function bkgd(c, attrs) {
  *   character for the left and right borders, and its attributes.
  **/
 window_t.prototype.box = function(vert, horiz) {
-  var defaults = [ACS_VLINE, ACS_HLINE];
-  var chars = parse_chtypes(arguments, defaults, this);
+  const defaults = [ACS_VLINE, ACS_HLINE];
+  const chars = parse_chtypes(arguments, defaults, this);
   vert = chars[0];
   horiz = chars[1];
   this.border(vert.value, vert.attrs, vert.value, vert.attrs,
@@ -184,7 +184,6 @@ window_t.prototype.border = function(ls, rs, ts, bs, tl, tr, bl, br) {
                     ACS_HLINE, ACS_HLINE,
                     ACS_ULCORNER, ACS_URCORNER, ACS_LLCORNER, ACS_LRCORNER];
   const chars = parse_chtypes(arguments, defaults, this);
-  console.log(chars);
   // draw corners
   this.addch(0, 0, chars[4].value, chars[4].attrs);
   this.addch(0, this.width - 1, chars[5].value, chars[5].attrs);
@@ -202,7 +201,7 @@ window_t.prototype.border = function(ls, rs, ts, bs, tl, tr, bl, br) {
 export function wborder(window, ls, rs, ts, bs, tl, tr, bl, br) {
   return window.border(...Array.prototype.slice.call(arguments, 1));
 }
-// eslint-disabled-next-line no-unused-vars
+// eslint-disable-next-line no-unused-vars
 export function border(ls, rs, ts, bs, tl, tr, bl, br) {
   return stdscr.border(...arguments);
 }
@@ -216,7 +215,7 @@ function parse_chtypes(arglist, defaults, win) {
     const next_arg = arglist[i + 1];
     console.log(arg);
     if (typeof arg === "string" || arg.length !== 1) {
-      var ch = { value: arg };
+      const ch = { value: arg };
       if (typeof next_arg === "number") {
         ch.attrs = next_arg;
         i++;
@@ -250,7 +249,7 @@ window_t.prototype.delwin = function() {
   // force a redraw on the parent, in the area corresponding to this window
   this.parent.expose(this.win_y, this.win_x, this.height, this.width);
   // remove from the parent's subwindows
-  var i;
+  let i;
   for (i = 0; i < this.parent.subwindows.length; i++) {
     if (this.parent.subwindows[i] === this) {
       break;
