@@ -53,10 +53,8 @@ window.addEventListener("load", function() {
   raw();
   let selected = 0;
   const options = [
-    "Roguelike-like player movement",
-    "Text editor (TODO ☺)",
-    "Window demo (TODO ☻)",
-    "Benchmark"
+    "World's lamest roguelike",
+    "Performance benchmark"
   ];
   const demo = window.demo = {};
   const redraw = demo.redraw = function() {
