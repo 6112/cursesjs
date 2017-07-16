@@ -1,0 +1,7 @@
+* Add mouse support
+* Implement echo(), noecho()
+* Implement endwin(), delwin()
+* Improve bkgd()
+* Improve keyboard events
+* Port rendering from Canvas2D to WebGL
+* Add elements to the demo page
