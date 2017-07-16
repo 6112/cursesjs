@@ -127,7 +127,7 @@ window.addEventListener("load", function() {
           ongetch(rl.update);
           return false;
         }
-        if (selected === 3) {
+        if (selected === 1) {
           ungetch(update);
           clear();
           bm.ticks = 0;
