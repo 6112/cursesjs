@@ -1,11 +1,11 @@
 module.exports = {
   "env": {
     "browser": true,
-    "es6": true,
   },
   "extends": "eslint:recommended",
   "parserOptions": {
     "sourceType": "module",
+    "ecmaVersion": 2017,
   },
   "rules": {
     "max-len": "error",
@@ -14,6 +14,8 @@ module.exports = {
     "no-console": "off",
     "no-var": "error",
     "prefer-const": "warn",
+    "no-multi-spaces": "error",
+    "no-trailing-spaces": "error",
     "indent": [
       "warn",
       2, {
@@ -31,7 +33,11 @@ module.exports = {
     ],
     "semi": [
       "error",
-      "always",
+      "never",
+    ],
+    "curly": [
+      "error",
+      "multi",
     ],
   },
 };

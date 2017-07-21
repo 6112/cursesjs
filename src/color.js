@@ -1,4 +1,4 @@
-import { COLOR_BLACK, COLOR_MASK, COLOR_WHITE } from "./constants";
+import { COLOR_BLACK, COLOR_MASK, COLOR_WHITE } from "./constants"
 
 /**
  * Use this as a flag for attron(), attroff(), and attrset().
@@ -13,13 +13,13 @@ import { COLOR_BLACK, COLOR_MASK, COLOR_WHITE } from "./constants";
  * @return {Attrlist} Attribute that corresponds to color pair n.
  **/
 export function COLOR_PAIR(n) {
-  return n * 0x100;
+  return n * 0x100
 }
 
 // used for getting the number (n the 0 to COLOR_PAIRS range) of a color
 // pair, from an attrlist
 export function pair_number(n) {
-  return (n & COLOR_MASK) >> 8;
+  return (n & COLOR_MASK) >> 8
 }
 
 // table of color pairs used for the application
@@ -28,7 +28,7 @@ export const color_pairs = {
     fg: COLOR_WHITE,
     bg: COLOR_BLACK
   }
-};
+}
 
 /**
  * Initialize a color pair so it can be used with COLOR_PAIR to describe a
@@ -52,7 +52,7 @@ export const color_pairs = {
  *     the canvas element.
  **/
 export function init_pair(pair_index, fg, bg) {
-  color_pairs[pair_index] = { fg, bg };
+  color_pairs[pair_index] = { fg, bg }
 }
 
 /**
@@ -85,10 +85,10 @@ export function init_pair(pair_index, fg, bg) {
  *     the defined color.
  **/
 export function define_color(color = [], normal_color, bold_color) {
-  if (! bold_color) {
-    bold_color = normal_color;
-  }
-  color[0] = normal_color;
-  color[1] = bold_color;
-  return color;
+  if (! bold_color)
+    bold_color = normal_color
+
+  color[0] = normal_color
+  color[1] = bold_color
+  return color
 }

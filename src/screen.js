@@ -1,11 +1,11 @@
-import { stdscr, set_stdscr } from "./stdscr";
-import { CODEPAGE_437 } from "./constants";
-import { screen_t, tile_t, window_t } from "./types";
-import { handle_keyboard } from "./keyboard";
+import { stdscr, set_stdscr } from "./stdscr"
+import { CODEPAGE_437 } from "./constants"
+import { screen_t, tile_t, window_t } from "./types"
+import { handle_keyboard } from "./keyboard"
 import {
   CHANNEL_ALPHA, do_blink, draw_cursor, load_bitmap_font, load_ttf_font,
-  undraw_cursor } from "./draw";
-import { start_blink } from "./functions";
+  undraw_cursor } from "./draw"
+import { start_blink } from "./functions"
 
 /**
  * Create a new screen, set is at the default screen, and return it.
@@ -145,158 +145,158 @@ import { start_blink } from "./functions";
  **/
 export function initscr(opts) {
   // check arg validity
-  check_initscr_args.apply(this, arguments);
+  check_initscr_args.apply(this, arguments)
   // set some default values for arguments
-  opts.require_focus = opts.require_focus || false;
-  opts.font.type = isBmp(opts.font.type) ? "bmp" : "ttf";
-  opts.font.line_spacing = opts.font.line_spacing || 0;
-  opts.font.chars = opts.font.chars || CODEPAGE_437;
-  if (defined(opts.font.use_bold)) {
-    opts.font.use_bold = true;
-  }
-  if (defined(opts.font.use_char_cache)) {
-    opts.font.use_char_cache = true;
-  }
+  opts.require_focus = opts.require_focus || false
+  opts.font.type = isBmp(opts.font.type) ? "bmp" : "ttf"
+  opts.font.line_spacing = opts.font.line_spacing || 0
+  opts.font.chars = opts.font.chars || CODEPAGE_437
+  if (defined(opts.font.use_bold))
+    opts.font.use_bold = true
+
+  if (defined(opts.font.use_char_cache))
+    opts.font.use_char_cache = true
+
   // `container` should be a DOM element
-  if (!defined(opts.container)) {
-    opts.container = document.createElement("pre");
-  }
+  if (!defined(opts.container))
+    opts.container = document.createElement("pre")
+
   // clear the container
-  opts.container.innerHTML = "";
+  opts.container.innerHTML = ""
   // create a new screen_t object
-  const scr = new screen_t();
-  scr.container = opts.container;
+  const scr = new screen_t()
+  scr.container = opts.container
   // set the height, in characters
-  scr.height = opts.height;
-  scr.width = opts.width;
+  scr.height = opts.height
+  scr.width = opts.width
   // create the canvas
-  scr.canvas = document.createElement("canvas");
-  scr.container.appendChild(scr.canvas);
-  scr.context = scr.canvas.getContext("2d");
+  scr.canvas = document.createElement("canvas")
+  scr.container.appendChild(scr.canvas)
+  scr.context = scr.canvas.getContext("2d")
   // load the specified font
   // TODO: specify sane default values
-  if (isTtf(opts.font.type)) {
-    load_ttf_font(scr, opts.font);
-  }
-  else {
-    load_bitmap_font(scr, opts.font);
-  }
+  if (isTtf(opts.font.type))
+    load_ttf_font(scr, opts.font)
+
+  else
+    load_bitmap_font(scr, opts.font)
+
   // handle default, 'cover the whole container' size
   if (!defined(opts.height)) {
-    scr.auto_height = true;
-    scr.height = Math.floor(opts.container.offsetHeight / scr.font.char_height);
+    scr.auto_height = true
+    scr.height = Math.floor(opts.container.offsetHeight / scr.font.char_height)
     if (defined(opts.min_height)) {
-      scr.height = Math.max(scr.height, opts.min_height);
-      scr.min_height = opts.min_height;
+      scr.height = Math.max(scr.height, opts.min_height)
+      scr.min_height = opts.min_height
     }
   }
   if (!defined(opts.width)) {
-    scr.auto_width = true;
-    scr.width = Math.floor(opts.container.offsetWidth / scr.font.char_width);
+    scr.auto_width = true
+    scr.width = Math.floor(opts.container.offsetWidth / scr.font.char_width)
     if (defined(opts.min_width)) {
-      scr.width = Math.max(scr.width, opts.min_width);
-      scr.min_width = opts.min_width;
+      scr.width = Math.max(scr.width, opts.min_width)
+      scr.min_width = opts.min_width
     }
   }
-  scr.canvas.setAttribute("height", scr.height * scr.font.char_height);
-  scr.canvas.setAttribute("width", scr.width * scr.font.char_width);
+  scr.canvas.setAttribute("height", scr.height * scr.font.char_height)
+  scr.canvas.setAttribute("width", scr.width * scr.font.char_width)
   // initialize the character tiles to default values
   for (let y = 0; y < scr.height; y++) {
-    scr.tiles[y] = [];
-    scr.display[y] = [];
+    scr.tiles[y] = []
+    scr.display[y] = []
     for (let x = 0; x < scr.width; x++) {
-      scr.tiles[y][x] = new tile_t();
-      scr.tiles[y][x].content = "";
-      scr.display[y][x] = new tile_t();
-      scr.display[y][x].content = "";
+      scr.tiles[y][x] = new tile_t()
+      scr.tiles[y][x].content = ""
+      scr.display[y][x] = new tile_t()
+      scr.display[y][x].content = ""
     }
   }
   // set the created window as the default window for most operations
   // (so you can call functions like addstr(), getch(), etc. directly)
-  set_stdscr(scr);
+  set_stdscr(scr)
   // draw a background
-  scr.clear();
+  scr.clear()
   // add keyboard hooks
-  handle_keyboard(scr, opts.container, opts.require_focus);
+  handle_keyboard(scr, opts.container, opts.require_focus)
   // make a blinking cursor
-  start_blink(scr);
+  start_blink(scr)
   // return the created window
-  return scr;
+  return scr
 }
 
 function assert(expr, errorMessage) {
-  if (!expr) {
-    throw new TypeError(errorMessage);
-  }
+  if (!expr)
+    throw new TypeError(errorMessage)
+
 }
 
 function defined(x) {
-  return x !== undefined;
+  return x !== undefined
 }
 
 function isObject(o) {
-  return typeof o === "object";
+  return typeof o === "object"
 }
 
 function isString(s) {
-  return typeof s === "string";
+  return typeof s === "string"
 }
 
 function isNumber(n) {
-  return typeof n === "number";
+  return typeof n === "number"
 }
 
 function isPositiveNumber(n) {
-  return isNumber(n) && n >= 0;
+  return isNumber(n) && n >= 0
 }
 
 function isBmp(type) {
-  return /^bmp$/i.test(type);
+  return /^bmp$/i.test(type)
 }
 
 function isTtf(type) {
-  return /^ttf$/i.test(type);
+  return /^ttf$/i.test(type)
 }
 
 // helper function for checking the type & validity of arguments to initscr()
 function check_initscr_args(opts) {
-  assert(isObject(opts), "opts is not an object");
-  assert(isObject(opts.font), "font is not an object");
-  assert(isString(opts.font.name), "font.name is not a string");
-  assert(isNumber(opts.font.height), "font.height is not a number");
-  if (!defined(opts.font.type)) {
-    opts.font.type = "ttf";
-  }
+  assert(isObject(opts), "opts is not an object")
+  assert(isObject(opts.font), "font is not an object")
+  assert(isString(opts.font.name), "font.name is not a string")
+  assert(isNumber(opts.font.height), "font.height is not a number")
+  if (!defined(opts.font.type))
+    opts.font.type = "ttf"
+
   assert(isBmp(opts.font.type) || isTtf(opts.font.type),
-         "font.type is invalid. should be 'bmp' or 'ttf'");
+         "font.type is invalid. should be 'bmp' or 'ttf'")
   if(isBmp(opts.font.type)) {
     assert(isPositiveNumber(opts.font.width),
-           "font.width is not a positive number");
-    if (defined(opts.font.chars)) {
-      assert(opts.font.chars instanceof Array, "font.chars is not an array");
-    }
-    if (!isPositiveNumber(opts.font.channel)) {
-      opts.font.channel = CHANNEL_ALPHA;
-    }
+           "font.width is not a positive number")
+    if (defined(opts.font.chars))
+      assert(opts.font.chars instanceof Array, "font.chars is not an array")
+
+    if (!isPositiveNumber(opts.font.channel))
+      opts.font.channel = CHANNEL_ALPHA
+
   }
-  if (defined(opts.font.line_spacing)) {
+  if (defined(opts.font.line_spacing))
     assert(isPositiveNumber(opts.font.line_spacing),
-           "font.line_spacing is not a positive number");
-  }
-  if (defined(opts.height)) {
-    assert(isPositiveNumber(opts.height), "height is not a positive number");
-  }
-  if (defined(opts.min_height)) {
+           "font.line_spacing is not a positive number")
+
+  if (defined(opts.height))
+    assert(isPositiveNumber(opts.height), "height is not a positive number")
+
+  if (defined(opts.min_height))
     assert(isNumber(opts.min_height),
-           "min_height is not a positive number");
-  }
-  if (defined(opts.width)) {
-    assert(isPositiveNumber(opts.width), "width is not a positive number");
-  }
-  if (defined(opts.min_width)) {
+           "min_height is not a positive number")
+
+  if (defined(opts.width))
+    assert(isPositiveNumber(opts.width), "width is not a positive number")
+
+  if (defined(opts.min_width))
     assert(isPositiveNumber(opts.min_width),
-           "min_width is not a positive number");
-  }
+           "min_width is not a positive number")
+
 }
 
 /**
@@ -315,23 +315,23 @@ window_t.prototype.getmaxyx = function() {
   return {
     y: this.height - 1,
     x: this.width - 1
-  };
-};
+  }
+}
 export function getmaxyx(window) {
-  return window.getmaxyx();
+  return window.getmaxyx()
 }
 
 /**
  * Make the cursor blink once every BLINK_DELAY milliseconds, if it is visible.
  **/
 screen_t.prototype.blink = function() {
-  if (! this._blink) {
-    start_blink(this);
-  }
-  this._blink = true;
-};
+  if (! this._blink)
+    start_blink(this)
+
+  this._blink = true
+}
 export function blink() {
-  return stdscr.blink();
+  return stdscr.blink()
 }
 
 /**
@@ -339,16 +339,16 @@ export function blink() {
  **/
 screen_t.prototype.noblink = function() {
   if (this._blink) {
-    clearTimeout(this._blink_timeout);
-    do_blink(this);
-    clearTimeout(this._blink_timeout);
-    this._blink_timeout = 0;
+    clearTimeout(this._blink_timeout)
+    do_blink(this)
+    clearTimeout(this._blink_timeout)
+    this._blink_timeout = 0
   }
-  this._blinking = false;
-  this._blink = false;
-};
+  this._blinking = false
+  this._blink = false
+}
 export function noblink() {
-  return stdscr.noblink();
+  return stdscr.noblink()
 }
 
 
@@ -359,16 +359,16 @@ export function noblink() {
  * @param {Integer} visibility
  **/
 screen_t.prototype.curs_set = function(visibility) {
-  this._cursor_visibility = visibility;
-  if (visibility) {
-    draw_cursor(this);
-  }
-  else {
-    undraw_cursor(this);
-  }
-};
+  this._cursor_visibility = visibility
+  if (visibility)
+    draw_cursor(this)
+
+  else
+    undraw_cursor(this)
+
+}
 export function curs_set(visibility) {
-  return stdscr.curs_set(visibility);
+  return stdscr.curs_set(visibility)
 }
 
 /**
@@ -377,7 +377,7 @@ export function curs_set(visibility) {
  * TODO
  **/
 screen_t.prototype.endwin = function() {
-};
+}
 export function endwin() {
-  return stdscr.endwin();
+  return stdscr.endwin()
 }
