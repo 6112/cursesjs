@@ -158,7 +158,6 @@ export const CODEPAGE_437 = []
     CODEPAGE_437[y] = ""
     for (let x = 0; x < 0x20; x++)
       CODEPAGE_437[y] += String.fromCharCode(y * 0x20 + x)
-
   }
   CODEPAGE_437[0] = "\0☺☻♥♦♣♠•◘○◙♂♀♪♫☼►◄↕‼¶§▬↨↑↓→←∟↔▲▼"
   CODEPAGE_437[3] = CODEPAGE_437[3].substr(0, 31) + "⌂"

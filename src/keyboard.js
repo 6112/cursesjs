@@ -62,7 +62,6 @@ export function handle_keyboard(scr, container, require_focus) {
   if (require_focus)
     // apply tabindex="0" so this element can actually receive focus
     container.setAttribute("tabindex", "0")
-
   keyboard_target.addEventListener("keydown", event => {
     // true iff the event key event should not be sent to the browser
     let cancel = scr._raw
@@ -72,7 +71,6 @@ export function handle_keyboard(scr, container, require_focus) {
       const returned = scr.trigger("keydown", event.which, event, scr)
       if (typeof returned === "boolean")
         cancel = ! returned
-
     }
     // disable most browser shortcuts if the _raw flag is on for the window, and
     // the handlers did not return true
@@ -87,18 +85,15 @@ export function handle_keyboard(scr, container, require_focus) {
         height = Math.floor(container.offsetHeight / scr.font.char_height)
         if (scr.min_height)
           height = Math.max(height, scr.min_height)
-
       }
       if (scr.auto_width) {
         width = Math.floor(container.offsetWidth / scr.font.char_width)
         if (scr.min_width)
           width = Math.max(width, scr.min_width)
-
       }
       if (height === scr.height && width === scr.width)
         // exit if unchanged
         return
-
       // resize the canvas
       resize_canvas(scr, height, width)
       // change the "official" width/height of the window
@@ -109,7 +104,6 @@ export function handle_keyboard(scr, container, require_focus) {
       // fire an event for getch() and the like, with KEY_RESIZE as the keycode
       scr.trigger("keydown", KEY_RESIZE)
     })
-
 }
 
 // helper function for resizing a canvas while trying to keep its current state
@@ -142,7 +136,6 @@ export function resize_canvas(scr, height, width) {
       scr.display[y][x] = new tile_t()
       scr.display[y][x].content = ""
     }
-
   for (let y = scr.height; y < height; y++) {
     scr.tiles[y] = []
     scr.display[y] = []

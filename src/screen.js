@@ -1,3 +1,6 @@
+import {
+  assert, defined,
+  isNumber, isObject, isPositiveNumber, isString } from "./assert"
 import { stdscr, set_stdscr } from "./stdscr"
 import { CODEPAGE_437 } from "./constants"
 import { screen_t, tile_t, window_t } from "./types"
@@ -153,14 +156,11 @@ export function initscr(opts) {
   opts.font.chars = opts.font.chars || CODEPAGE_437
   if (defined(opts.font.use_bold))
     opts.font.use_bold = true
-
   if (defined(opts.font.use_char_cache))
     opts.font.use_char_cache = true
-
   // `container` should be a DOM element
   if (!defined(opts.container))
     opts.container = document.createElement("pre")
-
   // clear the container
   opts.container.innerHTML = ""
   // create a new screen_t object
@@ -177,10 +177,8 @@ export function initscr(opts) {
   // TODO: specify sane default values
   if (isTtf(opts.font.type))
     load_ttf_font(scr, opts.font)
-
   else
     load_bitmap_font(scr, opts.font)
-
   // handle default, 'cover the whole container' size
   if (!defined(opts.height)) {
     scr.auto_height = true
@@ -224,32 +222,6 @@ export function initscr(opts) {
   return scr
 }
 
-function assert(expr, errorMessage) {
-  if (!expr)
-    throw new TypeError(errorMessage)
-
-}
-
-function defined(x) {
-  return x !== undefined
-}
-
-function isObject(o) {
-  return typeof o === "object"
-}
-
-function isString(s) {
-  return typeof s === "string"
-}
-
-function isNumber(n) {
-  return typeof n === "number"
-}
-
-function isPositiveNumber(n) {
-  return isNumber(n) && n >= 0
-}
-
 function isBmp(type) {
   return /^bmp$/i.test(type)
 }
@@ -266,7 +238,6 @@ function check_initscr_args(opts) {
   assert(isNumber(opts.font.height), "font.height is not a number")
   if (!defined(opts.font.type))
     opts.font.type = "ttf"
-
   assert(isBmp(opts.font.type) || isTtf(opts.font.type),
          "font.type is invalid. should be 'bmp' or 'ttf'")
   if(isBmp(opts.font.type)) {
@@ -274,29 +245,22 @@ function check_initscr_args(opts) {
            "font.width is not a positive number")
     if (defined(opts.font.chars))
       assert(opts.font.chars instanceof Array, "font.chars is not an array")
-
     if (!isPositiveNumber(opts.font.channel))
       opts.font.channel = CHANNEL_ALPHA
-
   }
   if (defined(opts.font.line_spacing))
     assert(isPositiveNumber(opts.font.line_spacing),
            "font.line_spacing is not a positive number")
-
   if (defined(opts.height))
     assert(isPositiveNumber(opts.height), "height is not a positive number")
-
   if (defined(opts.min_height))
     assert(isNumber(opts.min_height),
            "min_height is not a positive number")
-
   if (defined(opts.width))
     assert(isPositiveNumber(opts.width), "width is not a positive number")
-
   if (defined(opts.min_width))
     assert(isPositiveNumber(opts.min_width),
            "min_width is not a positive number")
-
 }
 
 /**
@@ -327,7 +291,6 @@ export function getmaxyx(window) {
 screen_t.prototype.blink = function() {
   if (! this._blink)
     start_blink(this)
-
   this._blink = true
 }
 export function blink() {
@@ -362,10 +325,8 @@ screen_t.prototype.curs_set = function(visibility) {
   this._cursor_visibility = visibility
   if (visibility)
     draw_cursor(this)
-
   else
     undraw_cursor(this)
-
 }
 export function curs_set(visibility) {
   return stdscr.curs_set(visibility)

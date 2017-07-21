@@ -1,3 +1,4 @@
+import { assert, isPositiveNumber } from "./assert"
 import { window_t, tile_t } from "./types"
 import { stdscr } from "./stdscr"
 import {
@@ -23,30 +24,10 @@ import {
  * @return {window_t} The created child window.
  **/
 window_t.prototype.newwin = function(height, width, y, x) {
-  if (typeof y !== "number")
-    throw new TypeError("y is not a number")
-
-  if (y < 0)
-    throw new RangeError("y is negative")
-
-  if (typeof x !== "number")
-    throw new TypeError("x is not a number")
-
-  if (x < 0)
-    throw new RangeError("x is negative")
-
-  if (typeof height !== "number")
-    throw new TypeError("height is not a number")
-
-  if (height < 0)
-    throw new RangeError("height is negative")
-
-  if (typeof width !== "number")
-    throw new TypeError("width is not a number")
-
-  if (width < 0)
-    throw new RangeError("width is negative")
-
+  assert(isPositiveNumber(y), "y is not a positive number")
+  assert(isPositiveNumber(x), "x is not a positive number")
+  assert(isPositiveNumber(height), "height is not a positive number")
+  assert(isPositiveNumber(width), "width is not a positive number")
   // create the window
   const win = new window_t(this.parent_screen)
   win.win_y = y
@@ -61,7 +42,6 @@ window_t.prototype.newwin = function(height, width, y, x) {
     win.tiles[j] = []
     for (let i = 0; i < width; i++)
       win.tiles[j][i] = new tile_t()
-
   }
   // draw each tile
   for (let j = 0; j < height; j++)
@@ -69,7 +49,6 @@ window_t.prototype.newwin = function(height, width, y, x) {
       win.addch(j, i, win.empty_char)
       win.tiles[j][i].empty = true
     }
-
   // undraw each 'covered' tile in the parent
   this.unexpose(y, x, height, width)
   // return the created window
@@ -98,8 +77,6 @@ window_t.prototype.bkgd = function(c, attrs) {
         this.addch(y, x, c, attrs)
         this.tiles[y][x].empty = true
       }
-
-
   this.empty_char = c
   this.empty_attrs = attrs
 }
@@ -222,19 +199,16 @@ function parse_chtypes(arglist, defaults, win) {
       }
       else
         ch.attrs = win.attrs
-
       chars.push(ch)
     }
     else
       throw new TypeError("expected a character for argument " + (i + 1))
-
   }
   while (i < defaults.length)
     chars.push({
       attrs: win.attrs,
       value: defaults[i++],
     })
-
   return chars
 }
 
@@ -253,9 +227,6 @@ window_t.prototype.delwin = function() {
   for (i = 0; i < this.parent.subwindows.length; i++)
     if (this.parent.subwindows[i] === this)
       break
-
-
   if (i !== this.parent.subwindows.length)
     this.parent.subwindows.splice(i, 1)
-
 }

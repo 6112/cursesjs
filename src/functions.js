@@ -33,7 +33,6 @@ export function start_blink(scr) {
 export function do_blink(scr) {
   if (scr._cursor_visibility)
     draw_cursor(scr)
-
   scr._blinking = true
   scr._blink_timeout = setTimeout(function() {
     do_unblink(scr)
@@ -43,7 +42,6 @@ export function do_blink(scr) {
 function do_unblink(scr) {
   if (scr._cursor_visibility)
     undraw_cursor(scr)
-
   scr._blinking = false
   scr._blink_timeout = setTimeout(function() {
     do_blink(scr)
@@ -63,7 +61,6 @@ function do_unblink(scr) {
 window_t.prototype.move = function(y, x) {
   if (y < 0 || y >= this.height || x < 0 || x >= this.width)
     throw new RangeError("coordinates out of range")
-
   this.y = y
   this.x = x
 }

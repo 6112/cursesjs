@@ -37,7 +37,6 @@ export function load_ttf_font(scr, font) {
     const metrics = scr.context.measureText(c)
     if (Math.round(metrics.width) !== width)
       console.warn(font.name + " does not seem to be a monospace font")
-
   }
   // save the currently used font
   scr.font = {
@@ -62,7 +61,6 @@ export function load_ttf_font(scr, font) {
       x: 0,
       canvases: null
     }
-
   let offscreen = make_offscreen_canvas(scr.font)
   offscreen.ctx.font = font.height + "px " + font.name
   scr.canvas_pool.normal.canvases = [offscreen]
@@ -92,9 +90,6 @@ export function load_bitmap_font(scr, font) {
     for (let x = 0; x < font.chars[y].length; x++)
       if (! char_map[font.chars[y][x]])
         char_map[font.chars[y][x]] = [y, x]
-
-
-
   // save the currently used font
   scr.font = {
     type: "bmp",
@@ -137,7 +132,6 @@ window_t.prototype.clear = function() {
       tile.content = this.empty_char
       tile.attrs = A_NORMAL
     }
-
 }
 export function wclear(window) {
   return window.clear()
@@ -206,7 +200,6 @@ window_t.prototype.refresh = function() {
         prev.attrs = next.attrs
       }
     }
-
 }
 export function wrefresh(window) {
   return window.refresh()
@@ -220,15 +213,12 @@ window_t.prototype.expose = function(y, x, height, width) {
       tile.exposed = true
       this.addch(y, x, tile.content, tile.attrs)
     }
-
 }
 
 window_t.prototype.unexpose =function(y, x, height, width) {
   for (let j = y; j < y + height; j++)
     for (let i = x; i < x + width; i++)
       this.tiles[j][i].exposed = false
-
-
 }
 
 /**
@@ -256,25 +246,19 @@ window_t.prototype.unexpose =function(y, x, height, width) {
 window_t.prototype.addch = function(y, x, c, attrs) {
   if (typeof y === "number")
     this.move(y, x)
-
   else
     [y, x, c, attrs] = [undefined, undefined, y, x]
-
   if (typeof c !== "string" || c.length !== 1)
     throw new RangeError("c is not a character")
-
   if (this.x >= this.width || this.x < 0)
     throw new RangeError("invalid coordinates")
-
   // treat all whitespace as a single space character
   if (c === "\t" || c === "\n" || c === "\r")
     c = this.empty_char
-
   const tile = this.tiles[this.y][this.x]
   const old_attrs = this.attrs
   if (typeof attrs === "number")
     this.attron(attrs)
-
   // only do this if the content (or attrlist) changed
   if (c !== tile.content || this.attrs !== tile.attrs) {
     // update the tile
@@ -284,15 +268,12 @@ window_t.prototype.addch = function(y, x, c, attrs) {
   }
   if (typeof attrs === "number")
     this.attrset(old_attrs)
-
   // move to the right
   if (this.x < this.width - 1)
     this.move(this.y, this.x + 1)
-
   else if (this.y < this.height - 1)
     // or continue to next line if the end of the line was reached
     this.move(this.y + 1, 0)
-
 }
 export function waddch(window, y, x, c, attrs) {
   return window.addch(y, x, c, attrs)
@@ -328,24 +309,18 @@ export function addch(y, x, c, attrs) {
 window_t.prototype.addstr = function(y, x, str, attrs) {
   if (typeof y === "number")
     this.move(y, x)
-
   else
     [y, x, str, attrs] = [undefined, undefined, y, x]
-
   const old_attrs = this.attrs
   if (typeof attrs === "number")
     this.attron(attrs)
-
   let i
   for (i = 0; i < str.length && this.x < this.width; i++)
     this.addch(str[i])
-
   if (typeof attrs === "number")
     this.attrset(old_attrs)
-
   if (i !== str.length)
     throw new RangeError("not enough room to add the whole string")
-
 }
 export function waddstr(window, y, x, str, attrs) {
   return window.addstr(y, x, str, attrs)
@@ -372,12 +347,10 @@ window_t.prototype.vline = function(y, x, ch, n, attrs) {
 
   else
     [y, x, ch, n, attrs] = [undefined, undefined, y, x, ch]
-
   const start_y = this.y
   const start_x = this.x
   for (let y = 0; y < n && y + start_y < this.height; y++)
     this.addch(y + start_y, start_x, ch, attrs)
-
   this.move(start_y, start_x)
 }
 export function wvline(window, y, x, ch, n, attrs) {
@@ -404,15 +377,12 @@ export function vline(y, x, ch, n, attrs) {
 window_t.prototype.hline = function(y, x, ch, n, attrs) {
   if (typeof y === "number")
     this.move(y, x)
-
   else
     [y, x, ch, n, attrs] = [undefined, undefined, y, x, ch]
-
   const start_y = this.y
   const start_x = this.x
   for (let x = 0; x < n && x + start_x < this.width; x++)
     this.addch(start_y, x + start_x, ch, attrs)
-
   this.move(start_y, start_x)
 }
 export function whline(window, y, x, ch, n, attrs) {
@@ -443,7 +413,6 @@ function draw_char(scr, y, x, c, attrs) {
   if (! offscreen)
     // silently fail, and return false
     return false
-
   // apply the drawing onto the visible canvas
   y = Math.round(y * scr.font.char_height)
   x = Math.round(x * scr.font.char_width)
@@ -471,22 +440,18 @@ function find_offscreen_char(scr, c, attrs) {
   const found = find_in_cache(scr, c, attrs)
   if (found && scr.font.use_char_cache)
     return found
-
   // not found, draw the character on an offscreen canvas, and add it
   // to the cache
   grow_canvas_pool(scr)
   if (scr.font.type === "ttf")
     // TTF font
     return draw_offscreen_char_ttf(scr, c, attrs)
-
   else if (scr.font.type === "bmp")
     // bitmap font
     return draw_offscreen_char_bmp(scr, c, attrs)
-
   else
     // unrecognized font-type
     throw new Error("invalid font")
-
 }
 
 // return an object describing where the character is if it can be
@@ -496,7 +461,6 @@ function find_in_cache(scr, c, attrs) {
   if (char_cache[c] && char_cache[c][attrs])
     // found, return an object describing where the character is
     return char_cache[c][attrs]
-
   // not found, return a value indicating that
   return null
 }
@@ -524,15 +488,12 @@ function attr_colors(attrs) {
   let fg = color_pairs[color_pair].fg
   if (attrs & A_REVERSE)
     [bg, fg] = [fg, bg]
-
   // always use the first color as background color
   if (bg instanceof Array)
     bg = bg[0]
-
   // use a bright foreground if bold
   if (fg instanceof Array)
     fg = (attrs & A_BOLD) ? fg[1] : fg[0]
-
   return [fg, bg]
 }
 
@@ -551,7 +512,6 @@ function draw_offscreen_char_bmp(scr, c, attrs) {
   // save info in the char cache
   if (! char_cache[c])
     char_cache[c] = {}
-
   scr.char_cache[c][attrs] = {
     src: canvas,
     sy: sy,
@@ -561,7 +521,6 @@ function draw_offscreen_char_bmp(scr, c, attrs) {
     // silently fail if we don't know where to find the character on
     // the original bitmap image
     return null
-
   // calculate coordinates from the source image
   const bitmap_y = Math.round(
     scr.font.char_map[c][0] *
@@ -597,7 +556,6 @@ function draw_offscreen_char_bmp(scr, c, attrs) {
         ctx.fillRect(dst_x, dst_y, 1, 1)
       }
     }
-
   ctx.restore()
   // draw the underline if necessary
   if (attrs & A_UNDERLINE)
@@ -627,7 +585,6 @@ function draw_offscreen_char_ttf(scr, c, attrs) {
   // save info in the char cache
   if (! char_cache[c])
     char_cache[c] = {}
-
   scr.char_cache[c][attrs] = {
     src: canvas[0],
     sy: sy,
@@ -642,7 +599,6 @@ function draw_offscreen_char_ttf(scr, c, attrs) {
   // draw the underline if necessary
   if (attrs & A_UNDERLINE)
     ctx.fillRect(sx, sy + scr.font.char_height - 1, scr.font.char_width, 1)
-
   // increment the canvas pool's counter: move to the next character
   pool.x++
   // return an object telling where to find the offscreen character

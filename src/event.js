@@ -17,7 +17,6 @@ screen_t.prototype.trigger = function(event_name) {
       const returned = listener.apply(this, args)
       if (returned !== undefined)
         last_return = returned
-
     }
   }
   return last_return
@@ -33,7 +32,6 @@ screen_t.prototype.trigger = function(event_name) {
 screen_t.prototype.on = function(event_name, callback) {
   if (! this.listeners[event_name])
     this.listeners[event_name] = []
-
   this.listeners[event_name].push(callback)
 }
 
@@ -47,17 +45,13 @@ screen_t.prototype.on = function(event_name, callback) {
 screen_t.prototype.off = function(event_name, callback) {
   if (! this.listeners[event_name])
     this.listeners[event_name] = []
-
   const listeners = this.listeners[event_name]
   let i = 0
   for (i = 0; i < listeners.length; i++)
     if (listeners[i] == callback)
       break
-
-
   if (i !== listeners.length)
     listeners.splice(i, 1)
-
 }
 
 /**
