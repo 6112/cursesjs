@@ -31,9 +31,7 @@ export function attrset(attrs) {
  * @param {Attrlist} attrs Attributes to be added.
  **/
 window_t.prototype.attron = function(attrs) {
-  let color_pair = attrs & COLOR_MASK
-  if (color_pair === 0)
-    color_pair = this.attrs & COLOR_MASK
+  let color_pair = (attrs || this.attr) & COLOR_MASK
   let other_attrs = ((attrs >> 16) << 16)
   other_attrs = other_attrs | ((this.attrs >> 16) << 16)
   const new_attrs = other_attrs | color_pair

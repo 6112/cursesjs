@@ -85,8 +85,7 @@ export function init_pair(pair_index, fg, bg) {
  *     the defined color.
  **/
 export function define_color(color = [], normal_color, bold_color) {
-  if (! bold_color)
-    bold_color = normal_color
+  bold_color = bold_color || normal_color
   color[0] = normal_color
   color[1] = bold_color
   return color
