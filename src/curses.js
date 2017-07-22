@@ -1,12 +1,13 @@
-export * from "./constants"
-export * from "./window"
-export * from "./screen"
 export * from "./attrs"
-export * from "./draw"
 export * from "./color"
-export * from "./keyboard"
+export * from "./constants"
+export * from "./draw"
 export * from "./event"
+export * from "./keyboard"
+export * from "./screen"
+export * from "./window"
 
-export { stdscr } from "./stdscr"
 export { move, wmove } from "./functions"
+
+export stdscr from "./stdscr"
 

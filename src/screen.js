@@ -1,14 +1,16 @@
 import {
+  CHANNEL_ALPHA, do_blink, draw_cursor, load_bitmap_font,
+  load_ttf_font, undraw_cursor } from "./draw"
+import {
   assert, defined,
   isNumber, isObject, isPositiveNumber, isString } from "./assert"
-import { stdscr, set_stdscr } from "./stdscr"
-import { CODEPAGE_437 } from "./constants"
 import { screen_t, tile_t, window_t } from "./types"
-import { handle_keyboard } from "./keyboard"
-import {
-  CHANNEL_ALPHA, do_blink, draw_cursor, load_bitmap_font, load_ttf_font,
-  undraw_cursor } from "./draw"
-import { start_blink } from "./functions"
+import { set_stdscr, stdscr } from "./stdscr"
+
+import CODEPAGE_437 from "./constants"
+import handle_keyboard from "./keyboard"
+import start_blink from "./functions"
+
 
 /**
  * Create a new screen, set is at the default screen, and return it.
@@ -148,7 +150,7 @@ import { start_blink } from "./functions"
  **/
 export function initscr(opts) {
   // check arg validity
-  check_initscr_args.apply(this, arguments)
+  check_initscr_args.call(this, opts)
   // set some default values for arguments
   opts.require_focus = opts.require_focus || false
   opts.font.type = isBmp(opts.font.type) ? "bmp" : "ttf"

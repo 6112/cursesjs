@@ -1,7 +1,9 @@
-import { stdscr } from "./stdscr"
-import { screen_t, tile_t } from "./types"
-import { is_key_press } from "./functions"
 import "./event"
+
+import { screen_t, tile_t } from "./types"
+
+import is_key_press from "./functions"
+import stdscr from "./stdscr"
 
 /**
  * Name constants for keys. Useful for commonly-used keycodes, especially the

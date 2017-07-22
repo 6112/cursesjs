@@ -1,7 +1,8 @@
-import { window_t } from "./types"
-import { stdscr } from "./stdscr"
-import { BLINK_DELAY } from "./constants"
 import { draw_cursor, undraw_cursor } from "./draw"
+
+import BLINK_DELAY from "./constants"
+import stdscr from "./stdscr"
+import window_t from "./types"
 
 // TODO: move everything in this file to more relevant files, and delete this
 // file
@@ -25,27 +26,21 @@ export function is_key_press(event) {
 
 // used for making a blinking cursor
 export function start_blink(scr) {
-  scr._blink_timeout = setTimeout(function() {
-    do_blink(scr)
-  }, BLINK_DELAY)
+  scr._blink_timeout = setTimeout(() => do_blink(scr), BLINK_DELAY)
 }
 
 export function do_blink(scr) {
   if (scr._cursor_visibility)
     draw_cursor(scr)
   scr._blinking = true
-  scr._blink_timeout = setTimeout(function() {
-    do_unblink(scr)
-  }, BLINK_DELAY)
+  scr._blink_timeout = setTimeout(() => do_unblink(scr), BLINK_DELAY)
 }
 
 function do_unblink(scr) {
   if (scr._cursor_visibility)
     undraw_cursor(scr)
   scr._blinking = false
-  scr._blink_timeout = setTimeout(function() {
-    do_blink(scr)
-  }, BLINK_DELAY)
+  scr._blink_timeout = setTimeout(() => do_blink(scr), BLINK_DELAY)
 }
 
 /**

@@ -1,9 +1,10 @@
-import { assert, isPositiveNumber } from "./assert"
-import { window_t, tile_t } from "./types"
-import { stdscr } from "./stdscr"
 import {
-  ACS_VLINE, ACS_HLINE, ACS_ULCORNER, ACS_URCORNER, ACS_LLCORNER,
-  ACS_LRCORNER }from "./constants"
+  ACS_HLINE, ACS_LLCORNER, ACS_LRCORNER, ACS_ULCORNER, ACS_URCORNER,
+  ACS_VLINE }from "./constants"
+import { assert, isPositiveNumber } from "./assert"
+import { tile_t, window_t } from "./types"
+
+import stdscr from "./stdscr"
 
 /**
  * Create a new window at position (y,x), with height `height` and width
@@ -120,11 +121,11 @@ window_t.prototype.box = function(vert, horiz) {
   this.border(vert.value, vert.attrs, vert.value, vert.attrs,
               horiz.value, horiz.attrs, horiz.value, horiz.attrs)
 }
-export function wbox(window, vert, horiz) {
-  return window.box(vert, horiz)
+export function wbox(window, ...args) {
+  return window.box(...args)
 }
-export function box(vert, horiz) {
-  return stdscr.box(vert, horiz)
+export function box(...args) {
+  return stdscr.box(...args)
 }
 
 /**
@@ -175,12 +176,12 @@ window_t.prototype.border = function(ls, rs, ts, bs, tl, tr, bl, br) {
              chars[3].attrs)
 }
 // eslint-disable-next-line no-unused-vars
-export function wborder(window, ls, rs, ts, bs, tl, tr, bl, br) {
-  return window.border(...Array.prototype.slice.call(arguments, 1))
+export function wborder(window, ...args) {
+  return window.border(...args)
 }
 // eslint-disable-next-line no-unused-vars
-export function border(ls, rs, ts, bs, tl, tr, bl, br) {
-  return stdscr.border(...arguments)
+export function border(...args) {
+  return stdscr.border(...args)
 }
 
 // helper function for passing arguments to box() and border()
@@ -202,7 +203,7 @@ function parse_chtypes(arglist, defaults, win) {
       chars.push(ch)
     }
     else
-      throw new TypeError("expected a character for argument " + (i + 1))
+      throw new TypeError(`expected a character for argument ${i + 1}`)
   }
   while (i < defaults.length)
     chars.push({

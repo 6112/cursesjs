@@ -1,5 +1,6 @@
 import { A_NORMAL, EMPTY_CHAR } from "./constants"
-import { COLOR_PAIR } from "./color"
+
+import COLOR_PAIR from "./color"
 
 export class tile_t {
   constructor() {

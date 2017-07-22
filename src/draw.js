@@ -1,7 +1,9 @@
-import { color_pairs, pair_number } from "./color"
 import { A_BOLD, A_NORMAL, A_REVERSE, A_UNDERLINE } from "./constants"
+import { color_pairs, pair_number } from "./color"
+
 import { screen_t, window_t } from "./types"
-import { stdscr } from "./stdscr"
+
+import stdscr from "./stdscr"
 
 // number of chars saved per off-screen canvas
 export const CHARS_PER_CANVAS = 256
@@ -23,7 +25,7 @@ export const CHANNEL_ALPHA = 3
 //
 // @param {Object} font Font to be loaded, as passed to initscr().
 export function load_ttf_font(scr, font) {
-  scr.context.font = "Bold " + font.height + "px " + font.name
+  scr.context.font = `Bold ${font.height}px ${font.name}`
   scr.context.textAlign = "left"
   const c = "m"
   // calculate the probable font metrics
@@ -36,7 +38,7 @@ export function load_ttf_font(scr, font) {
   for (const c of testChars) {
     const metrics = scr.context.measureText(c)
     if (Math.round(metrics.width) !== width)
-      console.warn(font.name + " does not seem to be a monospace font")
+      console.warn(`${font.name} does not seem to be a monospace font`)
   }
   // save the currently used font
   scr.font = {
@@ -62,11 +64,11 @@ export function load_ttf_font(scr, font) {
       canvases: null
     }
   let offscreen = make_offscreen_canvas(scr.font)
-  offscreen.ctx.font = font.height + "px " + font.name
+  offscreen.ctx.font = `${font.height}px ${font.name}`
   scr.canvas_pool.normal.canvases = [offscreen]
   if (font.use_bold) {
     offscreen = make_offscreen_canvas(scr.font)
-    offscreen.ctx.font = "Bold " + font.height + "px " + font.name
+    offscreen.ctx.font = `Bold ${font.height}px ${font.name}`
     scr.canvas_pool.bold.canvases = [offscreen]
   }
 }

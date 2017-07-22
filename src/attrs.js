@@ -1,6 +1,7 @@
-import { window_t } from "./types"
-import { stdscr } from "./stdscr"
 import { COLOR_MASK } from "./constants"
+
+import stdscr from "./stdscr"
+import window_t from "./types"
 
 /**
  * Set the new attrlist for the screen to the specified attrlist. Any previous

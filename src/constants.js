@@ -160,7 +160,7 @@ export const CODEPAGE_437 = []
       CODEPAGE_437[y] += String.fromCharCode(y * 0x20 + x)
   }
   CODEPAGE_437[0] = "\0☺☻♥♦♣♠•◘○◙♂♀♪♫☼►◄↕‼¶§▬↨↑↓→←∟↔▲▼"
-  CODEPAGE_437[3] = CODEPAGE_437[3].substr(0, 31) + "⌂"
+  CODEPAGE_437[3] = `${CODEPAGE_437[3].substr(0, 31)} ⌂`
   CODEPAGE_437[4] = "ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒ"
   CODEPAGE_437[5] = "áíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐"
   CODEPAGE_437[6] = "└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀"

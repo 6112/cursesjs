@@ -16,6 +16,14 @@ module.exports = {
     "prefer-const": "warn",
     "no-multi-spaces": "error",
     "no-trailing-spaces": "error",
+    "prefer-arrow-callback": "error",
+    "sort-imports": [
+      "error",
+    ],
+    "arrow-parens": ["error", "as-needed"],
+    "arrow-body-style": ["error", "as-needed"],
+    "eqeqeq": "error",
+    "prefer-template": "error",
     "indent": [
       "warn",
       2, {

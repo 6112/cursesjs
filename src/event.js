@@ -1,5 +1,5 @@
-import { screen_t } from "./types"
-import { stdscr } from "./stdscr"
+import screen_t from "./types"
+import stdscr from "./stdscr"
 
 /**
  * Trigger an event on the window, with name `event_name`.
@@ -9,16 +9,14 @@ import { stdscr } from "./stdscr"
  *
  * @param {String} event_name Name of the event to be fired.
  **/
-screen_t.prototype.trigger = function(event_name) {
+screen_t.prototype.trigger = function(event_name, ...args) {
   let last_return
-  if (this.listeners[event_name]) {
-    const args = [].slice.call(arguments, 1)
+  if (this.listeners[event_name])
     for (const listener of this.listeners[event_name]) {
       const returned = listener.apply(this, args)
       if (returned !== undefined)
         last_return = returned
     }
-  }
   return last_return
 }
 
@@ -48,7 +46,7 @@ screen_t.prototype.off = function(event_name, callback) {
   const listeners = this.listeners[event_name]
   let i = 0
   for (i = 0; i < listeners.length; i++)
-    if (listeners[i] == callback)
+    if (listeners[i] === callback)
       break
   if (i !== listeners.length)
     listeners.splice(i, 1)
@@ -64,8 +62,8 @@ screen_t.prototype.off = function(event_name, callback) {
  **/
 screen_t.prototype.one = function(event_name, callback) {
   const scr = this
-  this.on(event_name, function() {
-    callback.apply(this, arguments)
+  this.on(event_name, function(...args) {
+    callback.apply(this, args)
     scr.off()
   })
 }

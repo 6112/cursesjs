@@ -12,6 +12,9 @@ module.exports = {
     }, {
       test: /.js$/,
       loader: 'eslint-loader',
+      options: {
+        formatter: require('eslint/lib/formatters/unix'),
+      },
     }],
   },
 };
